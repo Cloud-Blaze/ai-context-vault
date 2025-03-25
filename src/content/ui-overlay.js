@@ -30,6 +30,7 @@ const styles = {
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
     borderRadius: "8px",
     fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    display: "none",
   },
   header: {
     color: "#7aa2d4",
@@ -107,11 +108,32 @@ function Overlay() {
   const [contextData, setContextData] = useState(null);
   const [summary, setSummary] = useState("");
 
-  useEffect(() => {
+  // Function to load/refresh context data
+  const loadContextData = () => {
     const data = getContext(domain, chatId);
     setContextData(data);
     setSummary(data.summary || "");
-  }, []);
+  };
+
+  // Initial load of context data
+  useEffect(() => {
+    loadContextData();
+
+    // Listen for context updates from other parts of the extension
+    const handleContextUpdate = (event) => {
+      // Only refresh if the updated context matches our current domain/chatId
+      if (event.detail.domain === domain && event.detail.chatId === chatId) {
+        loadContextData();
+      }
+    };
+
+    document.addEventListener("ai-context-updated", handleContextUpdate);
+
+    // Clean up the event listener when component unmounts
+    return () => {
+      document.removeEventListener("ai-context-updated", handleContextUpdate);
+    };
+  }, [domain, chatId]);
 
   const handleToggle = (entryId) => {
     toggleContext(domain, chatId, entryId);
@@ -171,11 +193,37 @@ function Overlay() {
 
 // Mount the overlay if not already present
 (function initOverlay() {
+  console.log("[AI Context Vault] Initializing overlay...");
+
   let container = document.getElementById("__ai_context_overlay_container__");
   if (!container) {
+    console.log("[AI Context Vault] Creating overlay container");
     container = document.createElement("div");
     container.id = "__ai_context_overlay_container__";
     document.body.appendChild(container);
+  } else {
+    console.log("[AI Context Vault] Overlay container already exists");
   }
-  createRoot(container).render(<Overlay />);
+
+  try {
+    console.log("[AI Context Vault] Rendering overlay component");
+    createRoot(container).render(<Overlay />);
+    console.log("[AI Context Vault] Overlay rendered successfully");
+
+    // Verify the overlay element was created
+    setTimeout(() => {
+      const overlayElement = document.getElementById("__ai_context_overlay__");
+      if (overlayElement) {
+        console.log(
+          "[AI Context Vault] Overlay element exists with ID: __ai_context_overlay__"
+        );
+      } else {
+        console.error(
+          "[AI Context Vault] Overlay element not found after rendering!"
+        );
+      }
+    }, 100);
+  } catch (error) {
+    console.error("[AI Context Vault] Error rendering overlay:", error);
+  }
 })();

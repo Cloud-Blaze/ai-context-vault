@@ -42,8 +42,8 @@
     },
     "show-context-manager": {
       "suggested_key": {
-        "windows": "Ctrl+Shift+I",
-        "mac": "Command+Shift+I"
+        "windows": "Ctrl+J",
+        "mac": "Command+J"
       },
       "description": "Show/hide AI Context Vault manager overlay"
     }

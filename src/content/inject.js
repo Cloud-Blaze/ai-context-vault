@@ -55,17 +55,52 @@ function interceptSendButton() {
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
   interceptSendButton();
+  setupKeyboardShortcuts();
 });
+
+// Additional direct keyboard shortcuts
+function setupKeyboardShortcuts() {
+  console.log("[AI Context Vault] Setting up direct keyboard shortcuts");
+
+  document.addEventListener("keydown", (event) => {
+    // Check for CMD+J (Mac) or CTRL+J (Windows/Linux)
+    if ((event.metaKey || event.ctrlKey) && event.key === "j") {
+      console.log(
+        "[AI Context Vault] Direct keyboard shortcut: CMD/CTRL+J detected"
+      );
+      event.preventDefault(); // Prevent browser's default action
+
+      const panel = document.getElementById("__ai_context_overlay__");
+      if (panel) {
+        panel.style.display = panel.style.display === "none" ? "block" : "none";
+        console.log(
+          "[AI Context Vault] Toggled overlay to:",
+          panel.style.display
+        );
+      } else {
+        console.log(
+          "[AI Context Vault] Direct toggle failed: Overlay panel not found"
+        );
+      }
+    }
+  });
+}
 
 // Listen for background messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log("[AI Context Vault] Message received:", message);
+
   if (message.type === "SAVE_SELECTED_CONTEXT") {
     handleSaveSelectedContext();
   }
   if (message.type === "TOGGLE_OVERLAY") {
+    console.log("[AI Context Vault] Toggling overlay visibility");
     const panel = document.getElementById("__ai_context_overlay__");
     if (panel) {
       panel.style.display = panel.style.display === "none" ? "block" : "none";
+      console.log("[AI Context Vault] Overlay is now:", panel.style.display);
+    } else {
+      console.log("[AI Context Vault] Overlay panel not found!");
     }
   }
   sendResponse && sendResponse({ status: "ok" });
@@ -78,6 +113,12 @@ function handleSaveSelectedContext() {
     import("../storage/contextStorage").then((storage) => {
       storage.addContext(domain, chatId, selection);
       showConfirmationBubble(selection);
+
+      // Trigger a custom event to notify the overlay to refresh
+      const event = new CustomEvent("ai-context-updated", {
+        detail: { domain, chatId },
+      });
+      document.dispatchEvent(event);
     });
   } else {
     console.log("No text selected to save.");

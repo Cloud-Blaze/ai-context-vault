@@ -2,6 +2,8 @@
 // Handles extension-level events, hotkeys, and messages to content scripts
 
 chrome.commands.onCommand.addListener(async (command) => {
+  console.log("[AI Context Vault] Command received:", command);
+
   if (command === "save-selected-context") {
     // Broadcast message to content script to save the user's selection
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -12,6 +14,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       }
     });
   } else if (command === "show-context-manager") {
+    console.log("[AI Context Vault] Toggling overlay...");
     // Toggle the overlay UI
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]) {
