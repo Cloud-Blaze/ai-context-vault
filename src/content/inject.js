@@ -72,6 +72,18 @@ function setupKeyboardShortcuts() {
 
       const panel = document.getElementById("__ai_context_overlay__");
       if (panel) {
+        // If panel is already visible, trigger a context refresh before toggling
+        if (panel.style.display !== "none") {
+          // Trigger context refresh event
+          const { domain, chatId } = parseUrlForIds(window.location.href);
+          const refreshEvent = new CustomEvent("ai-context-refresh-requested", {
+            detail: { domain, chatId, forceRefresh: true },
+          });
+          document.dispatchEvent(refreshEvent);
+          console.log("[AI Context Vault] Requested context refresh");
+        }
+
+        // Toggle visibility
         panel.style.display = panel.style.display === "none" ? "block" : "none";
         console.log(
           "[AI Context Vault] Toggled overlay to:",
@@ -97,6 +109,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("[AI Context Vault] Toggling overlay visibility");
     const panel = document.getElementById("__ai_context_overlay__");
     if (panel) {
+      // If panel is already visible, trigger a context refresh before toggling
+      if (panel.style.display !== "none") {
+        // Trigger context refresh event
+        const { domain, chatId } = parseUrlForIds(window.location.href);
+        const refreshEvent = new CustomEvent("ai-context-refresh-requested", {
+          detail: { domain, chatId, forceRefresh: true },
+        });
+        document.dispatchEvent(refreshEvent);
+        console.log("[AI Context Vault] Requested context refresh via message");
+      }
+
       panel.style.display = panel.style.display === "none" ? "block" : "none";
       console.log("[AI Context Vault] Overlay is now:", panel.style.display);
     } else {

@@ -100,20 +100,62 @@ const styles = {
     textAlign: "center",
     marginTop: 20,
   },
+  loadingIndicator: {
+    color: "#7aa2d4",
+    fontSize: 12,
+    fontStyle: "italic",
+    marginBottom: 10,
+    textAlign: "center",
+  },
 };
 
 // Basic overlay component
 function Overlay() {
-  const { domain, chatId } = parseUrlForIds(window.location.href);
+  const [currentUrl, setCurrentUrl] = useState(window.location.href);
+  const { domain, chatId } = parseUrlForIds(currentUrl);
   const [contextData, setContextData] = useState(null);
   const [summary, setSummary] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Function to load/refresh context data
   const loadContextData = () => {
-    const data = getContext(domain, chatId);
-    setContextData(data);
-    setSummary(data.summary || "");
+    setIsLoading(true);
+    const { domain: newDomain, chatId: newChatId } = parseUrlForIds(
+      window.location.href
+    );
+    console.log(
+      `[AI Context Vault] Loading context for domain: ${newDomain}, chatId: ${newChatId}`
+    );
+
+    // Small delay to ensure loading state is shown even for quick loads
+    setTimeout(() => {
+      const data = getContext(newDomain, newChatId);
+      setContextData(data);
+      setSummary(data.summary || "");
+      setIsLoading(false);
+    }, 300);
   };
+
+  // URL change detection
+  useEffect(() => {
+    // Function to check for URL changes
+    const checkForUrlChange = () => {
+      const newUrl = window.location.href;
+      if (newUrl !== currentUrl) {
+        console.log(
+          `[AI Context Vault] URL changed from ${currentUrl} to ${newUrl}`
+        );
+        setCurrentUrl(newUrl);
+        loadContextData();
+      }
+    };
+
+    // Set up interval to check for URL changes
+    const urlCheckInterval = setInterval(checkForUrlChange, 1000);
+
+    // Clean up interval on unmount
+    return () => clearInterval(urlCheckInterval);
+  }, [currentUrl]);
 
   // Initial load of context data
   useEffect(() => {
@@ -122,18 +164,44 @@ function Overlay() {
     // Listen for context updates from other parts of the extension
     const handleContextUpdate = (event) => {
       // Only refresh if the updated context matches our current domain/chatId
-      if (event.detail.domain === domain && event.detail.chatId === chatId) {
+      const { domain: currentDomain, chatId: currentChatId } = parseUrlForIds(
+        window.location.href
+      );
+      if (
+        event.detail.domain === currentDomain &&
+        event.detail.chatId === currentChatId
+      ) {
+        loadContextData();
+      }
+    };
+
+    // Listen for manual refresh requests (e.g., when toggling overlay visibility)
+    const handleRefreshRequest = (event) => {
+      console.log("[AI Context Vault] Received refresh request");
+      if (
+        event.detail.forceRefresh ||
+        (event.detail.domain === parseUrlForIds(window.location.href).domain &&
+          event.detail.chatId === parseUrlForIds(window.location.href).chatId)
+      ) {
         loadContextData();
       }
     };
 
     document.addEventListener("ai-context-updated", handleContextUpdate);
+    document.addEventListener(
+      "ai-context-refresh-requested",
+      handleRefreshRequest
+    );
 
-    // Clean up the event listener when component unmounts
+    // Clean up the event listeners when component unmounts
     return () => {
       document.removeEventListener("ai-context-updated", handleContextUpdate);
+      document.removeEventListener(
+        "ai-context-refresh-requested",
+        handleRefreshRequest
+      );
     };
-  }, [domain, chatId]);
+  }, []);
 
   const handleToggle = (entryId) => {
     toggleContext(domain, chatId, entryId);
@@ -156,6 +224,9 @@ function Overlay() {
   return (
     <div style={styles.overlay} id="__ai_context_overlay__">
       <h3 style={styles.header}>AI Context Vault</h3>
+      {isLoading && (
+        <div style={styles.loadingIndicator}>Loading context data...</div>
+      )}
       <div>
         <label style={styles.label}>Summary:</label>
         <textarea
@@ -163,10 +234,13 @@ function Overlay() {
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
           onBlur={handleSummarySave}
+          disabled={isLoading}
         />
       </div>
       <hr style={styles.divider} />
-      {contextData.entries.length === 0 ? (
+      {isLoading ? (
+        <p style={styles.emptyMessage}>Loading context entries...</p>
+      ) : contextData.entries.length === 0 ? (
         <p style={styles.emptyMessage}>No saved entries yet.</p>
       ) : (
         contextData.entries.map((entry) => (
@@ -176,11 +250,13 @@ function Overlay() {
               checked={entry.active}
               onChange={() => handleToggle(entry.id)}
               style={styles.checkbox}
+              disabled={isLoading}
             />
             <span style={styles.entryText}>{entry.text}</span>
             <button
               style={styles.deleteButton}
               onClick={() => handleDelete(entry.text)}
+              disabled={isLoading}
             >
               Delete
             </button>
