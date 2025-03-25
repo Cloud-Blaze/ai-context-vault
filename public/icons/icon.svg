@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Background vault circle -->
+  <circle cx="64" cy="64" r="60" fill="#4a6fa5" />
+  <circle cx="64" cy="64" r="52" fill="#2c3e50" />
+  
+  <!-- Brain shape -->
+  <path d="M64,34 C46,34 36,48 36,58 C36,68 44,78 64,78 C84,78 92,68 92,58 C92,48 82,34 64,34 Z" fill="#f39c12" />
+  
+  <!-- Brain details -->
+  <path d="M64,38 C50,38 42,50 42,58 C42,66 48,74 64,74 C80,74 86,66 86,58 C86,50 78,38 64,38 Z" fill="#e67e22" />
+  
+  <!-- Left brain hemisphere -->
+  <path d="M42,55 C42,55 48,42 58,42 C58,42 56,50 52,54 C48,58 42,55 42,55 Z" fill="#f1c40f" />
+  
+  <!-- Right brain hemisphere -->
+  <path d="M86,55 C86,55 80,42 70,42 C70,42 72,50 76,54 C80,58 86,55 86,55 Z" fill="#f1c40f" />
+  
+  <!-- Memory connections -->
+  <line x1="58" y1="60" x2="58" y2="70" stroke="#3498db" stroke-width="2" />
+  <line x1="64" y1="60" x2="64" y2="70" stroke="#3498db" stroke-width="2" />
+  <line x1="70" y1="60" x2="70" y2="70" stroke="#3498db" stroke-width="2" />
+  
+  <!-- Memory nodes -->
+  <circle cx="58" cy="72" r="3" fill="#3498db" />
+  <circle cx="64" cy="72" r="3" fill="#3498db" />
+  <circle cx="70" cy="72" r="3" fill="#3498db" />
+  
+  <!-- Lock mechanism for vault concept -->
+  <rect x="59" y="82" width="10" height="15" rx="2" fill="#f39c12" />
+  <rect x="57" y="82" width="14" height="5" rx="2" fill="#e67e22" />
+</svg> 

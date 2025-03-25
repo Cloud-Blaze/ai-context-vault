@@ -1,0 +1,27 @@
+{
+  "name": "ai-context-vault",
+  "version": "0.1.0",
+  "description": "Chrome extension to store and auto-inject user context into AI chat interfaces.",
+  "scripts": {
+    "dev": "webpack serve --mode development",
+    "build": "webpack --mode production"
+  },
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@babel/preset-env": "^7.20.0",
+    "@babel/preset-react": "^7.20.0",
+    "babel-loader": "^9.1.2",
+    "copy-webpack-plugin": "^13.0.0",
+    "css-loader": "^6.7.2",
+    "style-loader": "^3.3.2",
+    "webpack": "^5.94.0",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.11.1"
+  }
+}

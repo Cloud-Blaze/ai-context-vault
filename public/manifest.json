@@ -1,0 +1,51 @@
+{
+  "name": "AI Context Vault",
+  "description": "Store and auto-inject user context into AI chat interfaces.",
+  "version": "0.1.0",
+  "manifest_version": 3,
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://chat.openai.com/*",
+    "https://claude.ai/*",
+    "https://chatgpt.com/*",
+    "https://*.google.com/*"
+  ],
+  "action": {
+    "default_popup": "options.html"
+  },
+  "background": {
+    "service_worker": "background.bundle.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://chatgpt.com/*",
+        "https://*.google.com/*"
+      ],
+      "js": ["inject.bundle.js", "uiOverlay.bundle.js"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "save-selected-context": {
+      "suggested_key": {
+        "windows": "Ctrl+I",
+        "mac": "Command+I"
+      },
+      "description": "Save highlighted text to AI Context Vault"
+    },
+    "show-context-manager": {
+      "suggested_key": {
+        "windows": "Ctrl+Shift+I",
+        "mac": "Command+Shift+I"
+      },
+      "description": "Show/hide AI Context Vault manager overlay"
+    }
+  }
+}
