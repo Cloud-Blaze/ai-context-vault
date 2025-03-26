@@ -237,6 +237,7 @@ function refreshOverlayContent(overlayPanel) {
         const editTextarea = document.createElement("textarea");
         editTextarea.value = entry.text;
         editTextarea.style.width = "100%";
+        editTextarea.style.height = "600px";
         editTextarea.style.minHeight = "100px";
         editTextarea.style.maxHeight = "75vh";
         editTextarea.style.backgroundColor = "#2d2d2d";
@@ -294,7 +295,7 @@ function refreshOverlayContent(overlayPanel) {
         });
 
         // Edit button click handler
-        editButton.addEventListener("click", function () {
+        editButton.addEventListener("click", async function () {
           const isEditing = editTextarea.style.display === "block";
 
           if (!isEditing) {
@@ -320,8 +321,16 @@ function refreshOverlayContent(overlayPanel) {
             // Save changes
             const newText = editTextarea.value.trim();
             if (newText && newText !== entry.text) {
-              import("../storage/contextStorage").then((storage) => {
-                storage.updateContext(domain, chatId, entry.text, newText);
+              try {
+                const storage = await import("../storage/contextStorage");
+                await storage.updateContext(
+                  domain,
+                  chatId,
+                  entry.text,
+                  newText
+                );
+
+                // Update local entry
                 entry.text = newText;
                 text.textContent = newText;
 
@@ -330,7 +339,19 @@ function refreshOverlayContent(overlayPanel) {
                   detail: { domain, chatId },
                 });
                 document.dispatchEvent(event);
-              });
+
+                // Show success feedback
+                showConfirmationBubble(
+                  "Context updated successfully",
+                  "success"
+                );
+              } catch (error) {
+                console.error(
+                  "[AI Context Vault] Error updating context:",
+                  error
+                );
+                showConfirmationBubble("Failed to update context", "error");
+              }
             }
 
             // Reset UI

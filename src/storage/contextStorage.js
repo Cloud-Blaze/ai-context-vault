@@ -78,3 +78,30 @@ export function updateSummary(domain, chatId, summary) {
   saveContext(domain, chatId, ctx);
   return ctx;
 }
+
+// Update an existing context entry
+export async function updateContext(domain, chatId, oldText, newText) {
+  try {
+    const ctx = getContext(domain, chatId);
+
+    // Find and update the entry
+    const entryIndex = ctx.entries.findIndex((entry) => entry.text === oldText);
+
+    if (entryIndex !== -1) {
+      // Update the entry text
+      ctx.entries[entryIndex].text = newText;
+
+      // Save back to storage using our saveContext function
+      saveContext(domain, chatId, ctx);
+
+      console.log("[AI Context Vault] Updated context entry");
+      return true;
+    } else {
+      console.error("[AI Context Vault] Context entry not found");
+      return false;
+    }
+  } catch (error) {
+    console.error("[AI Context Vault] Error updating context:", error);
+    throw error;
+  }
+}
