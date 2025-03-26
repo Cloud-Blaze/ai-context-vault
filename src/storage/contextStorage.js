@@ -46,6 +46,7 @@ export function addContext(domain, chatId, text) {
       text,
       active: true,
       created: Date.now(),
+      lastModified: Date.now(),
     });
   }
   saveContext(domain, chatId, ctx);
@@ -88,8 +89,9 @@ export async function updateContext(domain, chatId, oldText, newText) {
     const entryIndex = ctx.entries.findIndex((entry) => entry.text === oldText);
 
     if (entryIndex !== -1) {
-      // Update the entry text
+      // Update the entry text and timestamp
       ctx.entries[entryIndex].text = newText;
+      ctx.entries[entryIndex].lastModified = Date.now();
 
       // Save back to storage using our saveContext function
       saveContext(domain, chatId, ctx);

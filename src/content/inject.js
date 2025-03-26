@@ -16,6 +16,18 @@ import { parseUrlForIds, getContext } from "../storage/contextStorage";
  * between your context and your message for better readability.
  */
 
+// Function to format timestamp in DD/MM HH:mm format
+function formatTimestamp(timestamp) {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${month}/${day} ${hours}:${minutes}:${seconds}`;
+}
+
 // Function to format our context for insertion into the message
 function formatContextForPrompt(context) {
   if (!context || !context.entries || context.entries.length === 0) {
@@ -32,7 +44,8 @@ function formatContextForPrompt(context) {
   // Add active entries
   const activeEntries = context.entries.filter((e) => e.active);
   activeEntries.forEach((entry) => {
-    formattedContext += `• ${entry.text}\n`;
+    const timestamp = formatTimestamp(entry.lastModified || entry.created);
+    formattedContext += `• [${timestamp}] ${entry.text}\n`;
   });
 
   // Add spacing if we have any context
@@ -411,7 +424,7 @@ function setupKeyboardShortcuts() {
     "keydown",
     (event) => {
       // ALT+I to save selected text
-      if (event.altKey && event.key === "i") {
+      if ((event.ctrlKey || event.metaKey) && event.key === "i") {
         console.log("[AI Context Vault] Modifier+I - save selected text");
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -445,8 +458,8 @@ function setupKeyboardShortcuts() {
       }
 
       // ALT+SHIFT+I: Toggle overlay
-      if (event.altKey && event.shiftKey && event.key === "i") {
-        console.log("[AI Context Vault] Toggle overlay (ALT+SHIFT+I)");
+      if ((event.metaKey || event.ctrlKey) && event.key === "j") {
+        console.log("[AI Context Vault] Toggle overlay (CMD/CTRL+J)");
         event.preventDefault();
         event.stopImmediatePropagation();
         toggleOverlay();
@@ -601,11 +614,16 @@ function injectContextIntoTextarea(shouldSendAfterInjection = false) {
     return;
   }
 
+  // Get current timestamp
+  const currentTimestamp = formatTimestamp(Date.now());
+
   // Construct the new content
   const newContent =
     "‼️ CONTEXT PROTOCOL - HIGHEST PRIORITY:\n\n" +
     formattedContext +
-    '\n\n📏EXECUTION PARAMETERS:\n- Full contextual compliance is a non-negotiable requirement\n\n- Deviation from established context is prohibited\n\n- Every response must be comprehensively informed by and aligned with this context\n\nCONTINUED INTERACTION:\n-Preserve and apply all previous contextual understanding\n-Integrate new input with existing knowledge\n-Respond comprehensively and contextually\n\n🆕NEW USER PROMPT: \n"' +
+    "\n\n📏EXECUTION PARAMETERS:\n- Full contextual compliance is a non-negotiable requirement\n\n- Deviation from established context is prohibited\n\n- Every response must be comprehensively informed by and aligned with this context\n\nCONTINUED INTERACTION:\n-Preserve and apply all previous contextual understanding\n-Integrate new input with existing knowledge\n-Respond comprehensively and contextually\n\n🆕NEW USER PROMPT ON " +
+    currentTimestamp +
+    ': \n"' +
     currentContent +
     '"';
 
