@@ -277,6 +277,15 @@ function setupKeyboardShortcuts() {
 
   // Main keyboard event listener
   document.addEventListener("keydown", (event) => {
+    // CTRL+I (Windows/Linux) or CMD+I (Mac) to save selected text to context
+    if ((event.ctrlKey || event.metaKey) && event.key === "i") {
+      console.log(
+        "[AI Context Vault] Modifier+I detected - saving selected text to context"
+      );
+      event.preventDefault();
+      handleSaveSelectedContext();
+    }
+
     // CTRL+SHIFT+\ (Windows/Linux) or CMD+SHIFT+\ (Mac) to inject context AND send
     if (
       (event.ctrlKey || event.metaKey) &&
@@ -286,7 +295,7 @@ function setupKeyboardShortcuts() {
       console.log(
         "[AI Context Vault] Modifier+SHIFT+\\ detected - injecting context and sending"
       );
-      event.preventDefault(); // Prevent default action
+      event.preventDefault();
       injectContextAndSendMessage();
     }
 
@@ -302,7 +311,7 @@ function setupKeyboardShortcuts() {
     // CMD+J (Mac) or CTRL+J (Windows/Linux) to toggle overlay
     if ((event.metaKey || event.ctrlKey) && event.key === "j") {
       console.log("[AI Context Vault] Toggle overlay shortcut detected");
-      event.preventDefault(); // Prevent browser's default action
+      event.preventDefault();
       toggleOverlay();
     }
   });
@@ -431,6 +440,7 @@ function findActiveTextarea() {
         !element.disabled &&
         !element.readOnly
       ) {
+        console.log("[AI Context Vault] Found active textarea:", selector);
         return element;
       }
     }
@@ -568,11 +578,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function handleSaveSelectedContext() {
+  console.log("[AI Context Vault] Handling text selection...");
+
   // First check if we have a textarea selection
   const textarea = findActiveTextarea();
   let selectedText = "";
 
   if (textarea) {
+    console.log("[AI Context Vault] Found textarea, checking for selection...");
+
     // If it's a contenteditable div
     if (textarea.tagName.toLowerCase() === "div") {
       const selection = window.getSelection();
@@ -581,6 +595,9 @@ function handleSaveSelectedContext() {
         // Only use the selection if it's within our textarea
         if (textarea.contains(range.commonAncestorContainer)) {
           selectedText = range.toString().trim();
+          console.log(
+            "[AI Context Vault] Found selection in contenteditable div"
+          );
         }
       }
     } else {
@@ -589,6 +606,7 @@ function handleSaveSelectedContext() {
       const end = textarea.selectionEnd;
       if (start !== end) {
         selectedText = textarea.value.substring(start, end).trim();
+        console.log("[AI Context Vault] Found selection in standard textarea");
       }
     }
   }
@@ -596,9 +614,14 @@ function handleSaveSelectedContext() {
   // If no textarea selection, fall back to regular window selection
   if (!selectedText) {
     selectedText = window.getSelection().toString().trim();
+    console.log("[AI Context Vault] Using window selection");
   }
 
   if (selectedText) {
+    console.log(
+      "[AI Context Vault] Saving selected text to context:",
+      selectedText.substring(0, 30) + "..."
+    );
     const { domain, chatId } = parseUrlForIds(window.location.href);
     import("../storage/contextStorage").then((storage) => {
       storage.addContext(domain, chatId, selectedText);
@@ -614,7 +637,7 @@ function handleSaveSelectedContext() {
       document.dispatchEvent(event);
     });
   } else {
-    console.log("No text selected to save.");
+    console.log("[AI Context Vault] No text selected to save");
     showConfirmationBubble("No text selected to save", "warning");
   }
 }
