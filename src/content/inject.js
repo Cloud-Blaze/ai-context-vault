@@ -1,5 +1,6 @@
 // inject.js
-// Content script that provides keyboard shortcut to inject context into AI chat messages.
+// Content script that provides keyboard shortcut to inject context into AI chat messages,
+// with a modified approach to prevent ChatGPT from intercepting CMD+ENTER/CTRL+ENTER.
 
 import { parseUrlForIds, getContext } from "../storage/contextStorage";
 
@@ -53,7 +54,10 @@ function formatContextForPrompt(context) {
   console.log("[AI Context Vault] Initialization complete");
 })();
 
-// Ensure that the context overlay exists in the DOM
+/**
+ * Ensure that the context overlay exists in the DOM.
+ * If it doesn't exist, create it. This is where we display the saved context items.
+ */
 function ensureOverlayExists() {
   // Check if the overlay already exists
   let overlayPanel = document.getElementById("__ai_context_overlay__");
@@ -149,7 +153,9 @@ function ensureOverlayExists() {
   return overlayPanel;
 }
 
-// Refresh the content of the overlay with current context data
+/**
+ * Refresh the content of the overlay with current context data.
+ */
 function refreshOverlayContent(overlayPanel) {
   const contentContainer = document.getElementById("__ai_context_content__");
   if (!contentContainer) {
@@ -305,7 +311,7 @@ function refreshOverlayContent(overlayPanel) {
             editButton.innerHTML = "✓"; // Save icon
             editButton.style.color = "#4ade80";
 
-            // Hide other entries
+            // Hide other entries while editing
             const allEntries = entriesSection.querySelectorAll(
               "div[style*='margin-bottom: 8px']"
             );
@@ -393,67 +399,84 @@ function refreshOverlayContent(overlayPanel) {
   console.log("[AI Context Vault] Refreshed overlay content");
 }
 
-// Set up keyboard shortcuts for context injection
+/**
+ * Set up keyboard shortcuts. Note the special capturing approach for CMD+ENTER/CTRL+ENTER.
+ */
 function setupKeyboardShortcuts() {
   console.log("[AI Context Vault] Setting up keyboard shortcuts");
 
-  // Main keyboard event listener
-  document.addEventListener("keydown", (event) => {
-    // CTRL+I (Windows/Linux) or CMD+I (Mac) to save selected text to context
-    if ((event.ctrlKey || event.metaKey) && event.key === "i") {
-      console.log(
-        "[AI Context Vault] Modifier+I detected - saving selected text to context"
-      );
-      event.preventDefault();
-      handleSaveSelectedContext();
-    }
+  // 1) Listen in *capturing phase* so we can intercept events before ChatGPT does.
+  //    We pass `true` as the last argument for addEventListener.
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      // CMD+I / CTRL+I to save selected text
+      if ((event.ctrlKey || event.metaKey) && event.key === "i") {
+        console.log("[AI Context Vault] Modifier+I - save selected text");
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        handleSaveSelectedContext();
+        return;
+      }
 
-    // CTRL+SHIFT+\ (Windows/Linux) or CMD+SHIFT+\ (Mac) to inject context AND send
-    if (
-      (event.ctrlKey || event.metaKey) &&
-      event.shiftKey &&
-      event.key === "\\"
-    ) {
-      console.log(
-        "[AI Context Vault] Modifier+SHIFT+\\ detected - injecting context and sending"
-      );
-      event.preventDefault();
-      injectContextAndSendMessage();
-    }
+      // CMD+SHIFT+\ / CTRL+SHIFT+\ to inject context AND send
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.shiftKey &&
+        event.key === "\\"
+      ) {
+        console.log(
+          "[AI Context Vault] Modifier+SHIFT+\\ - inject context + send"
+        );
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        injectContextIntoTextarea(true);
+        return;
+      }
 
-    // We'll keep the old shortcut as a way to just inject without sending
-    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
-      console.log(
-        "[AI Context Vault] Modifier+ENTER detected - injecting context without sending"
-      );
-      event.preventDefault();
-      injectContextIntoTextarea(false); // Don't send after injection
-    }
+      // CMD+ENTER / CTRL+ENTER: inject context into the message box *without* sending
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        console.log(
+          "[AI Context Vault] Modifier+ENTER - injecting context (captured early)"
+        );
+        // This is the key fix: we stop the event so ChatGPT won't send the message.
+        event.preventDefault();
+        event.stopImmediatePropagation();
 
-    // CMD+J (Mac) or CTRL+J (Windows/Linux) to toggle overlay
-    if ((event.metaKey || event.ctrlKey) && event.key === "j") {
-      console.log("[AI Context Vault] Toggle overlay shortcut detected");
-      event.preventDefault();
-      toggleOverlay();
-    }
-  });
+        // Insert context into the text area, but do *not* send
+        injectContextIntoTextarea(false);
+        return;
+      }
+
+      // CMD+J / CTRL+J: Toggle overlay
+      if ((event.metaKey || event.ctrlKey) && event.key === "j") {
+        console.log("[AI Context Vault] Toggle overlay (CMD/CTRL+J)");
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        toggleOverlay();
+      }
+    },
+    true // Capture phase
+  );
 }
 
-// Toggle the context overlay visibility
+/**
+ * Toggle the context overlay visibility.
+ */
 function toggleOverlay() {
   // First ensure the overlay exists
   const panel = ensureOverlayExists();
 
-  // Log current computed style to debug visibility issues
+  // Log current computed style
   const currentDisplayStyle = window.getComputedStyle(panel).display;
   console.log(
-    "[AI Context Vault] Current overlay computed style - display:",
+    "[AI Context Vault] Current overlay computed style:",
     currentDisplayStyle
   );
 
   // If panel is already visible, trigger a context refresh before toggling
   if (panel.style.display !== "none" && currentDisplayStyle !== "none") {
-    // Trigger context refresh event
+    // Trigger context refresh
     const { domain, chatId } = parseUrlForIds(window.location.href);
     const refreshEvent = new CustomEvent("ai-context-refresh-requested", {
       detail: { domain, chatId, forceRefresh: true },
@@ -462,36 +485,26 @@ function toggleOverlay() {
     console.log("[AI Context Vault] Requested context refresh");
   }
 
-  // Apply more forceful visibility styles to ensure it shows/hides
   if (panel.style.display === "none" || currentDisplayStyle === "none") {
-    // Force visibility with multiple properties
+    // Show
     panel.style.display = "block";
     panel.style.visibility = "visible";
     panel.style.opacity = "1";
-    panel.style.zIndex = "999999"; // Make sure it's on top
-
-    console.log(
-      "[AI Context Vault] Forced overlay to VISIBLE with multiple style properties"
-    );
+    panel.style.zIndex = "999999";
+    console.log("[AI Context Vault] Forced overlay to VISIBLE");
   } else {
-    // Force hiding with multiple properties
+    // Hide
     panel.style.display = "none";
     panel.style.visibility = "hidden";
     panel.style.opacity = "0";
-
-    console.log(
-      "[AI Context Vault] Forced overlay to HIDDEN with multiple style properties"
-    );
+    console.log("[AI Context Vault] Forced overlay to HIDDEN");
   }
 
-  // Log what we think the state is now
-  console.log("[AI Context Vault] Toggled overlay to:", panel.style.display);
-
-  // Double-check after a short delay that our style changes persisted
+  // Double-check after a short delay
   setTimeout(() => {
     const newDisplayStyle = window.getComputedStyle(panel).display;
     console.log(
-      "[AI Context Vault] Overlay display style after toggle:",
+      "[AI Context Vault] Overlay display after toggle:",
       newDisplayStyle
     );
 
@@ -500,11 +513,7 @@ function toggleOverlay() {
       (panel.style.display === "block" && newDisplayStyle === "none") ||
       (panel.style.display === "none" && newDisplayStyle !== "none")
     ) {
-      console.log(
-        "[AI Context Vault] Styles didn't persist! Trying direct CSS manipulation"
-      );
-
-      // Create and apply a style tag for more forceful overrides
+      console.log("[AI Context Vault] Styles didn't persist! Forcing override");
       const styleId = "__ai_context_overlay_style_fix";
       let styleTag = document.getElementById(styleId);
 
@@ -537,32 +546,26 @@ function toggleOverlay() {
   }, 100);
 }
 
-// Inject context and send the message
-function injectContextAndSendMessage() {
-  injectContextIntoTextarea(true);
-}
-
-// Find the active textarea in ChatGPT interface
+/**
+ * Find the active textarea in ChatGPT's interface or a generic text field if needed.
+ */
 function findActiveTextarea() {
-  // Common selectors for finding the textarea in different AI chat interfaces
   const possibleSelectors = [
     "textarea[data-id='root']", // ChatGPT
-    "textarea.chat-input", // Common class
-    "div[contenteditable='true']", // Some interfaces use contenteditable divs
-    "textarea", // Generic fallback
+    "textarea.chat-input",
+    "div[contenteditable='true']",
+    "textarea", // fallback
   ];
 
-  // Try each selector until we find a match
   for (const selector of possibleSelectors) {
     const elements = document.querySelectorAll(selector);
     for (const element of elements) {
-      // Look for visible elements that are likely to be the chat input
       if (
         element.offsetParent !== null &&
         !element.disabled &&
         !element.readOnly
       ) {
-        console.log("[AI Context Vault] Found active textarea:", selector);
+        console.log("[AI Context Vault] Found active input using:", selector);
         return element;
       }
     }
@@ -572,7 +575,9 @@ function findActiveTextarea() {
   return null;
 }
 
-// Inject context into the active textarea
+/**
+ * Inject context into the active textarea. Optionally send the message.
+ */
 function injectContextIntoTextarea(shouldSendAfterInjection = false) {
   const textarea = findActiveTextarea();
   if (!textarea) {
@@ -586,57 +591,51 @@ function injectContextIntoTextarea(shouldSendAfterInjection = false) {
     // Handle contenteditable div
     currentContent = textarea.innerText;
   } else {
-    // Handle standard textarea
+    // Standard textarea
     currentContent = textarea.value;
   }
 
-  // Get the context for the current domain/chat
+  // Get context data
   const { domain, chatId } = parseUrlForIds(window.location.href);
   const contextData = getContext(domain, chatId);
   const formattedContext = formatContextForPrompt(contextData);
 
-  // If no context to add, show a message and return
   if (!formattedContext) {
     showConfirmationBubble("No context available to inject", "warning");
     return;
   }
 
-  // Ensure newlines are preserved by using explicit newline characters
-  // Add two blank lines between context and user message for better separation
+  // Construct the new content
   const newContent =
     "Abide by the following important context:\n\n" +
     formattedContext +
     "\n\nNew Request:\n\n" +
     currentContent;
 
-  // Update the textarea content
+  // Update the textarea
   if (textarea.tagName.toLowerCase() === "div") {
-    // Handle contenteditable div - use innerHTML with <br> tags for better line break preservation
-    // First convert newlines to <br> tags
-    const htmlContent = newContent.replace(/\n/g, "<br>");
+    // contenteditable div
+    const htmlContent = newContent.replace(
+      /\n/g,
+      '<p><br class="ProseMirror-trailingBreak"></p>'
+    );
     textarea.innerHTML = htmlContent;
-    // Also dispatch input event to ensure UI updates
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
   } else {
-    // Handle standard textarea
+    // standard textarea
     textarea.value = newContent;
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
-  // Make sure the cursor is at the end
   textarea.focus();
 
-  // If we should send the message after injection
   if (shouldSendAfterInjection) {
-    // Show sending confirmation
     showConfirmationBubble(
       "Injecting context and sending message...",
       "success"
     );
-
-    // Small delay to make sure the UI has updated with the new content
     setTimeout(() => {
-      // Simulate pressing Enter to send the message
+      // Simulate pressing Enter
       const enterEvent = new KeyboardEvent("keydown", {
         key: "Enter",
         code: "Enter",
@@ -646,46 +645,13 @@ function injectContextIntoTextarea(shouldSendAfterInjection = false) {
         cancelable: true,
       });
       textarea.dispatchEvent(enterEvent);
-
-      // Try clicking the send button as a backup
-      tryClickingSendButton();
     }, 100);
   } else {
-    // Just show the normal confirmation for injection without sending
     showConfirmationBubble("Context injected! Press ENTER to send", "success");
   }
 }
 
-// Try to find and click the send button (as a backup method)
-function tryClickingSendButton() {
-  // Common selectors for send buttons
-  const sendButtonSelectors = [
-    "button[data-testid='send-button']",
-    "button.send-button",
-    "button[aria-label='Send message']",
-    "button.ChatMessageInputFooter__SendIcon",
-    // ChatGPT's send button often has multiple classes so we use partial matching
-    "button[class*='bottom']",
-  ];
-
-  // Try each selector
-  for (const selector of sendButtonSelectors) {
-    const buttons = document.querySelectorAll(selector);
-    for (const button of buttons) {
-      if (button && button.offsetParent !== null && !button.disabled) {
-        // Found a visible, enabled button - click it
-        console.log("[AI Context Vault] Found send button, clicking it");
-        button.click();
-        return true;
-      }
-    }
-  }
-
-  console.log("[AI Context Vault] Could not find send button to click");
-  return false;
-}
-
-// Listen for background messages
+// Listen for background messages (from popup, etc.)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log("[AI Context Vault] Message received:", message);
 
@@ -699,6 +665,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   sendResponse && sendResponse({ status: "ok" });
 });
 
+/**
+ * Save the selected text to the context.
+ */
 function handleSaveSelectedContext() {
   console.log("[AI Context Vault] Handling text selection...");
 
@@ -707,14 +676,11 @@ function handleSaveSelectedContext() {
   let selectedText = "";
 
   if (textarea) {
-    console.log("[AI Context Vault] Found textarea, checking for selection...");
-
     // If it's a contenteditable div
     if (textarea.tagName.toLowerCase() === "div") {
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
-        // Only use the selection if it's within our textarea
         if (textarea.contains(range.commonAncestorContainer)) {
           selectedText = range.toString().trim();
           console.log(
@@ -733,7 +699,7 @@ function handleSaveSelectedContext() {
     }
   }
 
-  // If no textarea selection, fall back to regular window selection
+  // If no selection in textarea, fall back to general window selection
   if (!selectedText) {
     selectedText = window.getSelection().toString().trim();
     console.log("[AI Context Vault] Using window selection");
@@ -741,7 +707,7 @@ function handleSaveSelectedContext() {
 
   if (selectedText) {
     console.log(
-      "[AI Context Vault] Saving selected text to context:",
+      "[AI Context Vault] Saving selected text:",
       selectedText.substring(0, 30) + "..."
     );
     const { domain, chatId } = parseUrlForIds(window.location.href);
@@ -764,7 +730,9 @@ function handleSaveSelectedContext() {
   }
 }
 
-// An enhanced confirmation bubble with different types (success, warning, error)
+/**
+ * Show a temporary bubble message (e.g., success, warning, error).
+ */
 function showConfirmationBubble(text, type = "success") {
   const bubble = document.createElement("div");
   bubble.innerText = text;
@@ -809,7 +777,7 @@ function showConfirmationBubble(text, type = "success") {
   // Add bubble to the page
   document.body.appendChild(bubble);
 
-  // Animation
+  // Fade-in
   setTimeout(() => {
     bubble.style.opacity = "1";
   }, 10);
