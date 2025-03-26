@@ -7,8 +7,8 @@ import { parseUrlForIds, getContext } from "../storage/contextStorage";
 /*
  * AI Context Vault Keyboard Shortcuts
  * ----------------------------------
- * CMD+J (Mac) or CTRL+J (Windows/Linux): Toggle context overlay
- * CMD+I (Mac) or CTRL+I (Windows/Linux): Save selected text to context
+ * ALT+SHIFT+I: Toggle context overlay
+ * ALT+I: Save selected text to context
  * ALT+ENTER: Inject context into message box (without sending)
  * ALT+SHIFT+ENTER: Inject context and automatically send message
  *
@@ -410,8 +410,8 @@ function setupKeyboardShortcuts() {
   document.addEventListener(
     "keydown",
     (event) => {
-      // CMD+I / CTRL+I to save selected text
-      if ((event.ctrlKey || event.metaKey) && event.key === "i") {
+      // ALT+I to save selected text
+      if (event.altKey && event.key === "i") {
         console.log("[AI Context Vault] Modifier+I - save selected text");
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -444,9 +444,9 @@ function setupKeyboardShortcuts() {
         return;
       }
 
-      // CMD+J / CTRL+J: Toggle overlay
-      if ((event.metaKey || event.ctrlKey) && event.key === "j") {
-        console.log("[AI Context Vault] Toggle overlay (CMD/CTRL+J)");
+      // ALT+SHIFT+I: Toggle overlay
+      if (event.altKey && event.shiftKey && event.key === "i") {
+        console.log("[AI Context Vault] Toggle overlay (ALT+SHIFT+I)");
         event.preventDefault();
         event.stopImmediatePropagation();
         toggleOverlay();
