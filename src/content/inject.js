@@ -46,8 +46,230 @@ function formatContextForPrompt(context) {
 (function immediateInitialize() {
   console.log("[AI Context Vault] Immediate initialization...");
   setupKeyboardShortcuts();
+
+  // Ensure the overlay element exists in the DOM
+  ensureOverlayExists();
+
   console.log("[AI Context Vault] Initialization complete");
 })();
+
+// Ensure that the context overlay exists in the DOM
+function ensureOverlayExists() {
+  // Check if the overlay already exists
+  let overlayPanel = document.getElementById("__ai_context_overlay__");
+
+  // If overlay doesn't exist, create it
+  if (!overlayPanel) {
+    console.log("[AI Context Vault] Overlay not found in DOM, creating it...");
+
+    // Create the overlay container
+    overlayPanel = document.createElement("div");
+    overlayPanel.id = "__ai_context_overlay__";
+
+    // Set initial styles
+    Object.assign(overlayPanel.style, {
+      position: "fixed",
+      top: "20px",
+      right: "20px",
+      width: "300px",
+      maxHeight: "80vh",
+      backgroundColor: "#1e1e1e",
+      color: "#e0e0e0",
+      border: "1px solid #444",
+      borderRadius: "8px",
+      padding: "15px",
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+      zIndex: "999999",
+      overflow: "auto",
+      display: "none", // Initially hidden
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      fontSize: "14px",
+    });
+
+    // Create the header
+    const header = document.createElement("div");
+    header.style.marginBottom = "10px";
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.style.alignItems = "center";
+
+    const title = document.createElement("h3");
+    title.textContent = "AI Context Vault";
+    title.style.margin = "0";
+    title.style.fontSize = "16px";
+    title.style.fontWeight = "bold";
+
+    const closeButton = document.createElement("button");
+    closeButton.textContent = "×";
+    closeButton.style.background = "none";
+    closeButton.style.border = "none";
+    closeButton.style.color = "#e0e0e0";
+    closeButton.style.fontSize = "20px";
+    closeButton.style.cursor = "pointer";
+    closeButton.style.padding = "0";
+    closeButton.style.lineHeight = "1";
+
+    // Close button event listener
+    closeButton.addEventListener("click", function () {
+      overlayPanel.style.display = "none";
+    });
+
+    header.appendChild(title);
+    header.appendChild(closeButton);
+
+    // Create content container
+    const content = document.createElement("div");
+    content.id = "__ai_context_content__";
+
+    // Add elements to the overlay
+    overlayPanel.appendChild(header);
+    overlayPanel.appendChild(content);
+
+    // Add overlay to the DOM
+    document.body.appendChild(overlayPanel);
+
+    console.log("[AI Context Vault] Created overlay element and added to DOM");
+
+    // Add event listener for the custom refresh event
+    document.addEventListener("ai-context-refresh-requested", function (event) {
+      refreshOverlayContent(overlayPanel);
+    });
+
+    // Add event listener for the context updated event
+    document.addEventListener("ai-context-updated", function (event) {
+      refreshOverlayContent(overlayPanel);
+    });
+
+    // Initial content population
+    refreshOverlayContent(overlayPanel);
+  } else {
+    console.log("[AI Context Vault] Overlay already exists in DOM");
+  }
+
+  return overlayPanel;
+}
+
+// Refresh the content of the overlay with current context data
+function refreshOverlayContent(overlayPanel) {
+  const contentContainer = document.getElementById("__ai_context_content__");
+  if (!contentContainer) {
+    console.error("[AI Context Vault] Content container not found in overlay");
+    return;
+  }
+
+  // Get current context
+  const { domain, chatId } = parseUrlForIds(window.location.href);
+  const contextData = getContext(domain, chatId);
+
+  // Clear existing content
+  contentContainer.innerHTML = "";
+
+  if (
+    !contextData ||
+    !contextData.entries ||
+    contextData.entries.length === 0
+  ) {
+    // No context available
+    const noContext = document.createElement("p");
+    noContext.textContent =
+      "No context available for this chat. Highlight text and press CMD+I/CTRL+I to add context.";
+    noContext.style.color = "#999";
+    contentContainer.appendChild(noContext);
+  } else {
+    // Add summary if available
+    if (contextData.summary) {
+      const summarySection = document.createElement("div");
+      summarySection.style.marginBottom = "15px";
+
+      const summaryTitle = document.createElement("h4");
+      summaryTitle.textContent = "Summary";
+      summaryTitle.style.margin = "0 0 5px 0";
+      summaryTitle.style.fontSize = "14px";
+      summaryTitle.style.fontWeight = "bold";
+      summaryTitle.style.color = "#4ade80";
+
+      const summaryText = document.createElement("p");
+      summaryText.textContent = contextData.summary;
+      summaryText.style.margin = "0";
+      summaryText.style.lineHeight = "1.4";
+
+      summarySection.appendChild(summaryTitle);
+      summarySection.appendChild(summaryText);
+      contentContainer.appendChild(summarySection);
+    }
+
+    // Add context entries
+    if (contextData.entries.length > 0) {
+      const entriesSection = document.createElement("div");
+
+      const entriesTitle = document.createElement("h4");
+      entriesTitle.textContent = "Context Items";
+      entriesTitle.style.margin = "0 0 10px 0";
+      entriesTitle.style.fontSize = "14px";
+      entriesTitle.style.fontWeight = "bold";
+      entriesTitle.style.color = "#4ade80";
+
+      entriesSection.appendChild(entriesTitle);
+
+      // Create list of entries
+      contextData.entries.forEach((entry, index) => {
+        const entryItem = document.createElement("div");
+        entryItem.style.display = "flex";
+        entryItem.style.alignItems = "flex-start";
+        entryItem.style.marginBottom = "8px";
+        entryItem.style.justifyContent = "space-between";
+        entryItem.style.paddingBottom = "8px";
+        entryItem.style.borderBottom = "1px solid #444";
+
+        // Text content
+        const text = document.createElement("div");
+        text.textContent = entry.text;
+        text.style.lineHeight = "1.4";
+        text.style.wordBreak = "break-word";
+        text.style.flex = "1";
+        text.style.marginRight = "8px";
+
+        // Delete button
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "×";
+        deleteButton.style.background = "none";
+        deleteButton.style.border = "none";
+        deleteButton.style.color = "#f87171";
+        deleteButton.style.fontSize = "18px";
+        deleteButton.style.cursor = "pointer";
+        deleteButton.style.padding = "0 4px";
+        deleteButton.style.lineHeight = "1";
+        deleteButton.style.opacity = "0.7";
+        deleteButton.style.transition = "opacity 0.2s";
+
+        // Hover effect for delete button
+        deleteButton.addEventListener("mouseover", () => {
+          deleteButton.style.opacity = "1";
+        });
+        deleteButton.addEventListener("mouseout", () => {
+          deleteButton.style.opacity = "0.7";
+        });
+
+        // Delete button event listener
+        deleteButton.addEventListener("click", function () {
+          import("../storage/contextStorage").then((storage) => {
+            storage.deleteContext(domain, chatId, entry.text);
+            // Trigger refresh of the overlay content
+            refreshOverlayContent(overlayPanel);
+          });
+        });
+
+        entryItem.appendChild(text);
+        entryItem.appendChild(deleteButton);
+        entriesSection.appendChild(entryItem);
+      });
+
+      contentContainer.appendChild(entriesSection);
+    }
+  }
+
+  console.log("[AI Context Vault] Refreshed overlay content");
+}
 
 // Set up keyboard shortcuts for context injection
 function setupKeyboardShortcuts() {
@@ -55,38 +277,6 @@ function setupKeyboardShortcuts() {
 
   // Main keyboard event listener
   document.addEventListener("keydown", (event) => {
-    if ((event.metaKey || event.ctrlKey) && event.key === "j") {
-      console.log(
-        "[AI Context Vault] Direct keyboard shortcut: CMD/CTRL+J detected"
-      );
-      event.preventDefault(); // Prevent browser's default action
-
-      const panel = document.getElementById("__ai_context_overlay__");
-      if (panel) {
-        // If panel is already visible, trigger a context refresh before toggling
-        if (panel.style.display !== "none") {
-          // Trigger context refresh event
-          const { domain, chatId } = parseUrlForIds(window.location.href);
-          const refreshEvent = new CustomEvent("ai-context-refresh-requested", {
-            detail: { domain, chatId, forceRefresh: true },
-          });
-          document.dispatchEvent(refreshEvent);
-          console.log("[AI Context Vault] Requested context refresh");
-        }
-
-        // Toggle visibility
-        panel.style.display = panel.style.display === "none" ? "block" : "none";
-        console.log(
-          "[AI Context Vault] Toggled overlay to:",
-          panel.style.display
-        );
-      } else {
-        console.log(
-          "[AI Context Vault] Direct toggle failed: Overlay panel not found"
-        );
-      }
-    }
-
     // CTRL+SHIFT+\ (Windows/Linux) or CMD+SHIFT+\ (Mac) to inject context AND send
     if (
       (event.ctrlKey || event.metaKey) &&
@@ -116,6 +306,104 @@ function setupKeyboardShortcuts() {
       toggleOverlay();
     }
   });
+}
+
+// Toggle the context overlay visibility
+function toggleOverlay() {
+  // First ensure the overlay exists
+  const panel = ensureOverlayExists();
+
+  // Log current computed style to debug visibility issues
+  const currentDisplayStyle = window.getComputedStyle(panel).display;
+  console.log(
+    "[AI Context Vault] Current overlay computed style - display:",
+    currentDisplayStyle
+  );
+
+  // If panel is already visible, trigger a context refresh before toggling
+  if (panel.style.display !== "none" && currentDisplayStyle !== "none") {
+    // Trigger context refresh event
+    const { domain, chatId } = parseUrlForIds(window.location.href);
+    const refreshEvent = new CustomEvent("ai-context-refresh-requested", {
+      detail: { domain, chatId, forceRefresh: true },
+    });
+    document.dispatchEvent(refreshEvent);
+    console.log("[AI Context Vault] Requested context refresh");
+  }
+
+  // Apply more forceful visibility styles to ensure it shows/hides
+  if (panel.style.display === "none" || currentDisplayStyle === "none") {
+    // Force visibility with multiple properties
+    panel.style.display = "block";
+    panel.style.visibility = "visible";
+    panel.style.opacity = "1";
+    panel.style.zIndex = "999999"; // Make sure it's on top
+
+    console.log(
+      "[AI Context Vault] Forced overlay to VISIBLE with multiple style properties"
+    );
+  } else {
+    // Force hiding with multiple properties
+    panel.style.display = "none";
+    panel.style.visibility = "hidden";
+    panel.style.opacity = "0";
+
+    console.log(
+      "[AI Context Vault] Forced overlay to HIDDEN with multiple style properties"
+    );
+  }
+
+  // Log what we think the state is now
+  console.log("[AI Context Vault] Toggled overlay to:", panel.style.display);
+
+  // Double-check after a short delay that our style changes persisted
+  setTimeout(() => {
+    const newDisplayStyle = window.getComputedStyle(panel).display;
+    console.log(
+      "[AI Context Vault] Overlay display style after toggle:",
+      newDisplayStyle
+    );
+
+    // If styles didn't persist, try a more direct approach
+    if (
+      (panel.style.display === "block" && newDisplayStyle === "none") ||
+      (panel.style.display === "none" && newDisplayStyle !== "none")
+    ) {
+      console.log(
+        "[AI Context Vault] Styles didn't persist! Trying direct CSS manipulation"
+      );
+
+      // Create and apply a style tag for more forceful overrides
+      const styleId = "__ai_context_overlay_style_fix";
+      let styleTag = document.getElementById(styleId);
+
+      if (!styleTag) {
+        styleTag = document.createElement("style");
+        styleTag.id = styleId;
+        document.head.appendChild(styleTag);
+      }
+
+      if (panel.style.display === "block") {
+        styleTag.textContent = `
+          #__ai_context_overlay__ {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 999999 !important;
+            position: fixed !important;
+          }
+        `;
+      } else {
+        styleTag.textContent = `
+          #__ai_context_overlay__ {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+          }
+        `;
+      }
+    }
+  }, 100);
 }
 
 // Inject context and send the message
@@ -183,7 +471,11 @@ function injectContextIntoTextarea(shouldSendAfterInjection = false) {
 
   // Ensure newlines are preserved by using explicit newline characters
   // Add two blank lines between context and user message for better separation
-  const newContent = formattedContext + "\n\n" + currentContent;
+  const newContent =
+    "Abide by the following important context:\n\n" +
+    formattedContext +
+    "\n\nNew Request:\n\n" +
+    currentContent;
 
   // Update the textarea content
   if (textarea.tagName.toLowerCase() === "div") {
@@ -261,31 +553,6 @@ function tryClickingSendButton() {
   return false;
 }
 
-// Toggle the context overlay visibility
-function toggleOverlay() {
-  const panel = document.getElementById("__ai_context_overlay__");
-  if (panel) {
-    // If panel is already visible, trigger a context refresh before toggling
-    if (panel.style.display !== "none") {
-      // Trigger context refresh event
-      const { domain, chatId } = parseUrlForIds(window.location.href);
-      const refreshEvent = new CustomEvent("ai-context-refresh-requested", {
-        detail: { domain, chatId, forceRefresh: true },
-      });
-      document.dispatchEvent(refreshEvent);
-      console.log("[AI Context Vault] Requested context refresh");
-    }
-
-    // Toggle visibility
-    panel.style.display = panel.style.display === "none" ? "block" : "none";
-    console.log("[AI Context Vault] Toggled overlay to:", panel.style.display);
-  } else {
-    console.log(
-      "[AI Context Vault] Direct toggle failed: Overlay panel not found"
-    );
-  }
-}
-
 // Listen for background messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log("[AI Context Vault] Message received:", message);
@@ -301,13 +568,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function handleSaveSelectedContext() {
-  const selection = window.getSelection().toString().trim();
-  if (selection) {
+  // First check if we have a textarea selection
+  const textarea = findActiveTextarea();
+  let selectedText = "";
+
+  if (textarea) {
+    // If it's a contenteditable div
+    if (textarea.tagName.toLowerCase() === "div") {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        // Only use the selection if it's within our textarea
+        if (textarea.contains(range.commonAncestorContainer)) {
+          selectedText = range.toString().trim();
+        }
+      }
+    } else {
+      // Standard textarea
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      if (start !== end) {
+        selectedText = textarea.value.substring(start, end).trim();
+      }
+    }
+  }
+
+  // If no textarea selection, fall back to regular window selection
+  if (!selectedText) {
+    selectedText = window.getSelection().toString().trim();
+  }
+
+  if (selectedText) {
     const { domain, chatId } = parseUrlForIds(window.location.href);
     import("../storage/contextStorage").then((storage) => {
-      storage.addContext(domain, chatId, selection);
+      storage.addContext(domain, chatId, selectedText);
       showConfirmationBubble(
-        "Added to Context: " + selection.substring(0, 30) + "...",
+        "Added to Context: " + selectedText.substring(0, 30) + "...",
         "success"
       );
 
