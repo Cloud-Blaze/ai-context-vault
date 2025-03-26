@@ -220,14 +220,42 @@ function refreshOverlayContent(overlayPanel) {
         entryItem.style.justifyContent = "space-between";
         entryItem.style.paddingBottom = "8px";
         entryItem.style.borderBottom = "1px solid #444";
+        entryItem.style.transition = "all 0.3s ease";
+
+        // Text content container
+        const textContainer = document.createElement("div");
+        textContainer.style.flex = "1";
+        textContainer.style.marginRight = "8px";
 
         // Text content
         const text = document.createElement("div");
         text.textContent = entry.text;
         text.style.lineHeight = "1.4";
         text.style.wordBreak = "break-word";
-        text.style.flex = "1";
-        text.style.marginRight = "8px";
+
+        // Edit textarea (hidden by default)
+        const editTextarea = document.createElement("textarea");
+        editTextarea.value = entry.text;
+        editTextarea.style.width = "100%";
+        editTextarea.style.minHeight = "100px";
+        editTextarea.style.maxHeight = "75vh";
+        editTextarea.style.backgroundColor = "#2d2d2d";
+        editTextarea.style.color = "#e0e0e0";
+        editTextarea.style.border = "1px solid #444";
+        editTextarea.style.borderRadius = "4px";
+        editTextarea.style.padding = "8px";
+        editTextarea.style.marginTop = "8px";
+        editTextarea.style.display = "none";
+        editTextarea.style.resize = "vertical";
+
+        textContainer.appendChild(text);
+        textContainer.appendChild(editTextarea);
+
+        // Button container
+        const buttonContainer = document.createElement("div");
+        buttonContainer.style.display = "flex";
+        buttonContainer.style.gap = "8px";
+        buttonContainer.style.alignItems = "center";
 
         // Delete button
         const deleteButton = document.createElement("button");
@@ -242,12 +270,83 @@ function refreshOverlayContent(overlayPanel) {
         deleteButton.style.opacity = "0.7";
         deleteButton.style.transition = "opacity 0.2s";
 
-        // Hover effect for delete button
-        deleteButton.addEventListener("mouseover", () => {
-          deleteButton.style.opacity = "1";
+        // Edit/Save button
+        const editButton = document.createElement("button");
+        editButton.innerHTML = "✎"; // Pencil icon
+        editButton.style.background = "none";
+        editButton.style.border = "none";
+        editButton.style.color = "#4ade80";
+        editButton.style.fontSize = "18px";
+        editButton.style.cursor = "pointer";
+        editButton.style.padding = "0 4px";
+        editButton.style.lineHeight = "1";
+        editButton.style.opacity = "0.7";
+        editButton.style.transition = "opacity 0.2s";
+
+        // Hover effects
+        [deleteButton, editButton].forEach((button) => {
+          button.addEventListener("mouseover", () => {
+            button.style.opacity = "1";
+          });
+          button.addEventListener("mouseout", () => {
+            button.style.opacity = "0.7";
+          });
         });
-        deleteButton.addEventListener("mouseout", () => {
-          deleteButton.style.opacity = "0.7";
+
+        // Edit button click handler
+        editButton.addEventListener("click", function () {
+          const isEditing = editTextarea.style.display === "block";
+
+          if (!isEditing) {
+            // Start editing
+            text.style.display = "none";
+            editTextarea.style.display = "block";
+            editButton.innerHTML = "✓"; // Save icon
+            editButton.style.color = "#4ade80";
+
+            // Hide other entries
+            const allEntries = entriesSection.querySelectorAll(
+              "div[style*='margin-bottom: 8px']"
+            );
+            allEntries.forEach((e) => {
+              if (e !== entryItem) {
+                e.style.display = "none";
+              }
+            });
+
+            // Focus the textarea
+            editTextarea.focus();
+          } else {
+            // Save changes
+            const newText = editTextarea.value.trim();
+            if (newText && newText !== entry.text) {
+              import("../storage/contextStorage").then((storage) => {
+                storage.updateContext(domain, chatId, entry.text, newText);
+                entry.text = newText;
+                text.textContent = newText;
+
+                // Trigger refresh event
+                const event = new CustomEvent("ai-context-updated", {
+                  detail: { domain, chatId },
+                });
+                document.dispatchEvent(event);
+              });
+            }
+
+            // Reset UI
+            text.style.display = "block";
+            editTextarea.style.display = "none";
+            editButton.innerHTML = "✎"; // Back to pencil icon
+            editButton.style.color = "#4ade80";
+
+            // Show all entries again
+            const allEntries = entriesSection.querySelectorAll(
+              "div[style*='margin-bottom: 8px']"
+            );
+            allEntries.forEach((e) => {
+              e.style.display = "flex";
+            });
+          }
         });
 
         // Delete button event listener
@@ -259,8 +358,10 @@ function refreshOverlayContent(overlayPanel) {
           });
         });
 
-        entryItem.appendChild(text);
-        entryItem.appendChild(deleteButton);
+        buttonContainer.appendChild(deleteButton);
+        buttonContainer.appendChild(editButton);
+        entryItem.appendChild(textContainer);
+        entryItem.appendChild(buttonContainer);
         entriesSection.appendChild(entryItem);
       });
 
