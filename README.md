@@ -71,11 +71,12 @@ ai-context-keeper/
 
 ### 🔸 **Context Injection (Send Override)**
 
-- DOM modification of ChatGPT send button (`button[aria-label="Send message"]`)—no new hotkeys needed.
-- Clicking Send auto-prepends:
+- Use `ALT+ENTER` to prepend context to your message without sending
+- Use `CMD+SHIFT+\` (Mac) or `CTRL+SHIFT+\` (Windows/Linux) to inject context and send immediately
+- Context is automatically formatted with:
   - Initial summary (if exists) followed by a newline
-  - All active memory entries as bulleted lists, then two newlines.
-  - Finally, user's actual typed prompt.
+  - All active memory entries as bulleted lists, then two newlines
+  - Finally, user's actual typed prompt
 
 ### 🔸 **Context Transfer**
 

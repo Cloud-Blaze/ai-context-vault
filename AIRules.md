@@ -1007,6 +1007,13 @@ ctx_<hostname>_<pathHash>_<chatId>
 
 #### 📐 Rules & Logic:
 
+**Keyboard Shortcuts:**
+
+- `CTRL+I or CMD+I`: Save selected text to context
+- `CTRL+J or CMD+J`: Open context manager overlay
+- `ALT+ENTER`: Prepend context to message without sending
+- `ALT+SHIFT+ENTER`: Inject context and send immediately
+
 **Target Textbox Detection:**
 
 - `textarea` or `div[contenteditable]` inside visible UI

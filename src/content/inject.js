@@ -9,8 +9,8 @@ import { parseUrlForIds, getContext } from "../storage/contextStorage";
  * ----------------------------------
  * CMD+J (Mac) or CTRL+J (Windows/Linux): Toggle context overlay
  * CMD+I (Mac) or CTRL+I (Windows/Linux): Save selected text to context
- * CMD+ENTER (Mac) or CTRL+ENTER (Windows/Linux): Inject context into message box (without sending)
- * CMD+SHIFT+\ (Mac) or CTRL+SHIFT+\ (Windows/Linux): Inject context and automatically send message
+ * ALT+ENTER: Inject context into message box (without sending)
+ * ALT+SHIFT+ENTER: Inject context and automatically send message
  *
  * Line endings are preserved when injecting context, with two blank lines added
  * between your context and your message for better readability.
@@ -419,14 +419,10 @@ function setupKeyboardShortcuts() {
         return;
       }
 
-      // CMD+SHIFT+\ / CTRL+SHIFT+\ to inject context AND send
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.shiftKey &&
-        event.key === "\\"
-      ) {
+      // ALT+SHIFT+ENTER to inject context AND send
+      if (event.altKey && event.shiftKey && event.key === "Enter") {
         console.log(
-          "[AI Context Vault] Modifier+SHIFT+\\ - inject context + send"
+          "[AI Context Vault] ALT+SHIFT+ENTER - inject context + send"
         );
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -434,10 +430,10 @@ function setupKeyboardShortcuts() {
         return;
       }
 
-      // CMD+ENTER / CTRL+ENTER: inject context into the message box *without* sending
-      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      // ALT+ENTER: inject context into the message box *without* sending
+      if (event.altKey && event.key === "Enter") {
         console.log(
-          "[AI Context Vault] Modifier+ENTER - injecting context (captured early)"
+          "[AI Context Vault] ALT+ENTER - injecting context (captured early)"
         );
         // This is the key fix: we stop the event so ChatGPT won't send the message.
         event.preventDefault();
@@ -607,10 +603,11 @@ function injectContextIntoTextarea(shouldSendAfterInjection = false) {
 
   // Construct the new content
   const newContent =
-    "Abide by the following important context:\n\n" +
+    "‼️ CONTEXT PROTOCOL - HIGHEST PRIORITY:\n\n" +
     formattedContext +
-    "\n\nNew Request:\n\n" +
-    currentContent;
+    '\n\n📏EXECUTION PARAMETERS:\n- Full contextual compliance is a non-negotiable requirement\n\n- Deviation from established context is prohibited\n\n- Every response must be comprehensively informed by and aligned with this context\n\nCONTINUED INTERACTION:\n-Preserve and apply all previous contextual understanding\n-Integrate new input with existing knowledge\n-Respond comprehensively and contextually\n\n🆕NEW USER PROMPT: \n"' +
+    currentContent +
+    '"';
 
   // Update the textarea
   if (textarea.tagName.toLowerCase() === "div") {
