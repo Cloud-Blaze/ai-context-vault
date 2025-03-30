@@ -3,6 +3,9 @@
 // Now uses chrome.storage.local instead of window.localStorage
 ////////////////////////////////////////////////////////////////////////////////
 
+// Track any active sync request
+let currentSync = null;
+
 export function getContextKey(domain, chatId) {
   // e.g. domain=chat.openai.com, chatId=abc123
   // -> "ctx_chat.openai.com_abc123"
@@ -13,9 +16,20 @@ export function parseUrlForIds(url) {
   try {
     const u = new URL(url);
     const domain = u.hostname;
-    // For ChatGPT, chatId often in path or hash
-    // For simplicity, attempt a naive parse:
-    const chatId = u.pathname.split("/").pop() || "default";
+
+    // Handle /g/{project-id}/project pattern
+    const pathParts = u.pathname.split("/").filter(Boolean);
+    if (
+      pathParts[0] === "g" &&
+      pathParts.length >= 3 &&
+      pathParts[2] === "project"
+    ) {
+      const chatId = `${pathParts[1]}/project`; // e.g. g-p-xyz/project
+      return { domain, chatId };
+    }
+
+    // Fallback: use last segment
+    const chatId = pathParts[pathParts.length - 1] || "default";
     return { domain, chatId };
   } catch (err) {
     return { domain: "unknown", chatId: "default" };
@@ -147,16 +161,42 @@ export async function gatherAllContextData() {
 ////////////////////////////////////////////////////////////////////////////////
 // FULL SYNC ON EVERY CHANGE - ADDED AT THE BOTTOM
 ////////////////////////////////////////////////////////////////////////////////
-
 /**
  * syncFullDataToGist
- * 1) If gistURL & gistPAT exist, fetch Gist contents.
- * 2) Merge with local data from chrome.storage.local.
- * 3) Overwrite Gist with the merged result (PATCH).
- * 4) Overwrite local extension storage with merged result, so we maintain one version.
+ * - Cancels any in-flight sync request
+ * - Merges remote and local data
+ * - Syncs both directions with timeout and conflict resilience
  */
 export async function syncFullDataToGist() {
-  // 0) Get gist info
+  // Abort any in-flight request
+  if (currentSync && currentSync.abort) {
+    console.log("[AI Context Vault] Aborting previous sync");
+    currentSync.abort(); // cancel previous request
+  }
+
+  const controller = new AbortController();
+  const signal = controller.signal;
+  currentSync = controller;
+
+  // Set up a 20-second timeout
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => {
+      controller.abort();
+      reject(new Error("GitHub sync timed out"));
+    }, 20000)
+  );
+
+  try {
+    const result = await Promise.race([performGistSync(signal), timeout]);
+    return result;
+  } catch (err) {
+    console.warn("[AI Context Vault] Sync failed:", err.message);
+  } finally {
+    currentSync = null;
+  }
+}
+
+async function performGistSync(signal) {
   const { gistPAT, gistURL } = await new Promise((resolve) => {
     chrome.storage.local.get(["gistPAT", "gistURL"], (res) => {
       resolve({
@@ -165,89 +205,50 @@ export async function syncFullDataToGist() {
       });
     });
   });
-  if (!gistPAT || gistPAT.length < 10) {
-    console.log("[AI Context Vault] No valid PAT or Gist. Skipping sync.");
-    return; // user hasn’t set up sync
-  }
-  if (!gistURL.includes("/")) {
-    console.log("[AI Context Vault] gistURL not set. Skipping sync.");
-    return;
-  }
 
-  // 1) Extract Gist ID from gistURL
+  if (!gistPAT || !gistURL.includes("/")) return;
+
   const gistId = gistURL.split("/").pop();
-  if (!gistId) {
-    console.log("[AI Context Vault] Could not parse gistId from URL:", gistURL);
-    return;
-  }
+  const headers = {
+    Authorization: `token ${gistPAT}`,
+    "Content-Type": "application/json",
+  };
 
-  // 2) Retrieve Gist from GitHub
+  // STEP 1: Fetch remote Gist
   let remoteData = {};
   try {
-    const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+    const response = await fetch(`https://api.github.com/gists/${gistId}`, {
       method: "GET",
-      headers: {
-        Authorization: `token ${gistPAT}`,
-        "Content-Type": "application/json",
-      },
+      headers,
+      signal,
     });
-    if (!resp.ok) {
-      const errData = await resp.json();
-      console.warn("[AI Context Vault] Failed fetching gist:", errData);
-      return;
+
+    if (response.ok) {
+      const gist = await response.json();
+      const file = gist.files["ai_context_vault_data.json"];
+      if (file && file.content) {
+        remoteData = JSON.parse(file.content);
+      }
     }
-    const gistInfo = await resp.json();
-    // We assume your context is in "ai_context_vault_data.json"
-    if (
-      gistInfo.files &&
-      gistInfo.files["ai_context_vault_data.json"] &&
-      gistInfo.files["ai_context_vault_data.json"].content
-    ) {
-      remoteData = JSON.parse(
-        gistInfo.files["ai_context_vault_data.json"].content
-      );
-    }
-  } catch (err) {
-    console.error("[AI Context Vault] Error fetching gist data:", err);
+  } catch (e) {
+    if (e.name !== "AbortError") throw e;
+    console.warn("[AI Context Vault] Gist fetch aborted");
     return;
   }
 
-  // 3) Grab local data
-  const localData = await gatherAllContextData(); // keys => { chat data }
+  // STEP 2: Get local
+  const localData = await gatherAllContextData();
 
-  // 4) Merge remote -> local -> final. Naive approach: local overwrites remote.
-  // If you wanted two-way merges, you'd do more logic here.
+  // STEP 3: Merge
   const merged = { ...remoteData, ...localData };
 
-  // 5) Overwrite local extension storage with merged result
-  // (clear out the old data and re-insert)
+  // STEP 4: Save merged locally
   await new Promise((resolve) => {
-    chrome.storage.local.get(null, async (allItems) => {
-      // Remove all old domain-based keys
-      const removals = [];
-      for (const k of Object.keys(allItems)) {
-        if (k.startsWith("ctx_")) {
-          removals.push(k);
-        }
-      }
-      if (removals.length > 0) {
-        await new Promise((res2) =>
-          chrome.storage.local.remove(removals, res2)
-        );
-      }
-      // Now set the merged data
-      const toSet = {};
-      for (const key of Object.keys(merged)) {
-        toSet[key] = merged[key];
-      }
-      chrome.storage.local.set(toSet, () => {
-        resolve();
-      });
-    });
+    chrome.storage.local.set(merged, resolve);
   });
 
-  // 6) Overwrite Gist with merged data
-  const gistPayload = {
+  // STEP 5: Patch Gist
+  const body = {
     description: "AI Context Vault Sync",
     files: {
       "ai_context_vault_data.json": {
@@ -255,27 +256,23 @@ export async function syncFullDataToGist() {
       },
     },
   };
+
   try {
-    const patchResp = await fetch(`https://api.github.com/gists/${gistId}`, {
+    const patch = await fetch(`https://api.github.com/gists/${gistId}`, {
       method: "PATCH",
-      headers: {
-        Authorization: `token ${gistPAT}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(gistPayload),
+      headers,
+      body: JSON.stringify(body),
+      signal,
     });
-    if (!patchResp.ok) {
-      const errPatch = await patchResp.json();
-      console.error(
-        "[AI Context Vault] Error patching gist with merged data:",
-        errPatch
-      );
-      return;
+
+    if (!patch.ok) {
+      const err = await patch.json();
+      console.error("[AI Context Vault] Gist update failed", err);
+    } else {
+      console.log("[AI Context Vault] Gist sync complete");
     }
-    console.log(
-      "[AI Context Vault] Successfully patched gist with merged data"
-    );
   } catch (err) {
-    console.error("[AI Context Vault] Error patching gist data:", err);
+    if (err.name !== "AbortError") throw err;
+    console.warn("[AI Context Vault] Patch aborted");
   }
 }
