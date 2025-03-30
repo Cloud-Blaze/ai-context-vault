@@ -33,3 +33,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   sendResponse({ status: "ok" });
 });
+
+////////////////////////////////////////////////////////////////////////////////
+// GITHUB SYNC & FIRST INSTALL SUPPORT - ADDED AT BOTTOM
+////////////////////////////////////////////////////////////////////////////////
+
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    console.log("[AI Context Vault] First install - opening options page...");
+    chrome.runtime.openOptionsPage();
+  }
+});
+
+// Listen for a request to open the Options page
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "OPEN_OPTIONS_PAGE") {
+    console.log("[AI Context Vault] Opening options page on request...");
+    chrome.runtime.openOptionsPage();
+    sendResponse({ status: "ok" });
+  }
+});

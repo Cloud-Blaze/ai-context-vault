@@ -33,3 +33,12 @@
 ### 🔸 **Context Transfer**
 
 - Export/import JSON of context entries (for migration or sharing).
+
+### 🧑🏽‍💻 Todos
+
+- remove buttons for delete
+- Help thing on the side to nav to the html docs and possibly settings info
+- Wizard for syncing first time
+- Update the button icon and make the icon pull up the context manager
+- Link help back to context window
+- Publish website under github and chrome store

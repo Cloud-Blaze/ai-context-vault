@@ -7,7 +7,6 @@ import { createRoot } from "react-dom/client";
 import {
   parseUrlForIds,
   getContext,
-  saveContext,
   toggleContext,
   deleteContext,
   updateSummary,
@@ -128,8 +127,8 @@ function Overlay() {
     );
 
     // Small delay to ensure loading state is shown even for quick loads
-    setTimeout(() => {
-      const data = getContext(newDomain, newChatId);
+    setTimeout(async () => {
+      const data = await getContext(newDomain, newChatId);
       setContextData(data);
       setSummary(data.summary || "");
       setIsLoading(false);
@@ -203,20 +202,20 @@ function Overlay() {
     };
   }, []);
 
-  const handleToggle = (entryId) => {
-    toggleContext(domain, chatId, entryId);
-    const updated = getContext(domain, chatId);
+  const handleToggle = async (entryId) => {
+    await toggleContext(domain, chatId, entryId);
+    const updated = await getContext(domain, chatId);
     setContextData(updated);
   };
 
-  const handleDelete = (text) => {
-    deleteContext(domain, chatId, text);
-    const updated = getContext(domain, chatId);
+  const handleDelete = async (text) => {
+    await deleteContext(domain, chatId, text);
+    const updated = await getContext(domain, chatId);
     setContextData(updated);
   };
 
-  const handleSummarySave = () => {
-    updateSummary(domain, chatId, summary);
+  const handleSummarySave = async () => {
+    await updateSummary(domain, chatId, summary);
   };
 
   if (!contextData) return null;
@@ -238,6 +237,14 @@ function Overlay() {
         />
       </div>
       <hr style={styles.divider} />
+      // Inside your Overlay() component’s JSX: // (Add after, e.g.,{" "}
+      <hr style={styles.divider} />)
+      <button
+        style={styles.button}
+        onClick={() => openOptionsPageFromOverlay()}
+      >
+        GitHub Sync / Help
+      </button>
       {isLoading ? (
         <p style={styles.emptyMessage}>Loading context entries...</p>
       ) : contextData.entries.length === 0 ? (
@@ -303,3 +310,14 @@ function Overlay() {
     console.error("[AI Context Vault] Error rendering overlay:", error);
   }
 })();
+
+////////////////////////////////////////////////////////////////////////////////
+// OPEN OPTIONS PAGE FROM OVERLAY - ADDED AT BOTTOM
+////////////////////////////////////////////////////////////////////////////////
+
+export function openOptionsPageFromOverlay() {
+  // Ask background.js to open options.html
+  chrome.runtime.sendMessage({ type: "OPEN_OPTIONS_PAGE" }, (response) => {
+    console.log("[AI Context Vault] Requested to open Options page:", response);
+  });
+}

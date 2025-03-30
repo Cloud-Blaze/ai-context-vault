@@ -57,12 +57,12 @@ function formatContextForPrompt(context) {
 }
 
 // Run initialization immediately as the script loads
-(function immediateInitialize() {
+(async function immediateInitialize() {
   console.log("[AI Context Vault] Immediate initialization...");
   setupKeyboardShortcuts();
 
   // Ensure the overlay element exists in the DOM
-  ensureOverlayExists();
+  await ensureOverlayExists();
 
   console.log("[AI Context Vault] Initialization complete");
 })();
@@ -71,7 +71,7 @@ function formatContextForPrompt(context) {
  * Ensure that the context overlay exists in the DOM.
  * If it doesn't exist, create it. This is where we display the saved context items.
  */
-function ensureOverlayExists() {
+async function ensureOverlayExists() {
   // Check if the overlay already exists
   let overlayPanel = document.getElementById("__ai_context_overlay__");
 
@@ -148,17 +148,20 @@ function ensureOverlayExists() {
     console.log("[AI Context Vault] Created overlay element and added to DOM");
 
     // Add event listener for the custom refresh event
-    document.addEventListener("ai-context-refresh-requested", function (event) {
-      refreshOverlayContent(overlayPanel);
-    });
+    document.addEventListener(
+      "ai-context-refresh-requested",
+      async function (event) {
+        await refreshOverlayContent(overlayPanel);
+      }
+    );
 
     // Add event listener for the context updated event
-    document.addEventListener("ai-context-updated", function (event) {
-      refreshOverlayContent(overlayPanel);
+    document.addEventListener("ai-context-updated", async function (event) {
+      await refreshOverlayContent(overlayPanel);
     });
 
     // Initial content population
-    refreshOverlayContent(overlayPanel);
+    await refreshOverlayContent(overlayPanel);
   } else {
     console.log("[AI Context Vault] Overlay already exists in DOM");
   }
@@ -169,7 +172,7 @@ function ensureOverlayExists() {
 /**
  * Refresh the content of the overlay with current context data.
  */
-function refreshOverlayContent(overlayPanel) {
+async function refreshOverlayContent(overlayPanel) {
   const contentContainer = document.getElementById("__ai_context_content__");
   if (!contentContainer) {
     console.error("[AI Context Vault] Content container not found in overlay");
@@ -178,7 +181,7 @@ function refreshOverlayContent(overlayPanel) {
 
   // Get current context
   const { domain, chatId } = parseUrlForIds(window.location.href);
-  const contextData = getContext(domain, chatId);
+  const contextData = await getContext(domain, chatId);
 
   // Clear existing content
   contentContainer.innerHTML = "";
@@ -391,8 +394,8 @@ function refreshOverlayContent(overlayPanel) {
 
         // Delete button event listener
         deleteButton.addEventListener("click", function () {
-          import("../storage/contextStorage").then((storage) => {
-            storage.deleteContext(domain, chatId, entry.text);
+          import("../storage/contextStorage").then(async (storage) => {
+            await storage.deleteContext(domain, chatId, entry.text);
             // Trigger refresh of the overlay content
             refreshOverlayContent(overlayPanel);
           });
@@ -472,9 +475,9 @@ function setupKeyboardShortcuts() {
 /**
  * Toggle the context overlay visibility.
  */
-function toggleOverlay() {
+async function toggleOverlay() {
   // First ensure the overlay exists
-  const panel = ensureOverlayExists();
+  const panel = await ensureOverlayExists();
 
   // Log current computed style
   const currentDisplayStyle = window.getComputedStyle(panel).display;
@@ -587,7 +590,7 @@ function findActiveTextarea() {
 /**
  * Inject context into the active textarea. Optionally send the message.
  */
-function injectContextIntoTextarea(shouldSendAfterInjection = false) {
+async function injectContextIntoTextarea(shouldSendAfterInjection = false) {
   const textarea = findActiveTextarea();
   if (!textarea) {
     showConfirmationBubble("Could not find input area", "error");
@@ -606,7 +609,7 @@ function injectContextIntoTextarea(shouldSendAfterInjection = false) {
 
   // Get context data
   const { domain, chatId } = parseUrlForIds(window.location.href);
-  const contextData = getContext(domain, chatId);
+  const contextData = await getContext(domain, chatId);
   const formattedContext = formatContextForPrompt(contextData);
 
   if (!formattedContext) {
@@ -726,8 +729,8 @@ function handleSaveSelectedContext() {
       selectedText.substring(0, 30) + "..."
     );
     const { domain, chatId } = parseUrlForIds(window.location.href);
-    import("../storage/contextStorage").then((storage) => {
-      storage.addContext(domain, chatId, selectedText);
+    import("../storage/contextStorage").then(async (storage) => {
+      await storage.addContext(domain, chatId, selectedText);
       showConfirmationBubble(
         "Added to Context: " + selectedText.substring(0, 30) + "...",
         "success"
@@ -804,3 +807,61 @@ function showConfirmationBubble(text, type = "success") {
     setTimeout(() => bubble.remove(), 300);
   }, 3000);
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  incrementSendCountAndMaybeWarn();
+});
+
+function showContextReminderBubble(message) {
+  const bubble = document.createElement("div");
+  bubble.innerText = message;
+  Object.assign(bubble.style, {
+    position: "fixed",
+    bottom: "20px",
+    right: "20px",
+    padding: "10px 14px",
+    background: "#332a00",
+    color: "#ffcc00",
+    border: "1px solid #665500",
+    borderRadius: "6px",
+    fontFamily: "sans-serif",
+    zIndex: 2147483647,
+    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
+  });
+  document.body.appendChild(bubble);
+  setTimeout(() => bubble.remove(), 4000);
+}
+
+function incrementSendCountAndMaybeWarn() {
+  const { domain, chatId } = parseUrlForIds(window.location.href);
+  const key = `ctx_send_count_${domain}_${chatId}`;
+  const current = parseInt(localStorage.getItem(key) || "0", 10) + 1;
+  localStorage.setItem(key, current);
+
+  // Warn every 12 sends (approx. 6000–8000 tokens used)
+  if (current % 12 === 0) {
+    showContextReminderBubble(
+      "🔁 Reminder: AI may forget earlier details. Consider re-injecting your key context."
+    );
+  }
+}
+
+// Observe input boxes instead of relying on button clicks
+const observer = new MutationObserver(() => {
+  const inputBox = document.querySelector(
+    "textarea, div[contenteditable='true']"
+  );
+  if (!inputBox) return;
+
+  inputBox.addEventListener("keydown", (e) => {
+    const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.platform);
+    const sendKey = isMac
+      ? e.metaKey && e.key === "Enter"
+      : e.ctrlKey && e.key === "Enter";
+    if (sendKey) {
+      incrementSendCountAndMaybeWarn();
+    }
+  });
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
