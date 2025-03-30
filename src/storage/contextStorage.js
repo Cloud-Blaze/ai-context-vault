@@ -43,7 +43,8 @@ export async function getContext(domain, chatId) {
 export async function saveContext(domain, chatId, data) {
   return new Promise((resolve) => {
     const key = getContextKey(domain, chatId);
-    chrome.storage.local.set({ [key]: data }, () => {
+    chrome.storage.local.set({ [key]: data }, async () => {
+      await syncFullDataToGist();
       resolve();
     });
   });
