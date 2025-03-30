@@ -471,91 +471,91 @@ function setupKeyboardShortcuts() {
     true // Capture phase
   );
 }
-
 /**
- * Toggle the context overlay visibility.
+ * Toggle the context overlay visibility with a settings cog to open options.html.
  */
 async function toggleOverlay() {
-  // First ensure the overlay exists
   const panel = await ensureOverlayExists();
 
-  // Log current computed style
-  const currentDisplayStyle = window.getComputedStyle(panel).display;
-  console.log(
-    "[AI Context Vault] Current overlay computed style:",
-    currentDisplayStyle
-  );
-
-  // If panel is already visible, trigger a context refresh before toggling
-  if (panel.style.display !== "none" && currentDisplayStyle !== "none") {
-    // Trigger context refresh
-    const { domain, chatId } = parseUrlForIds(window.location.href);
-    const refreshEvent = new CustomEvent("ai-context-refresh-requested", {
-      detail: { domain, chatId, forceRefresh: true },
+  // Ensure settings cog is present
+  let settingsCog = document.getElementById("__ai_context_settings_cog__");
+  if (!settingsCog) {
+    settingsCog = document.createElement("div");
+    settingsCog.id = "__ai_context_settings_cog__";
+    settingsCog.innerHTML = "&#9881;"; // ⚙️ gear unicode
+    Object.assign(settingsCog.style, {
+      position: "absolute",
+      top: "11px",
+      right: "41px",
+      cursor: "pointer",
+      fontSize: "26px",
+      color: "#999",
+      transition: "color 0.3s ease",
     });
-    document.dispatchEvent(refreshEvent);
-    console.log("[AI Context Vault] Requested context refresh");
+
+    settingsCog.addEventListener("mouseover", () => {
+      settingsCog.style.color = "#fff";
+    });
+    settingsCog.addEventListener("mouseout", () => {
+      settingsCog.style.color = "#999";
+    });
+
+    settingsCog.addEventListener("click", () => {
+      chrome.runtime.sendMessage({ type: "OPEN_OPTIONS_PAGE" });
+    });
+
+    panel.appendChild(settingsCog);
+  }
+
+  const currentDisplayStyle = window.getComputedStyle(panel).display;
+
+  if (panel.style.display !== "none" && currentDisplayStyle !== "none") {
+    const { domain, chatId } = parseUrlForIds(window.location.href);
+    document.dispatchEvent(
+      new CustomEvent("ai-context-refresh-requested", {
+        detail: { domain, chatId, forceRefresh: true },
+      })
+    );
   }
 
   if (panel.style.display === "none" || currentDisplayStyle === "none") {
-    // Show
     panel.style.display = "block";
-    panel.style.visibility = "visible";
-    panel.style.opacity = "1";
-    panel.style.zIndex = "999999";
-    console.log("[AI Context Vault] Forced overlay to VISIBLE");
   } else {
-    // Hide
     panel.style.display = "none";
-    panel.style.visibility = "hidden";
-    panel.style.opacity = "0";
-    console.log("[AI Context Vault] Forced overlay to HIDDEN");
   }
+}
 
-  // Double-check after a short delay
-  setTimeout(() => {
-    const newDisplayStyle = window.getComputedStyle(panel).display;
-    console.log(
-      "[AI Context Vault] Overlay display after toggle:",
-      newDisplayStyle
-    );
+/**
+ * Ensures a settings button (cog icon) is present in the overlay
+ * that opens the extension's options page.
+ */
+function ensureSettingsButton(panel) {
+  const existingButton = document.getElementById(
+    "__ai_context_overlay_settings__"
+  );
+  if (!existingButton) {
+    const settingsButton = document.createElement("button");
+    settingsButton.id = "__ai_context_overlay_settings__";
+    settingsButton.innerHTML = "⚙️";
+    Object.assign(settingsButton.style, {
+      position: "absolute",
+      top: "10px",
+      right: "40px",
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      fontSize: "18px",
+      color: "#ccc",
+      padding: "0",
+      zIndex: "1000000",
+    });
 
-    // If styles didn't persist, try a more direct approach
-    if (
-      (panel.style.display === "block" && newDisplayStyle === "none") ||
-      (panel.style.display === "none" && newDisplayStyle !== "none")
-    ) {
-      console.log("[AI Context Vault] Styles didn't persist! Forcing override");
-      const styleId = "__ai_context_overlay_style_fix";
-      let styleTag = document.getElementById(styleId);
+    settingsButton.addEventListener("click", () => {
+      chrome.tabs.sendMessage({ type: "OPEN_OPTIONS_PAGE" });
+    });
 
-      if (!styleTag) {
-        styleTag = document.createElement("style");
-        styleTag.id = styleId;
-        document.head.appendChild(styleTag);
-      }
-
-      if (panel.style.display === "block") {
-        styleTag.textContent = `
-          #__ai_context_overlay__ {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            z-index: 999999 !important;
-            position: fixed !important;
-          }
-        `;
-      } else {
-        styleTag.textContent = `
-          #__ai_context_overlay__ {
-            display: none !important;
-            visibility: hidden !important;
-            opacity: 0 !important;
-          }
-        `;
-      }
-    }
-  }, 100);
+    panel.appendChild(settingsButton);
+  }
 }
 
 /**
@@ -834,16 +834,19 @@ function showContextReminderBubble(message) {
 
 function incrementSendCountAndMaybeWarn() {
   const { domain, chatId } = parseUrlForIds(window.location.href);
-  const key = `ctx_send_count_${domain}_${chatId}`;
-  const current = parseInt(localStorage.getItem(key) || "0", 10) + 1;
-  localStorage.setItem(key, current);
+  const key = `send_count_${domain}_${chatId}`;
 
-  // Warn every 12 sends (approx. 6000–8000 tokens used)
-  if (current % 12 === 0) {
-    showContextReminderBubble(
-      "🔁 Reminder: AI may forget earlier details. Consider re-injecting your key context."
-    );
-  }
+  chrome.storage.local.get([key], (result) => {
+    const current = parseInt(result[key] || "0", 10) + 1;
+
+    chrome.storage.local.set({ [key]: current }, () => {
+      if (current % 12 === 0) {
+        showContextReminderBubble(
+          "🔁 Reminder: AI may forget earlier details. Consider re-injecting your key context."
+        );
+      }
+    });
+  });
 }
 
 // Observe input boxes instead of relying on button clicks

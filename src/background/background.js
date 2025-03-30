@@ -34,6 +34,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   sendResponse({ status: "ok" });
 });
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "OPEN_OPTIONS_PAGE") {
+    chrome.runtime.openOptionsPage();
+    sendResponse({ status: "options opened" });
+  }
+});
+
+chrome.action.onClicked.addListener(() => {
+  chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });
+});
+
 ////////////////////////////////////////////////////////////////////////////////
 // GITHUB SYNC & FIRST INSTALL SUPPORT - ADDED AT BOTTOM
 ////////////////////////////////////////////////////////////////////////////////
@@ -41,15 +52,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
     console.log("[AI Context Vault] First install - opening options page...");
-    chrome.runtime.openOptionsPage();
-  }
-});
-
-// Listen for a request to open the Options page
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === "OPEN_OPTIONS_PAGE") {
-    console.log("[AI Context Vault] Opening options page on request...");
-    chrome.runtime.openOptionsPage();
-    sendResponse({ status: "ok" });
+    chrome.windows.create({
+      url: chrome.runtime.getURL("options.html"),
+      type: "popup",
+      width: 800,
+      height: 600,
+    });
   }
 });

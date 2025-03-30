@@ -5,6 +5,7 @@ import { gatherAllContextData } from "../storage/contextStorage";
 function OptionsPage() {
   const [pat, setPat] = useState("");
   const [gistUrl, setGistUrl] = useState("");
+  const [, setNothing] = useState("");
 
   useEffect(() => {
     // Load both gistPAT and gistURL from chrome.storage.local
@@ -24,14 +25,21 @@ function OptionsPage() {
       <input
         id="pat"
         type="password"
+        className="input"
         value={pat}
         onChange={(e) => setPat(e.target.value)}
         placeholder="Paste your GitHub Personal Access Token"
         style={{ width: 300, marginRight: 8 }}
       />
-      <button onClick={() => handleManualPAT(pat)}>Save Token</button>
+      <button className="button" onClick={() => handleManualPAT(pat)}>
+        Save Token
+      </button>
 
-      <button onClick={createOrUpdateGist} style={{ marginLeft: 10 }}>
+      <button
+        onClick={() => createOrUpdateGist(setNothing)}
+        className="button"
+        style={{ marginLeft: 10 }}
+      >
         Create/Update Gist
       </button>
 
@@ -40,6 +48,7 @@ function OptionsPage() {
       <h3>Use Existing Gist</h3>
       <input
         type="text"
+        className="input"
         value={gistUrl}
         onChange={(e) => setGistUrl(e.target.value)}
         placeholder="https://gist.github.com/username/gistId"
@@ -110,7 +119,7 @@ export function handleManualPAT(pat) {
  * 2) Otherwise, do a POST to create a new Gist
  * 3) Always store the final gistURL in chrome.storage.local
  */
-export async function createOrUpdateGist() {
+export async function createOrUpdateGist(callbackFunc) {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(["gistPAT", "gistURL"], async (res) => {
       const pat = res.gistPAT;
@@ -175,7 +184,12 @@ export async function createOrUpdateGist() {
             "[AI Context Vault] Created/Updated Gist:",
             gistInfo.html_url
           );
-          alert(`Gist created/updated! URL: ${gistInfo.html_url}`);
+          if (gistUrl && gistUrl.includes("/")) {
+            alert("Gist updated successfully!");
+          } else {
+            alert("Gist created successfully!");
+          }
+          callbackFunc();
 
           // Always store the final gistURL
           chrome.storage.local.set({ gistURL: gistInfo.html_url }, () => {

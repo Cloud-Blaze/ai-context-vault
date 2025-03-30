@@ -4,14 +4,43 @@
   "version": "0.1.0",
   "manifest_version": 3,
   "permissions": ["storage", "activeTab", "scripting"],
+  "options_page": "options.html",
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://claude.ai/*",
     "https://chatgpt.com/*",
-    "https://*.google.com/*"
+    "https://*.google.com/*",
+    "https://copilot.microsoft.com/*",
+    "https://gemini.google.com/*",
+    "https://poe.com/*",
+    "https://huggingface.co/chat/*",
+    "https://bard.google.com/*",
+    "https://pi.ai/*",
+    "https://perplexity.ai/*",
+    "https://www.phind.com/*",
+    "https://you.com/*",
+    "https://ora.ai/*",
+    "https://deepai.org/chat/*",
+    "https://beta.character.ai/*",
+    "https://chat.forefront.ai/*",
+    "https://chat.lmsys.org/*",
+    "https://chat.deepseek.com/*",
+    "https://chat.mistral.ai/*",
+    "https://chatgroove.com/*",
+    "https://grok.x.ai/*",
+    "https://labs.openai.com/*",
+    "https://writesonic.com/chat/*",
+    "https://ai.facebook.com/*",
+    "https://chat.together.ai/*",
+    "https://dust.tt/*"
   ],
   "action": {
-    "default_popup": "options.html"
+    "default_title": "AI Context Vault",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "background": {
     "service_worker": "background.bundle.js"
@@ -22,7 +51,30 @@
         "https://chat.openai.com/*",
         "https://claude.ai/*",
         "https://chatgpt.com/*",
-        "https://*.google.com/*"
+        "https://*.google.com/*",
+        "https://copilot.microsoft.com/*",
+        "https://gemini.google.com/*",
+        "https://poe.com/*",
+        "https://huggingface.co/chat/*",
+        "https://bard.google.com/*",
+        "https://pi.ai/*",
+        "https://perplexity.ai/*",
+        "https://www.phind.com/*",
+        "https://you.com/*",
+        "https://ora.ai/*",
+        "https://deepai.org/chat/*",
+        "https://beta.character.ai/*",
+        "https://chat.forefront.ai/*",
+        "https://chat.lmsys.org/*",
+        "https://chat.deepseek.com/*",
+        "https://chat.mistral.ai/*",
+        "https://chatgroove.com/*",
+        "https://grok.x.ai/*",
+        "https://labs.openai.com/*",
+        "https://writesonic.com/chat/*",
+        "https://ai.facebook.com/*",
+        "https://chat.together.ai/*",
+        "https://dust.tt/*"
       ],
       "js": ["inject.bundle.js", "uiOverlay.bundle.js"]
     }

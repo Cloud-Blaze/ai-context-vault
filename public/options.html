@@ -8,6 +8,7 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
       padding: 20px;
+      font-size: 24px;
       background-color: #121212;
       color: #e0e0e0;
     }
@@ -56,6 +57,31 @@
     h2 {
       color: #7aa2d4;
     }
+
+    .input {
+      padding: 8px;
+      width: 300px;
+      background-color: #2a2a2a;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #e0e0e0;
+      margin-right: 10px;
+      font-size: 14px;
+    }
+
+    .button {
+      padding: 8px 14px;
+      background-color: #29497a;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .button:hover {
+      background-color: #3c64a8;
+    }
   </style>
 </head>
 
@@ -63,6 +89,7 @@
   <div class="container">
     <h1>AI Context Vault</h1>
     <div id="root"></div>
+
     <div class="info-block">
       <h2>About</h2>
       <p>AI Context Vault helps you store and auto-inject context into your AI chat interfaces (ChatGPT, Claude, etc.).
@@ -72,13 +99,14 @@
 
     <h2>Keyboard Shortcuts</h2>
     <ul>
-      <li><span class="shortcut">⌘I</span> or <span class="shortcut">Ctrl+I</span>: Save highlighted text to your
+      <li><span class="shortcut">&#8984;
+          I</span> or <span class="shortcut">Ctrl+I</span>: Save highlighted text to your
         context vault</li>
-      <li><span class="shortcut">⌘J</span> or <span class="shortcut">Ctrl+J</span>: Open the context manager
-        overlay</li>
+      <li><span class="shortcut">&#8984;
+          J</span> or <span class="shortcut">Ctrl+J</span>: Open the context manager overlay
+      </li>
       <li><span class="shortcut">Alt+Enter</span>: Prepend context to your message without sending</li>
-      <li><span class="shortcut">Alt+Shift+Enter</span>: Inject context database and send
-        message immediately</li>
+      <li><span class="shortcut">Alt+Shift+Enter</span>: Inject context database and send message immediately</li>
     </ul>
 
     <div class="info-block">
@@ -96,6 +124,45 @@
       <li>chat.openai.com (ChatGPT)</li>
       <li>claude.ai</li>
       <li>*.google.com (Gemini, Bard)</li>
+      <li>poe.com</li>
+      <li>perplexity.ai</li>
+      <li>forefront.ai</li>
+      <li>heypi.com</li>
+      <li>copilot.microsoft.com</li>
+      <li>deepseek.com</li>
+      <li>you.com</li>
+      <li>cocalc.com</li>
+      <li>devv.ai</li>
+      <li>deepmind.google</li>
+      <li>groq.com</li>
+      <li>character.ai</li>
+      <li>runwayml.com</li>
+      <li>cohere.ai</li>
+      <li>huggingface.co</li>
+      <li>scale.ai</li>
+      <li>replicate.com</li>
+      <li>mistral.ai</li>
+      <li>phind.com</li>
+      <li>useblackbox.io</li>
+      <li>notion.so</li>
+      <li>scite.ai</li>
+      <li>writesonic.com</li>
+      <li>jasper.ai</li>
+      <li>copy.ai</li>
+      <li>playgroundai.com</li>
+      <li>quillbot.com</li>
+      <li>civitai.com</li>
+      <li>yiyan.baidu.com</li>
+      <li>x.ai</li>
+      <li>ollama.ai</li>
+      <li>comet.com</li>
+      <li>scribehow.com</li>
+      <li>taskade.com</li>
+      <li>chatpdf.com</li>
+      <li>gamma.app</li>
+      <li>chathub.gg</li>
+      <li>llama.cpp.ai</li>
+      <li>fireworks.ai</li>
     </ul>
 
     <footer>

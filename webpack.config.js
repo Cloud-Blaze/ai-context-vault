@@ -5,7 +5,6 @@ module.exports = {
   entry: {
     background: "./src/background/background.js",
     inject: "./src/content/inject.js",
-    uiOverlay: "./src/content/ui-overlay.js",
     options: "./src/options/options.js",
   },
   output: {
