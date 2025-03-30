@@ -233,8 +233,12 @@ async function refreshOverlayContent(overlayPanel) {
 
       entriesSection.appendChild(entriesTitle);
 
+      const sortedEntries = [...contextData.entries].sort(
+        (a, b) => (b.lastModified || b.created) - (a.lastModified || a.created)
+      );
+
       // Create list of entries
-      contextData.entries.forEach((entry, index) => {
+      sortedEntries.forEach((entry, index) => {
         const entryItem = document.createElement("div");
         entryItem.style.display = "flex";
         entryItem.style.alignItems = "flex-start";
@@ -246,6 +250,17 @@ async function refreshOverlayContent(overlayPanel) {
 
         // Text content container
         const textContainer = document.createElement("div");
+
+        const fullDate = new Date(entry.lastModified || entry.created);
+        textContainer.title = fullDate.toLocaleString("en-US", {
+          month: "2-digit",
+          day: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
         textContainer.style.flex = "1";
         textContainer.style.marginRight = "8px";
 
@@ -832,21 +847,20 @@ function showContextReminderBubble(message) {
   setTimeout(() => bubble.remove(), 4000);
 }
 
-function incrementSendCountAndMaybeWarn() {
+async function incrementSendCountAndMaybeWarn() {
   const { domain, chatId } = parseUrlForIds(window.location.href);
   const key = `send_count_${domain}_${chatId}`;
 
-  chrome.storage.local.get([key], (result) => {
-    const current = parseInt(result[key] || "0", 10) + 1;
+  const result = await chrome.storage.local.get([key]);
+  const current = parseInt(result[key] || "0", 10) + 1;
 
-    chrome.storage.local.set({ [key]: current }, () => {
-      if (current % 12 === 0) {
-        showContextReminderBubble(
-          "🔁 Reminder: AI may forget earlier details. Consider re-injecting your key context."
-        );
-      }
-    });
-  });
+  await chrome.storage.local.set({ [key]: current });
+
+  if (current % 12 === 0) {
+    showContextReminderBubble(
+      "🔁 Reminder: AI may forget earlier details. Consider re-injecting your key context."
+    );
+  }
 }
 
 // Observe input boxes instead of relying on button clicks
@@ -862,6 +876,7 @@ const observer = new MutationObserver(() => {
       ? e.metaKey && e.key === "Enter"
       : e.ctrlKey && e.key === "Enter";
     if (sendKey) {
+      alert(0);
       incrementSendCountAndMaybeWarn();
     }
   });

@@ -54,11 +54,13 @@ export async function getContext(domain, chatId) {
 /**
  * Save context object to chrome.storage.local
  */
-export async function saveContext(domain, chatId, data) {
+export async function saveContext(domain, chatId, data, shouldSync = true) {
   return new Promise((resolve) => {
     const key = getContextKey(domain, chatId);
     chrome.storage.local.set({ [key]: data }, async () => {
-      await syncFullDataToGist();
+      if (shouldSync) {
+        await syncFullDataToGist();
+      }
       resolve();
     });
   });
@@ -236,16 +238,58 @@ async function performGistSync(signal) {
     return;
   }
 
-  // STEP 2: Get local
+  // STEP 2: Get local data
   const localData = await gatherAllContextData();
 
   // STEP 3: Merge
-  const merged = { ...remoteData, ...localData };
+  const merged = { ...remoteData };
 
-  // STEP 4: Save merged locally
-  await new Promise((resolve) => {
-    chrome.storage.local.set(merged, resolve);
-  });
+  for (const key in localData) {
+    const localCtx = localData[key];
+    const remoteCtx = remoteData[key];
+
+    if (!remoteCtx) {
+      // New local key, add
+      merged[key] = localCtx;
+    } else {
+      // Merge entries
+      const mergedEntries = [...remoteCtx.entries];
+
+      localCtx.entries.forEach((localEntry) => {
+        const matchIndex = mergedEntries.findIndex(
+          (e) => e.id === localEntry.id || e.text === localEntry.text
+        );
+
+        if (matchIndex === -1) {
+          mergedEntries.push(localEntry);
+        } else {
+          // Use latest version
+          const existing = mergedEntries[matchIndex];
+          if (
+            localEntry.lastModified &&
+            localEntry.lastModified > (existing.lastModified || 0)
+          ) {
+            mergedEntries[matchIndex] = localEntry;
+          }
+        }
+      });
+
+      merged[key] = {
+        ...localCtx,
+        entries: mergedEntries,
+        summary: localCtx.summary || remoteCtx.summary || "",
+      };
+    }
+  }
+
+  // STEP 4: Save all merged keys using saveContext
+  for (const key of Object.keys(merged)) {
+    if (!key.startsWith("ctx_")) continue;
+    const [_, domain, ...chatParts] = key.split("_");
+    const chatId = chatParts.join("_");
+
+    await saveContext(domain, chatId, merged[key], false); // avoid infinite recursion
+  }
 
   // STEP 5: Patch Gist
   const body = {
