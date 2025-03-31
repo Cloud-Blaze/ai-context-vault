@@ -2,7 +2,12 @@
 // Content script that provides keyboard shortcut to inject context into AI chat messages,
 // with a modified approach to prevent ChatGPT from intercepting CMD+ENTER/CTRL+ENTER.
 
-import { parseUrlForIds, getContext } from "../storage/contextStorage";
+import {
+  getBookmarks,
+  parseUrlForIds,
+  getContext,
+  deleteBookmark,
+} from "../storage/contextStorage";
 
 /*
  * AI Context Vault Keyboard Shortcuts
@@ -179,19 +184,73 @@ async function refreshOverlayContent(overlayPanel) {
     return;
   }
 
-  // Get current context
   const { domain, chatId } = parseUrlForIds(window.location.href);
-  const contextData = await getContext(domain, chatId);
 
-  // Clear existing content
+  // Clear content
   contentContainer.innerHTML = "";
 
+  // Tabs
+  const tabsContainer = document.createElement("div");
+  tabsContainer.style.marginBottom = "12px";
+  tabsContainer.style.display = "flex";
+  tabsContainer.style.gap = "10px";
+
+  const contextTab = document.createElement("button");
+  const bookmarksTab = document.createElement("button");
+
+  contextTab.textContent = "Context";
+  bookmarksTab.textContent = "Bookmarks";
+
+  Object.assign(contextTab.style, {
+    padding: "6px 12px",
+    background: "#4ade80",
+    color: "#000",
+    borderRadius: "6px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    border: "none",
+  });
+
+  Object.assign(bookmarksTab.style, {
+    padding: "6px 12px",
+    background: "#222",
+    color: "#eee",
+    borderRadius: "6px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    border: "none",
+  });
+
+  const contextSection = document.createElement("div");
+  const bookmarksSection = document.createElement("div");
+  bookmarksSection.style.display = "none";
+
+  contextTab.onclick = () => {
+    contextTab.style.background = "#4ade80";
+    bookmarksTab.style.background = "#222";
+    contextSection.style.display = "block";
+    bookmarksSection.style.display = "none";
+  };
+  bookmarksTab.onclick = () => {
+    bookmarksTab.style.background = "#4ade80";
+    contextTab.style.background = "#222";
+    bookmarksSection.style.display = "block";
+    contextSection.style.display = "none";
+  };
+
+  tabsContainer.appendChild(contextTab);
+  tabsContainer.appendChild(bookmarksTab);
+  contentContainer.appendChild(tabsContainer);
+  contentContainer.appendChild(contextSection);
+  contentContainer.appendChild(bookmarksSection);
+
+  // ORIGINAL CONTEXT ENTRY LOGIC
+  const contextData = await getContext(domain, chatId);
   if (
     !contextData ||
     !contextData.entries ||
     contextData.entries.length === 0
   ) {
-    // No context available
     const noContext = document.createElement("p");
     noContext.textContent =
       "No context available for this chat. Highlight text and press CMD+I/CTRL+I to add context.";
@@ -423,11 +482,101 @@ async function refreshOverlayContent(overlayPanel) {
         entriesSection.appendChild(entryItem);
       });
 
-      contentContainer.appendChild(entriesSection);
+      contextSection.appendChild(entriesSection);
     }
   }
 
-  console.log("[AI Context Vault] Refreshed overlay content");
+  // BOOKMARK TAB ENTRIES
+  const bookmarks = await getBookmarks(domain, chatId);
+  console.error("dave", bookmarks);
+  if (!bookmarks || bookmarks.length === 0) {
+    const noBookmarks = document.createElement("p");
+    noBookmarks.textContent = "No bookmarks available.";
+    noBookmarks.style.color = "#999";
+    bookmarksSection.appendChild(noBookmarks);
+  } else {
+    bookmarks.forEach((entry) => {
+      if (!entry || !entry.selector) return;
+
+      const wrapper = document.createElement("div");
+      wrapper.style.display = "flex";
+      wrapper.style.alignItems = "center";
+      wrapper.style.justifyContent = "space-between";
+      wrapper.style.borderBottom = "1px solid #444";
+      wrapper.style.marginBottom = "6px";
+      wrapper.style.padding = "4px 0";
+
+      const btn = document.createElement("button");
+      btn.textContent = `🔖 ${entry.label || "Bookmark"}`;
+      btn.title = new Date(entry.created).toLocaleString();
+      btn.style.flexGrow = "1";
+      btn.style.background = "none";
+      btn.style.border = "none";
+      btn.style.color = "#ccc";
+      btn.style.textAlign = "left";
+      btn.style.cursor = "pointer";
+      btn.onclick = () => {
+        try {
+          // Try to find element with fallbackText
+          const matches = Array.from(
+            document.querySelectorAll("body *")
+          ).filter((el) => {
+            // Skip if inside overlay
+            if (el.closest("#__ai_context_overlay__")) return false;
+
+            return (
+              el.childNodes.length === 1 &&
+              // el.childNodes[0].nodeType === Node.TEXT_NODE &&
+              el.innerText &&
+              el.innerText.includes(entry.fallbackText)
+            );
+          });
+          if (matches.length > 0) {
+            const node = matches[matches.length - 1];
+            node.scrollIntoView({ behavior: "smooth", block: "center" });
+            node.style.outline = "2px dashed #4ade80";
+            setTimeout(() => {
+              node.style.outline = "none";
+            }, 6000);
+          } else {
+            alert("Bookmark element not found on page.");
+          }
+        } catch (err) {
+          console.error("[AI Context Vault] Bookmark jump failed:", err);
+        }
+      };
+
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "×";
+      delBtn.style.color = "#f87171";
+      delBtn.style.background = "none";
+      delBtn.style.border = "none";
+      delBtn.style.cursor = "pointer";
+      delBtn.style.marginLeft = "8px";
+      delBtn.onclick = async () => {
+        await deleteBookmark(domain, chatId, entry.id);
+        await refreshOverlayContent(overlayPanel);
+      };
+
+      wrapper.appendChild(btn);
+      wrapper.appendChild(delBtn);
+      bookmarksSection.appendChild(wrapper);
+    });
+  }
+
+  console.log("[AI Context Vault] Refreshed overlay content with tabs");
+}
+
+function generateSimpleSelector(el) {
+  if (!el) return null;
+
+  // Use id if it's meaningful
+  if (el.id && !el.id.startsWith("__")) return `#${el.id}`;
+
+  // Otherwise, use tag and maybe text content
+  const tag = el.tagName.toLowerCase();
+  const text = el.textContent.trim().split(" ").slice(0, 3).join(" ");
+  return `${tag}:contains("${text}")`;
 }
 
 /**
@@ -440,7 +589,42 @@ function setupKeyboardShortcuts() {
   //    We pass `true` as the last argument for addEventListener.
   document.addEventListener(
     "keydown",
-    (event) => {
+    async (event) => {
+      // ALT+B or CMD+B → Bookmark selection
+      const isMac =
+        navigator.userAgentData?.platform === "macOS" ||
+        navigator.platform?.toUpperCase().includes("MAC");
+      const isB = event.key.toLowerCase() === "b";
+      if ((isMac && event.metaKey && isB) || (!isMac && event.ctrlKey && isB)) {
+        const selection = window.getSelection();
+        const selectedText = selection?.toString()?.trim();
+
+        if (!selectedText) {
+          showConfirmationBubble("No text selected to bookmark", "warning");
+          return;
+        }
+
+        const { domain, chatId } = parseUrlForIds(window.location.href);
+        const range = selection.getRangeAt(0);
+        const node = range.startContainer?.parentElement;
+
+        const fallbackText = selectedText;
+        const label = selectedText.slice(0, 50);
+
+        // Attempt to create a unique selector
+        const selector = generateSimpleSelector(node);
+
+        const { addBookmark } = await import("../storage/contextStorage.js");
+        await addBookmark(domain, chatId, label, selector, fallbackText);
+        showConfirmationBubble("🔖 Bookmark added", "success");
+
+        // Refresh UI
+        const event = new CustomEvent("ai-context-updated", {
+          detail: { domain, chatId },
+        });
+        document.dispatchEvent(event);
+      }
+
       // ALT+I to save selected text
       if ((event.ctrlKey || event.metaKey) && event.key === "i") {
         console.log("[AI Context Vault] Modifier+I - save selected text");
@@ -883,3 +1067,55 @@ const observer = new MutationObserver(() => {
 });
 
 observer.observe(document.body, { childList: true, subtree: true });
+
+export function scrollToBookmark(entry) {
+  try {
+    let node = null;
+
+    // First try using querySelector if we stored something like a tag and text
+    if (entry.selector) {
+      node = document.querySelector(entry.selector);
+    }
+
+    // Fallback: try to find a DOM node that matches fallback text content
+    if (!node && entry.fallbackText) {
+      const matches = Array.from(
+        document.querySelectorAll("div, span, p")
+      ).filter((el) => el.textContent.includes(entry.fallbackText));
+      node = matches.length > 0 ? matches[0] : null;
+    }
+
+    if (node) {
+      node.scrollIntoView({ behavior: "smooth", block: "center" });
+      node.style.outline = "3px dashed #4ade80";
+      setTimeout(() => (node.style.outline = "none"), 3000);
+    } else {
+      alert("Bookmark could not be found on this page.");
+    }
+  } catch (e) {
+    console.error("[AI Context Vault] Failed to scroll to bookmark:", e);
+    alert("Error resolving bookmark.");
+  }
+}
+
+function getXPathForElement(el) {
+  if (!el) return null;
+  if (el.id) return `//*[@id="${el.id}"]`;
+
+  const parts = [];
+  while (el && el.nodeType === Node.ELEMENT_NODE) {
+    let index = 1;
+    let sibling = el.previousSibling;
+    while (sibling) {
+      if (
+        sibling.nodeType === Node.ELEMENT_NODE &&
+        sibling.nodeName === el.nodeName
+      )
+        index++;
+      sibling = sibling.previousSibling;
+    }
+    parts.unshift(`${el.nodeName.toLowerCase()}[${index}]`);
+    el = el.parentNode;
+  }
+  return "/" + parts.join("/");
+}

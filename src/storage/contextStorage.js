@@ -320,3 +320,77 @@ async function performGistSync(signal) {
     console.warn("[AI Context Vault] Patch aborted");
   }
 }
+
+/**
+ * Get all bookmark entries for this domain/chatId pair.
+ */
+export async function getBookmarks(domain, chatId) {
+  const key = getBookmarkKey(domain, chatId);
+  return new Promise((resolve) => {
+    chrome.storage.local.get([key], (res) => {
+      resolve(res[key] || []);
+    });
+  });
+}
+
+export function getBookmarkKey(domain, chatId) {
+  return `ctx_bookmarks_${domain}_${chatId}`;
+}
+
+/**
+ * Add a new bookmark.
+ */
+export async function addBookmark(
+  domain,
+  chatId,
+  label,
+  selector,
+  fallbackText
+) {
+  const newBookmark = {
+    id: `bm_${Date.now()}`,
+    label,
+    domain,
+    chatId,
+    selector,
+    fallbackText,
+    created: Date.now(),
+  };
+
+  const key = getBookmarkKey(domain, chatId);
+  const bookmarks = await getBookmarks(domain, chatId);
+  bookmarks.push(newBookmark);
+
+  return new Promise((resolve) =>
+    chrome.storage.local.set({ [key]: bookmarks }, resolve)
+  );
+}
+
+/**
+ * Delete a bookmark by its ID.
+ */
+export async function deleteBookmark(domain, chatId, bookmarkId) {
+  const key = getBookmarkKey(domain, chatId);
+  const bookmarks = await getBookmarks(domain, chatId);
+  const filtered = bookmarks.filter((b) => b.id !== bookmarkId);
+
+  return new Promise((resolve) =>
+    chrome.storage.local.set({ [key]: filtered }, resolve)
+  );
+}
+/**
+ * Gather all bookmark sets across all domains and chat IDs.
+ */
+export async function gatherAllBookmarks() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(null, (items) => {
+      const all = {};
+      for (const key in items) {
+        if (key.startsWith("ctx_bookmarks_")) {
+          all[key] = items[key];
+        }
+      }
+      resolve(all);
+    });
+  });
+}
