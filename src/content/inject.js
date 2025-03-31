@@ -10,18 +10,6 @@ import {
   updateBookmarkLabel,
 } from "../storage/contextStorage";
 
-/*
- * AI Context Vault Keyboard Shortcuts
- * ----------------------------------
- * ALT+SHIFT+I: Toggle context overlay
- * ALT+I: Save selected text to context
- * ALT+ENTER: Inject context into message box (without sending)
- * ALT+SHIFT+ENTER: Inject context and automatically send message
- *
- * Line endings are preserved when injecting context, with two blank lines added
- * between your context and your message for better readability.
- */
-
 // Function to format timestamp in DD/MM HH:mm format
 function formatTimestamp(timestamp) {
   if (!timestamp) return "";
@@ -175,9 +163,309 @@ async function ensureOverlayExists() {
   return overlayPanel;
 }
 
-/**
- * Refresh the content of the overlay with current context data.
- */
+// UI Component Functions
+function createTabButton(text, isActive = false) {
+  const button = document.createElement("button");
+  button.textContent = text;
+  Object.assign(button.style, {
+    padding: "6px 12px",
+    background: isActive ? "#4ade80" : "#222",
+    color: isActive ? "#000" : "#eee",
+    borderRadius: "6px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    border: "none",
+  });
+  return button;
+}
+
+function createSectionTitle(text) {
+  const title = document.createElement("h4");
+  title.textContent = text;
+  Object.assign(title.style, {
+    margin: "0 0 10px 0",
+    fontSize: "14px",
+    fontWeight: "bold",
+    color: "#4ade80",
+  });
+  return title;
+}
+
+function createImportExportButton() {
+  const button = document.createElement("button");
+  button.textContent = "Import/Export";
+  Object.assign(button.style, {
+    padding: "4px 8px",
+    background: "#2d2d2d",
+    color: "#4ade80",
+    borderRadius: "4px",
+    cursor: "pointer",
+    border: "1px solid #4ade80",
+    marginBottom: "10px",
+  });
+
+  button.onclick = () => {
+    const textarea = document.createElement("textarea");
+    textarea.value = "Hello World"; // Placeholder for now
+    textarea.style.width = "100%";
+    textarea.style.height = "200px";
+    textarea.style.backgroundColor = "#2d2d2d";
+    textarea.style.color = "#e0e0e0";
+    textarea.style.border = "1px solid #444";
+    textarea.style.borderRadius = "4px";
+    textarea.style.padding = "8px";
+    textarea.style.marginBottom = "8px";
+    textarea.style.display = "block";
+
+    const saveButton = document.createElement("button");
+    saveButton.innerHTML = "✓";
+    saveButton.style.color = "#4ade80";
+    saveButton.style.background = "none";
+    saveButton.style.border = "none";
+    saveButton.style.cursor = "pointer";
+    saveButton.style.fontSize = "18px";
+
+    const container = document.createElement("div");
+    container.appendChild(textarea);
+    container.appendChild(saveButton);
+
+    const contextSection = document.querySelector(
+      "#__ai_context_content__ > div:nth-child(2)"
+    );
+    if (contextSection) {
+      const title = contextSection.querySelector("h4");
+      if (title) {
+        contextSection.insertBefore(container, title.nextSibling);
+      }
+    }
+  };
+
+  return button;
+}
+
+function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
+  const entryItem = document.createElement("div");
+  entryItem.style.display = "flex";
+  entryItem.style.alignItems = "flex-start";
+  entryItem.style.marginBottom = "8px";
+  entryItem.style.justifyContent = "space-between";
+  entryItem.style.paddingBottom = "8px";
+  entryItem.style.borderBottom = "1px solid #444";
+  entryItem.style.transition = "all 0.3s ease";
+
+  const textContainer = document.createElement("div");
+  textContainer.style.flex = "1";
+  textContainer.style.marginRight = "8px";
+
+  const text = document.createElement("div");
+  text.textContent = entry.text;
+  text.style.lineHeight = "1.4";
+  text.style.wordBreak = "break-word";
+
+  const editTextarea = document.createElement("textarea");
+  editTextarea.value = entry.text;
+  editTextarea.style.width = "100%";
+  editTextarea.style.height = "600px";
+  editTextarea.style.minHeight = "100px";
+  editTextarea.style.maxHeight = "75vh";
+  editTextarea.style.backgroundColor = "#2d2d2d";
+  editTextarea.style.color = "#e0e0e0";
+  editTextarea.style.border = "1px solid #444";
+  editTextarea.style.borderRadius = "4px";
+  editTextarea.style.padding = "8px";
+  editTextarea.style.marginTop = "8px";
+  editTextarea.style.display = "none";
+  editTextarea.style.resize = "vertical";
+
+  textContainer.appendChild(text);
+  textContainer.appendChild(editTextarea);
+
+  const buttonContainer = document.createElement("div");
+  buttonContainer.style.display = "flex";
+  buttonContainer.style.gap = "8px";
+  buttonContainer.style.alignItems = "center";
+
+  const deleteButton = document.createElement("button");
+  deleteButton.textContent = "×";
+  deleteButton.style.background = "none";
+  deleteButton.style.border = "none";
+  deleteButton.style.color = "#f87171";
+  deleteButton.style.fontSize = "18px";
+  deleteButton.style.cursor = "pointer";
+  deleteButton.style.padding = "0 4px";
+  deleteButton.style.lineHeight = "1";
+  deleteButton.style.opacity = "0.7";
+  deleteButton.style.transition = "opacity 0.2s";
+
+  const editButton = document.createElement("button");
+  editButton.innerHTML = "✎";
+  editButton.style.background = "none";
+  editButton.style.border = "none";
+  editButton.style.color = "#4ade80";
+  editButton.style.fontSize = "18px";
+  editButton.style.cursor = "pointer";
+  editButton.style.padding = "0 4px";
+  editButton.style.lineHeight = "1";
+  editButton.style.opacity = "0.7";
+  editButton.style.transition = "opacity 0.2s";
+
+  // Hover effects
+  [deleteButton, editButton].forEach((button) => {
+    button.addEventListener("mouseover", () => {
+      button.style.opacity = "1";
+    });
+    button.addEventListener("mouseout", () => {
+      button.style.opacity = "0.7";
+    });
+  });
+
+  // Edit button click handler
+  editButton.addEventListener("click", async function () {
+    const isEditing = editTextarea.style.display === "block";
+
+    if (!isEditing) {
+      text.style.display = "none";
+      editTextarea.style.display = "block";
+      editButton.innerHTML = "✓";
+      editButton.style.color = "#4ade80";
+
+      const allEntries = entryItem.parentElement.querySelectorAll(
+        "div[style*='margin-bottom: 8px']"
+      );
+      allEntries.forEach((e) => {
+        if (e !== entryItem) {
+          e.style.display = "none";
+        }
+      });
+
+      editTextarea.focus();
+    } else {
+      const newText = editTextarea.value.trim();
+      if (newText && newText !== entry.text) {
+        try {
+          await onUpdate(entry.text, newText);
+          entry.text = newText;
+          text.textContent = newText;
+          showConfirmationBubble("Context updated successfully", "success");
+        } catch (error) {
+          console.error("[AI Context Vault] Error updating context:", error);
+          showConfirmationBubble("Failed to update context", "error");
+        }
+      }
+
+      text.style.display = "block";
+      editTextarea.style.display = "none";
+      editButton.innerHTML = "✎";
+      editButton.style.color = "#4ade80";
+
+      const allEntries = entryItem.parentElement.querySelectorAll(
+        "div[style*='margin-bottom: 8px']"
+      );
+      allEntries.forEach((e) => {
+        e.style.display = "flex";
+      });
+    }
+  });
+
+  deleteButton.addEventListener("click", () => onDelete(entry.text));
+
+  buttonContainer.appendChild(deleteButton);
+  buttonContainer.appendChild(editButton);
+  entryItem.appendChild(textContainer);
+  entryItem.appendChild(buttonContainer);
+
+  return entryItem;
+}
+
+function createBookmarkEntry(entry, domain, chatId, onDelete, onUpdate) {
+  const wrapper = document.createElement("div");
+  wrapper.style.display = "flex";
+  wrapper.style.alignItems = "center";
+  wrapper.style.justifyContent = "space-between";
+  wrapper.style.borderBottom = "1px solid #444";
+  wrapper.style.marginBottom = "6px";
+  wrapper.style.padding = "4px 0";
+
+  const delBtn = document.createElement("button");
+  delBtn.textContent = "×";
+  delBtn.style.color = "#f87171";
+  delBtn.style.padding = "0 4px";
+  delBtn.style.background = "none";
+  delBtn.style.border = "none";
+  delBtn.style.cursor = "pointer";
+  delBtn.style.marginLeft = "8px";
+  delBtn.onclick = () => onDelete(entry.id);
+
+  const labelContainer = document.createElement("div");
+  labelContainer.style.flex = "1";
+  labelContainer.style.marginRight = "8px";
+
+  const labelText = document.createElement("div");
+  labelText.textContent = `🔖 ${entry.label || "Bookmark"}`;
+  labelText.style.cursor = "pointer";
+  labelText.style.color = "#ccc";
+  labelText.title = new Date(entry.created).toLocaleString();
+
+  const labelInput = document.createElement("input");
+  labelInput.type = "text";
+  labelInput.value = entry.label || "";
+  labelInput.style.display = "none";
+  labelInput.style.width = "100%";
+  labelInput.style.backgroundColor = "#2d2d2d";
+  labelInput.style.color = "#e0e0e0";
+  labelInput.style.border = "1px solid #444";
+  labelInput.style.borderRadius = "4px";
+  labelInput.style.padding = "4px";
+
+  labelContainer.appendChild(labelText);
+  labelContainer.appendChild(labelInput);
+
+  const editBtn = document.createElement("button");
+  editBtn.innerHTML = "✎";
+  editBtn.style.color = "#4ade80";
+  editBtn.style.background = "none";
+  editBtn.style.border = "none";
+  editBtn.style.cursor = "pointer";
+  editBtn.style.fontSize = "16px";
+
+  editBtn.onclick = async () => {
+    const isEditing = labelInput.style.display === "block";
+
+    if (!isEditing) {
+      labelText.style.display = "none";
+      labelInput.style.display = "block";
+      labelInput.focus();
+      editBtn.innerHTML = "✓";
+    } else {
+      const newLabel = labelInput.value.trim();
+      labelText.style.display = "block";
+      labelInput.style.display = "none";
+      editBtn.innerHTML = "✎";
+
+      if (newLabel && newLabel !== entry.label) {
+        try {
+          await onUpdate(entry.id, newLabel);
+          entry.label = newLabel;
+          labelText.textContent = `🔖 ${newLabel}`;
+          showConfirmationBubble("Bookmark label updated", "success");
+        } catch (err) {
+          console.error(
+            "[AI Context Vault] Error updating bookmark label:",
+            err
+          );
+          showConfirmationBubble("Failed to update bookmark", "error");
+        }
+      }
+    }
+  };
+
+  wrapper.appendChild(labelContainer);
+  wrapper.appendChild(delBtn);
+  wrapper.appendChild(editBtn);
+
+  return wrapper;
+}
+
 async function refreshOverlayContent(overlayPanel) {
   const contentContainer = document.getElementById("__ai_context_content__");
   if (!contentContainer) {
@@ -190,37 +478,14 @@ async function refreshOverlayContent(overlayPanel) {
   // Clear content
   contentContainer.innerHTML = "";
 
-  // Tabs
+  // Create tabs
   const tabsContainer = document.createElement("div");
   tabsContainer.style.marginBottom = "12px";
   tabsContainer.style.display = "flex";
   tabsContainer.style.gap = "10px";
 
-  const contextTab = document.createElement("button");
-  const bookmarksTab = document.createElement("button");
-
-  contextTab.textContent = "Context";
-  bookmarksTab.textContent = "Bookmarks";
-
-  Object.assign(contextTab.style, {
-    padding: "6px 12px",
-    background: "#4ade80",
-    color: "#000",
-    borderRadius: "6px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    border: "none",
-  });
-
-  Object.assign(bookmarksTab.style, {
-    padding: "6px 12px",
-    background: "#222",
-    color: "#eee",
-    borderRadius: "6px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    border: "none",
-  });
+  const contextTab = createTabButton("Context", true);
+  const bookmarksTab = createTabButton("Bookmarks");
 
   const contextSection = document.createElement("div");
   const bookmarksSection = document.createElement("div");
@@ -228,13 +493,18 @@ async function refreshOverlayContent(overlayPanel) {
 
   contextTab.onclick = () => {
     contextTab.style.background = "#4ade80";
+    contextTab.style.color = "#000";
     bookmarksTab.style.background = "#222";
+    bookmarksTab.style.color = "#eee";
     contextSection.style.display = "block";
     bookmarksSection.style.display = "none";
   };
+
   bookmarksTab.onclick = () => {
     bookmarksTab.style.background = "#4ade80";
+    bookmarksTab.style.color = "#000";
     contextTab.style.background = "#222";
+    contextTab.style.color = "#eee";
     bookmarksSection.style.display = "block";
     contextSection.style.display = "none";
   };
@@ -245,7 +515,7 @@ async function refreshOverlayContent(overlayPanel) {
   contentContainer.appendChild(contextSection);
   contentContainer.appendChild(bookmarksSection);
 
-  // ORIGINAL CONTEXT ENTRY LOGIC
+  // Populate context section
   const contextData = await getContext(domain, chatId);
   if (
     !contextData ||
@@ -256,20 +526,13 @@ async function refreshOverlayContent(overlayPanel) {
     noContext.textContent =
       "No context available for this chat. Highlight text and press CMD+I/CTRL+I to add context.";
     noContext.style.color = "#999";
-    contentContainer.appendChild(noContext);
+    contextSection.appendChild(noContext);
   } else {
-    // Add summary if available
     if (contextData.summary) {
       const summarySection = document.createElement("div");
       summarySection.style.marginBottom = "15px";
 
-      const summaryTitle = document.createElement("h4");
-      summaryTitle.textContent = "Summary";
-      summaryTitle.style.margin = "0 0 5px 0";
-      summaryTitle.style.fontSize = "14px";
-      summaryTitle.style.fontWeight = "bold";
-      summaryTitle.style.color = "#4ade80";
-
+      const summaryTitle = createSectionTitle("Summary");
       const summaryText = document.createElement("p");
       summaryText.textContent = contextData.summary;
       summaryText.style.margin = "0";
@@ -277,209 +540,39 @@ async function refreshOverlayContent(overlayPanel) {
 
       summarySection.appendChild(summaryTitle);
       summarySection.appendChild(summaryText);
-      contentContainer.appendChild(summarySection);
+      contextSection.appendChild(summarySection);
     }
 
-    // Add context entries
     if (contextData.entries.length > 0) {
       const entriesSection = document.createElement("div");
-
-      const entriesTitle = document.createElement("h4");
-      entriesTitle.textContent = "Context Items";
-      entriesTitle.style.margin = "0 0 10px 0";
-      entriesTitle.style.fontSize = "14px";
-      entriesTitle.style.fontWeight = "bold";
-      entriesTitle.style.color = "#4ade80";
-
+      const entriesTitle = createSectionTitle("Context Items");
       entriesSection.appendChild(entriesTitle);
+
+      // Add Import/Export button
+      const importExportButton = createImportExportButton();
+      entriesSection.appendChild(importExportButton);
 
       const sortedEntries = [...contextData.entries].sort(
         (a, b) => (b.lastModified || b.created) - (a.lastModified || a.created)
       );
 
-      // Create list of entries
-      sortedEntries.forEach((entry, index) => {
-        const entryItem = document.createElement("div");
-        entryItem.style.display = "flex";
-        entryItem.style.alignItems = "flex-start";
-        entryItem.style.marginBottom = "8px";
-        entryItem.style.justifyContent = "space-between";
-        entryItem.style.paddingBottom = "8px";
-        entryItem.style.borderBottom = "1px solid #444";
-        entryItem.style.transition = "all 0.3s ease";
-
-        // Text content container
-        const textContainer = document.createElement("div");
-
-        const fullDate = new Date(entry.lastModified || entry.created);
-        textContainer.title = fullDate.toLocaleString("en-US", {
-          month: "2-digit",
-          day: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        });
-        textContainer.style.flex = "1";
-        textContainer.style.marginRight = "8px";
-
-        // Text content
-        const text = document.createElement("div");
-        text.textContent = entry.text;
-        text.style.lineHeight = "1.4";
-        text.style.wordBreak = "break-word";
-
-        // Edit textarea (hidden by default)
-        const editTextarea = document.createElement("textarea");
-        editTextarea.value = entry.text;
-        editTextarea.style.width = "100%";
-        editTextarea.style.height = "600px";
-        editTextarea.style.minHeight = "100px";
-        editTextarea.style.maxHeight = "75vh";
-        editTextarea.style.backgroundColor = "#2d2d2d";
-        editTextarea.style.color = "#e0e0e0";
-        editTextarea.style.border = "1px solid #444";
-        editTextarea.style.borderRadius = "4px";
-        editTextarea.style.padding = "8px";
-        editTextarea.style.marginTop = "8px";
-        editTextarea.style.display = "none";
-        editTextarea.style.resize = "vertical";
-
-        textContainer.appendChild(text);
-        textContainer.appendChild(editTextarea);
-
-        // Button container
-        const buttonContainer = document.createElement("div");
-        buttonContainer.style.display = "flex";
-        buttonContainer.style.gap = "8px";
-        buttonContainer.style.alignItems = "center";
-
-        // Delete button
-        const deleteButton = document.createElement("button");
-        deleteButton.textContent = "×";
-        deleteButton.style.background = "none";
-        deleteButton.style.border = "none";
-        deleteButton.style.color = "#f87171";
-        deleteButton.style.fontSize = "18px";
-        deleteButton.style.cursor = "pointer";
-        deleteButton.style.padding = "0 4px";
-        deleteButton.style.lineHeight = "1";
-        deleteButton.style.opacity = "0.7";
-        deleteButton.style.transition = "opacity 0.2s";
-
-        // Edit/Save button
-        const editButton = document.createElement("button");
-        editButton.innerHTML = "✎"; // Pencil icon
-        editButton.style.background = "none";
-        editButton.style.border = "none";
-        editButton.style.color = "#4ade80";
-        editButton.style.fontSize = "18px";
-        editButton.style.cursor = "pointer";
-        editButton.style.padding = "0 4px";
-        editButton.style.lineHeight = "1";
-        editButton.style.opacity = "0.7";
-        editButton.style.transition = "opacity 0.2s";
-
-        // Hover effects
-        [deleteButton, editButton].forEach((button) => {
-          button.addEventListener("mouseover", () => {
-            button.style.opacity = "1";
-          });
-          button.addEventListener("mouseout", () => {
-            button.style.opacity = "0.7";
-          });
-        });
-
-        // Edit button click handler
-        editButton.addEventListener("click", async function () {
-          const isEditing = editTextarea.style.display === "block";
-
-          if (!isEditing) {
-            // Start editing
-            text.style.display = "none";
-            editTextarea.style.display = "block";
-            editButton.innerHTML = "✓"; // Save icon
-            editButton.style.color = "#4ade80";
-
-            // Hide other entries while editing
-            const allEntries = entriesSection.querySelectorAll(
-              "div[style*='margin-bottom: 8px']"
-            );
-            allEntries.forEach((e) => {
-              if (e !== entryItem) {
-                e.style.display = "none";
-              }
-            });
-
-            // Focus the textarea
-            editTextarea.focus();
-          } else {
-            // Save changes
-            const newText = editTextarea.value.trim();
-            if (newText && newText !== entry.text) {
-              try {
-                const storage = await import("../storage/contextStorage");
-                await storage.updateContext(
-                  domain,
-                  chatId,
-                  entry.text,
-                  newText
-                );
-
-                // Update local entry
-                entry.text = newText;
-                text.textContent = newText;
-
-                // Trigger refresh event
-                const event = new CustomEvent("ai-context-updated", {
-                  detail: { domain, chatId },
-                });
-                document.dispatchEvent(event);
-
-                // Show success feedback
-                showConfirmationBubble(
-                  "Context updated successfully",
-                  "success"
-                );
-              } catch (error) {
-                console.error(
-                  "[AI Context Vault] Error updating context:",
-                  error
-                );
-                showConfirmationBubble("Failed to update context", "error");
-              }
-            }
-
-            // Reset UI
-            text.style.display = "block";
-            editTextarea.style.display = "none";
-            editButton.innerHTML = "✎"; // Back to pencil icon
-            editButton.style.color = "#4ade80";
-
-            // Show all entries again
-            const allEntries = entriesSection.querySelectorAll(
-              "div[style*='margin-bottom: 8px']"
-            );
-            allEntries.forEach((e) => {
-              e.style.display = "flex";
-            });
-          }
-        });
-
-        // Delete button event listener
-        deleteButton.addEventListener("click", function () {
-          import("../storage/contextStorage").then(async (storage) => {
-            await storage.deleteContext(domain, chatId, entry.text);
-            // Trigger refresh of the overlay content
+      sortedEntries.forEach((entry) => {
+        const entryItem = createContextEntry(
+          entry,
+          domain,
+          chatId,
+          async (text) => {
+            await deleteContext(domain, chatId, text);
             refreshOverlayContent(overlayPanel);
-          });
-        });
-
-        buttonContainer.appendChild(deleteButton);
-        buttonContainer.appendChild(editButton);
-        entryItem.appendChild(textContainer);
-        entryItem.appendChild(buttonContainer);
+          },
+          async (oldText, newText) => {
+            await updateContext(domain, chatId, oldText, newText);
+            const event = new CustomEvent("ai-context-updated", {
+              detail: { domain, chatId },
+            });
+            document.dispatchEvent(event);
+          }
+        );
         entriesSection.appendChild(entryItem);
       });
 
@@ -487,7 +580,7 @@ async function refreshOverlayContent(overlayPanel) {
     }
   }
 
-  // BOOKMARK TAB ENTRIES
+  // Populate bookmarks section
   const bookmarks = await getBookmarks(domain, chatId);
   if (!bookmarks || bookmarks.length === 0) {
     const noBookmarks = document.createElement("p");
@@ -495,137 +588,29 @@ async function refreshOverlayContent(overlayPanel) {
     noBookmarks.style.color = "#999";
     bookmarksSection.appendChild(noBookmarks);
   } else {
+    const bookmarksTitle = createSectionTitle("Chat Bookmarks");
+    bookmarksSection.appendChild(bookmarksTitle);
+
     bookmarks.forEach((entry) => {
       if (!entry || !entry.selector) return;
 
-      const wrapper = document.createElement("div");
-      wrapper.style.display = "flex";
-      wrapper.style.alignItems = "center";
-      wrapper.style.justifyContent = "space-between";
-      wrapper.style.borderBottom = "1px solid #444";
-      wrapper.style.marginBottom = "6px";
-      wrapper.style.padding = "4px 0";
-
-      const delBtn = document.createElement("button");
-      delBtn.textContent = "×";
-      delBtn.style.color = "#f87171";
-      delBtn.style.padding = "0 4px";
-      delBtn.style.background = "none";
-      delBtn.style.border = "none";
-      delBtn.style.cursor = "pointer";
-      delBtn.style.marginLeft = "8px";
-      delBtn.onclick = async () => {
-        await deleteBookmark(domain, chatId, entry.id);
-        await refreshOverlayContent(overlayPanel);
-      };
-
-      const labelContainer = document.createElement("div");
-      labelContainer.style.flex = "1";
-      labelContainer.style.marginRight = "8px";
-
-      const labelText = document.createElement("div");
-      labelText.textContent = `🔖 ${entry.label || "Bookmark"}`;
-      labelText.style.cursor = "pointer";
-      labelText.style.color = "#ccc";
-      labelText.title = new Date(entry.created).toLocaleString();
-      labelText.onclick = () => {
-        try {
-          // Try to find element with fallbackText
-          const matches = Array.from(
-            document.querySelectorAll("body *")
-          ).filter((el) => {
-            // Skip if inside overlay
-            if (el.closest("#__ai_context_overlay__")) return false;
-
-            return (
-              el.childNodes.length === 1 &&
-              el.innerText &&
-              el.innerText.includes(entry.fallbackText)
-            );
+      const bookmarkEntry = createBookmarkEntry(
+        entry,
+        domain,
+        chatId,
+        async (id) => {
+          await deleteBookmark(domain, chatId, id);
+          refreshOverlayContent(overlayPanel);
+        },
+        async (id, newLabel) => {
+          await updateBookmarkLabel(domain, chatId, id, newLabel);
+          const event = new CustomEvent("ai-context-updated", {
+            detail: { domain, chatId },
           });
-
-          if (matches.length > 0) {
-            const node = matches[matches.length - 1];
-            node.scrollIntoView({ behavior: "smooth", block: "center" });
-            node.style.outline = "2px dashed #4ade80";
-            setTimeout(() => {
-              node.style.outline = "none";
-            }, 6000);
-          } else {
-            alert("Bookmark element not found on page.");
-          }
-        } catch (err) {
-          console.error("[AI Context Vault] Bookmark jump failed:", err);
+          document.dispatchEvent(event);
         }
-      };
-
-      const labelInput = document.createElement("input");
-      labelInput.type = "text";
-      labelInput.value = entry.label || "";
-      labelInput.style.display = "none";
-      labelInput.style.width = "100%";
-      labelInput.style.backgroundColor = "#2d2d2d";
-      labelInput.style.color = "#e0e0e0";
-      labelInput.style.border = "1px solid #444";
-      labelInput.style.borderRadius = "4px";
-      labelInput.style.padding = "4px";
-
-      labelContainer.appendChild(labelText);
-      labelContainer.appendChild(labelInput);
-
-      const editBtn = document.createElement("button");
-      editBtn.innerHTML = "✎";
-      editBtn.style.color = "#4ade80";
-      editBtn.style.background = "none";
-      editBtn.style.border = "none";
-      editBtn.style.cursor = "pointer";
-      editBtn.style.fontSize = "16px";
-
-      editBtn.onclick = async () => {
-        const isEditing = labelInput.style.display === "block";
-
-        if (!isEditing) {
-          labelText.style.display = "none";
-          labelInput.style.display = "block";
-          labelInput.focus();
-          editBtn.innerHTML = "✓";
-        } else {
-          const newLabel = labelInput.value.trim();
-          labelText.style.display = "block";
-          labelInput.style.display = "none";
-          editBtn.innerHTML = "✎";
-
-          if (newLabel && newLabel !== entry.label) {
-            try {
-              await updateBookmarkLabel(domain, chatId, entry.id, newLabel);
-
-              // Update local entry
-              entry.label = newLabel;
-              labelText.textContent = `🔖 ${newLabel}`;
-
-              // Trigger refresh event
-              const event = new CustomEvent("ai-context-updated", {
-                detail: { domain, chatId },
-              });
-              document.dispatchEvent(event);
-
-              // Show success feedback
-              showConfirmationBubble("Bookmark label updated", "success");
-            } catch (err) {
-              console.error(
-                "[AI Context Vault] Error updating bookmark label:",
-                err
-              );
-              showConfirmationBubble("Failed to update bookmark", "error");
-            }
-          }
-        }
-      };
-
-      wrapper.appendChild(labelContainer);
-      wrapper.appendChild(delBtn);
-      wrapper.appendChild(editBtn);
-      bookmarksSection.appendChild(wrapper);
+      );
+      bookmarksSection.appendChild(bookmarkEntry);
     });
   }
 
@@ -1124,32 +1109,6 @@ async function incrementSendCountAndMaybeWarn() {
   }
 }
 
-// Observe input boxes instead of relying on button clicks
-// const observer = new MutationObserver((mutationsList) => {
-//   for (const mutation of mutationsList) {
-//     // Skip mutations that are inside our overlay
-//     if (mutation.target.closest("#__ai_context_overlay__")) return;
-//   }
-
-//   const inputBox = document.querySelector(
-//     "textarea, div[contenteditable='true']"
-//   );
-//   if (!inputBox) return;
-
-//   inputBox.addEventListener("keydown", (e) => {
-//     const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.platform);
-//     const sendKey = isMac
-//       ? e.metaKey && e.key === "Enter"
-//       : e.ctrlKey && e.key === "Enter";
-//     if (sendKey) {
-//       alert("enter key test");
-//       incrementSendCountAndMaybeWarn();
-//     }
-//   });
-// });
-
-// observer.observe(document.body, { childList: true, subtree: true });
-
 export function scrollToBookmark(entry) {
   try {
     let node = null;
@@ -1178,26 +1137,4 @@ export function scrollToBookmark(entry) {
     console.error("[AI Context Vault] Failed to scroll to bookmark:", e);
     alert("Error resolving bookmark.");
   }
-}
-
-function getXPathForElement(el) {
-  if (!el) return null;
-  if (el.id) return `//*[@id="${el.id}"]`;
-
-  const parts = [];
-  while (el && el.nodeType === Node.ELEMENT_NODE) {
-    let index = 1;
-    let sibling = el.previousSibling;
-    while (sibling) {
-      if (
-        sibling.nodeType === Node.ELEMENT_NODE &&
-        sibling.nodeName === el.nodeName
-      )
-        index++;
-      sibling = sibling.previousSibling;
-    }
-    parts.unshift(`${el.nodeName.toLowerCase()}[${index}]`);
-    el = el.parentNode;
-  }
-  return "/" + parts.join("/");
 }
