@@ -497,18 +497,6 @@ async function performGistSync(signal, deleteKey, syncOnlyServer = false) {
           // ) {
           // If remote has no entries, keep local data
           if (
-            key ===
-            "ctx_bookmarks_chatgpt.com_67e96e31-671c-8002-b1c3-e370be5333e7"
-          ) {
-            console.error("localCtx", localCtx);
-            console.error("remoteCtx", remoteCtx);
-            console.error(
-              "!Array.isArray(remoteCtx?.entries) ||=             remoteCtx.entries.length === 0",
-              !Array.isArray(remoteCtx?.entries),
-              remoteCtx.entries.length === 0
-            );
-          }
-          if (
             !Array.isArray(remoteCtx?.entries) ||
             remoteCtx.entries.length === 0
           ) {
@@ -538,7 +526,6 @@ async function performGistSync(signal, deleteKey, syncOnlyServer = false) {
         }
       }
     }
-    console.error("final merge", merged);
     // Save merged data back to local storage
     await chrome.storage.local.set(merged);
 
