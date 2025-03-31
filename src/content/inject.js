@@ -7,6 +7,7 @@ import {
   parseUrlForIds,
   getContext,
   deleteBookmark,
+  updateBookmarkLabel,
 } from "../storage/contextStorage";
 
 /*
@@ -488,7 +489,6 @@ async function refreshOverlayContent(overlayPanel) {
 
   // BOOKMARK TAB ENTRIES
   const bookmarks = await getBookmarks(domain, chatId);
-  console.error("dave", bookmarks);
   if (!bookmarks || bookmarks.length === 0) {
     const noBookmarks = document.createElement("p");
     noBookmarks.textContent = "No bookmarks available.";
@@ -506,16 +506,29 @@ async function refreshOverlayContent(overlayPanel) {
       wrapper.style.marginBottom = "6px";
       wrapper.style.padding = "4px 0";
 
-      const btn = document.createElement("button");
-      btn.textContent = `🔖 ${entry.label || "Bookmark"}`;
-      btn.title = new Date(entry.created).toLocaleString();
-      btn.style.flexGrow = "1";
-      btn.style.background = "none";
-      btn.style.border = "none";
-      btn.style.color = "#ccc";
-      btn.style.textAlign = "left";
-      btn.style.cursor = "pointer";
-      btn.onclick = () => {
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "×";
+      delBtn.style.color = "#f87171";
+      delBtn.style.padding = "0 4px";
+      delBtn.style.background = "none";
+      delBtn.style.border = "none";
+      delBtn.style.cursor = "pointer";
+      delBtn.style.marginLeft = "8px";
+      delBtn.onclick = async () => {
+        await deleteBookmark(domain, chatId, entry.id);
+        await refreshOverlayContent(overlayPanel);
+      };
+
+      const labelContainer = document.createElement("div");
+      labelContainer.style.flex = "1";
+      labelContainer.style.marginRight = "8px";
+
+      const labelText = document.createElement("div");
+      labelText.textContent = `🔖 ${entry.label || "Bookmark"}`;
+      labelText.style.cursor = "pointer";
+      labelText.style.color = "#ccc";
+      labelText.title = new Date(entry.created).toLocaleString();
+      labelText.onclick = () => {
         try {
           // Try to find element with fallbackText
           const matches = Array.from(
@@ -526,11 +539,11 @@ async function refreshOverlayContent(overlayPanel) {
 
             return (
               el.childNodes.length === 1 &&
-              // el.childNodes[0].nodeType === Node.TEXT_NODE &&
               el.innerText &&
               el.innerText.includes(entry.fallbackText)
             );
           });
+
           if (matches.length > 0) {
             const node = matches[matches.length - 1];
             node.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -546,20 +559,72 @@ async function refreshOverlayContent(overlayPanel) {
         }
       };
 
-      const delBtn = document.createElement("button");
-      delBtn.textContent = "×";
-      delBtn.style.color = "#f87171";
-      delBtn.style.background = "none";
-      delBtn.style.border = "none";
-      delBtn.style.cursor = "pointer";
-      delBtn.style.marginLeft = "8px";
-      delBtn.onclick = async () => {
-        await deleteBookmark(domain, chatId, entry.id);
-        await refreshOverlayContent(overlayPanel);
+      const labelInput = document.createElement("input");
+      labelInput.type = "text";
+      labelInput.value = entry.label || "";
+      labelInput.style.display = "none";
+      labelInput.style.width = "100%";
+      labelInput.style.backgroundColor = "#2d2d2d";
+      labelInput.style.color = "#e0e0e0";
+      labelInput.style.border = "1px solid #444";
+      labelInput.style.borderRadius = "4px";
+      labelInput.style.padding = "4px";
+
+      labelContainer.appendChild(labelText);
+      labelContainer.appendChild(labelInput);
+
+      const editBtn = document.createElement("button");
+      editBtn.innerHTML = "✎";
+      editBtn.style.color = "#4ade80";
+      editBtn.style.background = "none";
+      editBtn.style.border = "none";
+      editBtn.style.cursor = "pointer";
+      editBtn.style.fontSize = "16px";
+
+      editBtn.onclick = async () => {
+        const isEditing = labelInput.style.display === "block";
+
+        if (!isEditing) {
+          labelText.style.display = "none";
+          labelInput.style.display = "block";
+          labelInput.focus();
+          editBtn.innerHTML = "✓";
+        } else {
+          const newLabel = labelInput.value.trim();
+          labelText.style.display = "block";
+          labelInput.style.display = "none";
+          editBtn.innerHTML = "✎";
+
+          if (newLabel && newLabel !== entry.label) {
+            try {
+              await updateBookmarkLabel(domain, chatId, entry.id, newLabel);
+
+              // Update local entry
+              entry.label = newLabel;
+              labelText.textContent = `🔖 ${newLabel}`;
+
+              // Trigger refresh event
+              const event = new CustomEvent("ai-context-updated", {
+                detail: { domain, chatId },
+              });
+              document.dispatchEvent(event);
+
+              // Show success feedback
+              showConfirmationBubble("Bookmark label updated", "success");
+            } catch (err) {
+              console.error(
+                "[AI Context Vault] Error updating bookmark label:",
+                err
+              );
+              showConfirmationBubble("Failed to update bookmark", "error");
+            }
+          }
+        }
       };
 
-      wrapper.appendChild(btn);
+      wrapper.appendChild(labelContainer);
       wrapper.appendChild(delBtn);
+      wrapper.appendChild(editBtn);
       bookmarksSection.appendChild(wrapper);
     });
   }
@@ -590,6 +655,14 @@ function setupKeyboardShortcuts() {
   document.addEventListener(
     "keydown",
     async (event) => {
+      if (
+        event.key === "Enter" &&
+        !event.shiftKey && // Make sure it's not Shift+Enter (new line)
+        !event.isComposing // IME input
+      ) {
+        incrementSendCountAndMaybeWarn();
+      }
+
       // ALT+B or CMD+B → Bookmark selection
       const isMac =
         navigator.userAgentData?.platform === "macOS" ||
@@ -1041,32 +1114,41 @@ async function incrementSendCountAndMaybeWarn() {
   await chrome.storage.local.set({ [key]: current });
 
   if (current % 12 === 0) {
-    showContextReminderBubble(
-      "🔁 Reminder: AI may forget earlier details. Consider re-injecting your key context."
-    );
+    const contextData = await getContext(domain, chatId);
+
+    if (contextData.entries && contextData.entries.length > 0) {
+      showContextReminderBubble(
+        "🔁 AI Context Vault Reminder: AI may forget earlier details. Consider re-injecting your key context by pressing ALT+ENTER in a chat window"
+      );
+    }
   }
 }
 
 // Observe input boxes instead of relying on button clicks
-const observer = new MutationObserver(() => {
-  const inputBox = document.querySelector(
-    "textarea, div[contenteditable='true']"
-  );
-  if (!inputBox) return;
+// const observer = new MutationObserver((mutationsList) => {
+//   for (const mutation of mutationsList) {
+//     // Skip mutations that are inside our overlay
+//     if (mutation.target.closest("#__ai_context_overlay__")) return;
+//   }
 
-  inputBox.addEventListener("keydown", (e) => {
-    const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.platform);
-    const sendKey = isMac
-      ? e.metaKey && e.key === "Enter"
-      : e.ctrlKey && e.key === "Enter";
-    if (sendKey) {
-      alert(0);
-      incrementSendCountAndMaybeWarn();
-    }
-  });
-});
+//   const inputBox = document.querySelector(
+//     "textarea, div[contenteditable='true']"
+//   );
+//   if (!inputBox) return;
 
-observer.observe(document.body, { childList: true, subtree: true });
+//   inputBox.addEventListener("keydown", (e) => {
+//     const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.platform);
+//     const sendKey = isMac
+//       ? e.metaKey && e.key === "Enter"
+//       : e.ctrlKey && e.key === "Enter";
+//     if (sendKey) {
+//       alert("enter key test");
+//       incrementSendCountAndMaybeWarn();
+//     }
+//   });
+// });
+
+// observer.observe(document.body, { childList: true, subtree: true });
 
 export function scrollToBookmark(entry) {
   try {

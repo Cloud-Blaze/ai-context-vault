@@ -67,6 +67,21 @@ export async function saveContext(domain, chatId, data, shouldSync = true) {
 }
 
 /**
+ * Save context object to chrome.storage.local
+ */
+export async function saveBookmark(domain, chatId, data, shouldSync = true) {
+  return new Promise((resolve) => {
+    const key = getBookmarkKey(domain, chatId);
+    chrome.storage.local.set({ [key]: data }, async () => {
+      if (shouldSync) {
+        await syncFullDataToGist();
+      }
+      resolve();
+    });
+  });
+}
+
+/**
  * Add a context entry
  */
 export async function addContext(domain, chatId, text) {
@@ -288,7 +303,11 @@ async function performGistSync(signal) {
     const [_, domain, ...chatParts] = key.split("_");
     const chatId = chatParts.join("_");
 
-    await saveContext(domain, chatId, merged[key], false); // avoid infinite recursion
+    if (key.startsWith("ctx_bookmark")) {
+      await saveBookmark(domain, chatId, merged[key], false);
+    } else {
+      await saveContext(domain, chatId, merged[key], false); // avoid infinite recursion
+    }
   }
 
   // STEP 5: Patch Gist
@@ -355,29 +374,39 @@ export async function addBookmark(
     selector,
     fallbackText,
     created: Date.now(),
+    lastModified: Date.now(),
   };
 
-  const key = getBookmarkKey(domain, chatId);
   const bookmarks = await getBookmarks(domain, chatId);
   bookmarks.push(newBookmark);
+  await saveBookmark(domain, chatId, bookmarks);
+}
 
-  return new Promise((resolve) =>
-    chrome.storage.local.set({ [key]: bookmarks }, resolve)
-  );
+export async function updateBookmarkLabel(
+  domain,
+  chatId,
+  bookmarkId,
+  newLabel
+) {
+  const bookmarks = await getBookmarks(domain, chatId);
+  const index = bookmarks.findIndex((b) => b.id === bookmarkId);
+  if (index !== -1) {
+    bookmarks[index].label = newLabel;
+    bookmarks[index].lastModified = Date.now();
+    await saveBookmark(domain, chatId, bookmarks);
+  }
 }
 
 /**
  * Delete a bookmark by its ID.
  */
 export async function deleteBookmark(domain, chatId, bookmarkId) {
-  const key = getBookmarkKey(domain, chatId);
-  const bookmarks = await getBookmarks(domain, chatId);
-  const filtered = bookmarks.filter((b) => b.id !== bookmarkId);
-
-  return new Promise((resolve) =>
-    chrome.storage.local.set({ [key]: filtered }, resolve)
-  );
+  const current = await getBookmarks(domain, chatId);
+  const updated = current.filter((entry) => entry.id !== bookmarkId);
+  await saveBookmark(domain, chatId, updated);
+  return updated;
 }
+
 /**
  * Gather all bookmark sets across all domains and chat IDs.
  */
