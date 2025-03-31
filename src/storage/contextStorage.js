@@ -232,8 +232,6 @@ async function performGistSync(signal) {
     });
 
     if (!gistPAT || !gistURL.includes("/")) {
-      alert(gistPAT);
-      alert(!gistURL.includes("/"));
       console.warn("[AI Context Vault] Missing Gist configuration");
       return;
     }
@@ -280,7 +278,7 @@ async function performGistSync(signal) {
 
     // Then merge in local data
     for (const key in localData) {
-      if (!key.startsWith("ctx_") || key.includes("bookmark")) continue;
+      if (!key.startsWith("ctx_")) continue;
 
       const localCtx = localData[key];
       const remoteCtx = merged[key];
@@ -300,9 +298,7 @@ async function performGistSync(signal) {
               mergedEntries.push(localEntry);
             } else {
               const existing = mergedEntries[matchIndex];
-              if (localEntry.lastModified > (existing.lastModified || 0)) {
-                mergedEntries[matchIndex] = localEntry;
-              }
+              mergedEntries[matchIndex] = localEntry;
             }
           });
 
@@ -314,9 +310,7 @@ async function performGistSync(signal) {
         }
       }
     }
-
     // Save merged data back to local storage
-    await chrome.storage.local.clear();
     await chrome.storage.local.set(merged);
 
     // Update GitHub

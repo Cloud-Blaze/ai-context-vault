@@ -10,6 +10,7 @@ import {
   updateBookmarkLabel,
   saveContext,
   syncFullDataToGist,
+  getContextKey,
 } from "../storage/contextStorage";
 import "./styles.css";
 
@@ -233,11 +234,11 @@ async function refreshOverlayContent(overlayPanel) {
         throw new Error("Invalid context data structure");
       }
 
+      // Delete existing context for this chat
+      const key = getContextKey(domain, chatId);
+      await chrome.storage.local.remove(key);
       // Save new context data
-      await saveContext(domain, chatId, importData, false);
-
-      // Trigger GitHub sync
-      await syncFullDataToGist();
+      await saveContext(domain, chatId, importData);
 
       // Refresh the UI
       await refreshOverlayContent(overlayPanel);
