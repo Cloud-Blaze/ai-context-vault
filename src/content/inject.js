@@ -9,7 +9,6 @@ import {
   deleteBookmark,
   updateBookmarkLabel,
   saveContext,
-  syncFullDataToGist,
   getContextKey,
 } from "../storage/contextStorage";
 import "./styles.css";
@@ -855,6 +854,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("[AI Context Vault] Toggling overlay visibility");
     toggleOverlay();
   }
+  if (message.type === "REFRESH_OVERLAY") {
+    console.log("[AI Context Vault] Refreshing overlay content");
+    const overlayPanel = document.getElementById("__ai_context_overlay__");
+    if (overlayPanel) {
+      refreshOverlayContent(overlayPanel);
+    }
+  }
   sendResponse && sendResponse({ status: "ok" });
 });
 
@@ -943,10 +949,6 @@ function showConfirmationBubble(text, type = "success") {
     setTimeout(() => bubble.remove(), 300);
   }, 3000);
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-  incrementSendCountAndMaybeWarn();
-});
 
 function showContextReminderBubble(message) {
   const bubble = document.createElement("div");

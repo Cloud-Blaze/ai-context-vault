@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { gatherAllContextData } from "../storage/contextStorage";
+import {
+  gatherAllContextData,
+  syncFullDataToGist,
+} from "../storage/contextStorage";
 
 function OptionsPage() {
   const [pat, setPat] = useState("");
@@ -211,6 +214,7 @@ export function saveGistURL(gistURL) {
   chrome.storage.local.set({ gistURL }, () => {
     console.log("[AI Context Vault] Saved Gist URL:", gistURL);
     alert(`Gist URL saved: ${gistURL}`);
+    syncFullDataToGist();
   });
 }
 
