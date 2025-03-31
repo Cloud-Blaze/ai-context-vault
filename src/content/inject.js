@@ -172,6 +172,74 @@ async function refreshOverlayContent(overlayPanel) {
   contentContainer.appendChild(contextSection);
   contentContainer.appendChild(bookmarksSection);
 
+  // Add Import/Export section to context section
+  const importExportSection = document.createElement("div");
+  importExportSection.className = "ai-context-import-export";
+
+  const importExportTitle = document.createElement("h4");
+  importExportTitle.textContent = "Import/Export";
+  importExportTitle.className = "ai-context-section-title";
+
+  const importExportTextarea = document.createElement("textarea");
+  importExportTextarea.className = "ai-context-import-export-textarea";
+  importExportTextarea.placeholder = "Paste JSON data here to import...";
+
+  const importExportButtons = document.createElement("div");
+  importExportButtons.className = "ai-context-import-export-buttons";
+
+  const exportButton = document.createElement("button");
+  exportButton.textContent = "Export";
+  exportButton.className = "ai-context-import-export-button export";
+
+  const importButton = document.createElement("button");
+  importButton.textContent = "Import";
+  importButton.className = "ai-context-import-export-button import";
+
+  const saveButton = document.createElement("button");
+  saveButton.textContent = "Save";
+  saveButton.className = "ai-context-import-export-button save";
+
+  importExportButtons.appendChild(exportButton);
+  importExportButtons.appendChild(importButton);
+  importExportButtons.appendChild(saveButton);
+
+  importExportSection.appendChild(importExportTitle);
+  importExportSection.appendChild(importExportTextarea);
+  importExportSection.appendChild(importExportButtons);
+
+  // Export functionality
+  exportButton.addEventListener("click", async () => {
+    const contextData = await getContext(domain, chatId);
+    const bookmarks = await getBookmarks(domain, chatId);
+    const exportData = {
+      context: contextData,
+      bookmarks: bookmarks,
+    };
+    importExportTextarea.value = JSON.stringify(exportData, null, 2);
+    importExportTextarea.style.display = "block";
+    saveButton.style.display = "none";
+  });
+
+  // Import functionality
+  importButton.addEventListener("click", () => {
+    importExportTextarea.style.display = "block";
+    saveButton.style.display = "inline-block";
+  });
+
+  // Save functionality (currently just alerts the data)
+  saveButton.addEventListener("click", () => {
+    try {
+      const importData = JSON.parse(importExportTextarea.value);
+      alert("Import data received:\n" + JSON.stringify(importData, null, 2));
+      importExportTextarea.style.display = "none";
+      saveButton.style.display = "none";
+    } catch (error) {
+      showConfirmationBubble("Invalid JSON data", "error");
+    }
+  });
+
+  contextSection.appendChild(importExportSection);
+
   const contextData = await getContext(domain, chatId);
   if (
     !contextData ||
