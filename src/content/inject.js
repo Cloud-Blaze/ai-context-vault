@@ -9,6 +9,7 @@ import {
   deleteBookmark,
   updateBookmarkLabel,
 } from "../storage/contextStorage";
+import "./styles.css";
 
 // Function to format timestamp in DD/MM HH:mm format
 function formatTimestamp(timestamp) {
@@ -66,61 +67,26 @@ function formatContextForPrompt(context) {
  * If it doesn't exist, create it. This is where we display the saved context items.
  */
 async function ensureOverlayExists() {
-  // Check if the overlay already exists
   let overlayPanel = document.getElementById("__ai_context_overlay__");
 
-  // If overlay doesn't exist, create it
   if (!overlayPanel) {
     console.log("[AI Context Vault] Overlay not found in DOM, creating it...");
 
-    // Create the overlay container
     overlayPanel = document.createElement("div");
     overlayPanel.id = "__ai_context_overlay__";
+    overlayPanel.className = "ai-context-overlay";
 
-    // Set initial styles
-    Object.assign(overlayPanel.style, {
-      position: "fixed",
-      top: "20px",
-      right: "20px",
-      width: "300px",
-      maxHeight: "80vh",
-      backgroundColor: "#1e1e1e",
-      color: "#e0e0e0",
-      border: "1px solid #444",
-      borderRadius: "8px",
-      padding: "15px",
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
-      zIndex: "999999",
-      overflow: "auto",
-      display: "none", // Initially hidden
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      fontSize: "14px",
-    });
-
-    // Create the header
     const header = document.createElement("div");
-    header.style.marginBottom = "10px";
-    header.style.display = "flex";
-    header.style.justifyContent = "space-between";
-    header.style.alignItems = "center";
+    header.className = "ai-context-header";
 
     const title = document.createElement("h3");
     title.textContent = "AI Context Vault";
-    title.style.margin = "0";
-    title.style.fontSize = "16px";
-    title.style.fontWeight = "bold";
+    title.className = "ai-context-title";
 
     const closeButton = document.createElement("button");
     closeButton.textContent = "×";
-    closeButton.style.background = "none";
-    closeButton.style.border = "none";
-    closeButton.style.color = "#e0e0e0";
-    closeButton.style.fontSize = "20px";
-    closeButton.style.cursor = "pointer";
-    closeButton.style.padding = "0";
-    closeButton.style.lineHeight = "1";
+    closeButton.className = "ai-context-close";
 
-    // Close button event listener
     closeButton.addEventListener("click", function () {
       overlayPanel.style.display = "none";
     });
@@ -128,20 +94,16 @@ async function ensureOverlayExists() {
     header.appendChild(title);
     header.appendChild(closeButton);
 
-    // Create content container
     const content = document.createElement("div");
     content.id = "__ai_context_content__";
 
-    // Add elements to the overlay
     overlayPanel.appendChild(header);
     overlayPanel.appendChild(content);
 
-    // Add overlay to the DOM
     document.body.appendChild(overlayPanel);
 
     console.log("[AI Context Vault] Created overlay element and added to DOM");
 
-    // Add event listener for the custom refresh event
     document.addEventListener(
       "ai-context-refresh-requested",
       async function (event) {
@@ -149,12 +111,10 @@ async function ensureOverlayExists() {
       }
     );
 
-    // Add event listener for the context updated event
     document.addEventListener("ai-context-updated", async function (event) {
       await refreshOverlayContent(overlayPanel);
     });
 
-    // Initial content population
     await refreshOverlayContent(overlayPanel);
   } else {
     console.log("[AI Context Vault] Overlay already exists in DOM");
@@ -175,14 +135,10 @@ async function refreshOverlayContent(overlayPanel) {
 
   const { domain, chatId } = parseUrlForIds(window.location.href);
 
-  // Clear content
   contentContainer.innerHTML = "";
 
-  // Tabs
   const tabsContainer = document.createElement("div");
-  tabsContainer.style.marginBottom = "12px";
-  tabsContainer.style.display = "flex";
-  tabsContainer.style.gap = "10px";
+  tabsContainer.className = "ai-context-tabs";
 
   const contextTab = document.createElement("button");
   const bookmarksTab = document.createElement("button");
@@ -190,43 +146,22 @@ async function refreshOverlayContent(overlayPanel) {
   contextTab.textContent = "Context";
   bookmarksTab.textContent = "Bookmarks";
 
-  Object.assign(contextTab.style, {
-    padding: "6px 12px",
-    background: "#4ade80",
-    color: "#000",
-    borderRadius: "6px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    border: "none",
-  });
-
-  Object.assign(bookmarksTab.style, {
-    padding: "6px 12px",
-    background: "#222",
-    color: "#eee",
-    borderRadius: "6px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    border: "none",
-  });
+  contextTab.className = "ai-context-tab active";
+  bookmarksTab.className = "ai-context-tab inactive";
 
   const contextSection = document.createElement("div");
   const bookmarksSection = document.createElement("div");
   bookmarksSection.style.display = "none";
 
   contextTab.onclick = () => {
-    contextTab.style.background = "#4ade80";
-    contextTab.style.color = "#000";
-    bookmarksTab.style.background = "#222";
-    bookmarksTab.style.color = "#eee";
+    contextTab.className = "ai-context-tab active";
+    bookmarksTab.className = "ai-context-tab inactive";
     contextSection.style.display = "block";
     bookmarksSection.style.display = "none";
   };
   bookmarksTab.onclick = () => {
-    bookmarksTab.style.background = "#4ade80";
-    bookmarksTab.style.color = "#000";
-    contextTab.style.background = "#222";
-    contextTab.style.color = "#eee";
+    bookmarksTab.className = "ai-context-tab active";
+    contextTab.className = "ai-context-tab inactive";
     bookmarksSection.style.display = "block";
     contextSection.style.display = "none";
   };
@@ -237,7 +172,6 @@ async function refreshOverlayContent(overlayPanel) {
   contentContainer.appendChild(contextSection);
   contentContainer.appendChild(bookmarksSection);
 
-  // ORIGINAL CONTEXT ENTRY LOGIC
   const contextData = await getContext(domain, chatId);
   if (
     !contextData ||
@@ -250,38 +184,29 @@ async function refreshOverlayContent(overlayPanel) {
     noContext.style.color = "#999";
     contentContainer.appendChild(noContext);
   } else {
-    // Add summary if available
     if (contextData.summary) {
       const summarySection = document.createElement("div");
-      summarySection.style.marginBottom = "15px";
+      summarySection.className = "ai-context-summary";
 
       const summaryTitle = document.createElement("h4");
       summaryTitle.textContent = "Summary";
-      summaryTitle.style.margin = "0 0 5px 0";
-      summaryTitle.style.fontSize = "14px";
-      summaryTitle.style.fontWeight = "bold";
-      summaryTitle.style.color = "#4ade80";
+      summaryTitle.className = "ai-context-section-title";
 
       const summaryText = document.createElement("p");
       summaryText.textContent = contextData.summary;
-      summaryText.style.margin = "0";
-      summaryText.style.lineHeight = "1.4";
+      summaryText.className = "ai-context-summary-text";
 
       summarySection.appendChild(summaryTitle);
       summarySection.appendChild(summaryText);
       contentContainer.appendChild(summarySection);
     }
 
-    // Add context entries
     if (contextData.entries.length > 0) {
       const entriesSection = document.createElement("div");
 
       const entriesTitle = document.createElement("h4");
       entriesTitle.textContent = "Context Items";
-      entriesTitle.style.margin = "0 0 10px 0";
-      entriesTitle.style.fontSize = "14px";
-      entriesTitle.style.fontWeight = "bold";
-      entriesTitle.style.color = "#4ade80";
+      entriesTitle.className = "ai-context-section-title";
 
       entriesSection.appendChild(entriesTitle);
 
@@ -289,7 +214,6 @@ async function refreshOverlayContent(overlayPanel) {
         (a, b) => (b.lastModified || b.created) - (a.lastModified || a.created)
       );
 
-      // Create list of entries
       sortedEntries.forEach((entry, index) => {
         const entryItem = createContextEntry(
           entry,
@@ -313,7 +237,6 @@ async function refreshOverlayContent(overlayPanel) {
     }
   }
 
-  // BOOKMARK TAB ENTRIES
   const bookmarks = await getBookmarks(domain, chatId);
   if (!bookmarks || bookmarks.length === 0) {
     const noBookmarks = document.createElement("p");
@@ -323,10 +246,7 @@ async function refreshOverlayContent(overlayPanel) {
   } else {
     const bookmarksTitle = document.createElement("h4");
     bookmarksTitle.textContent = "Chat Bookmarks";
-    bookmarksTitle.style.margin = "0 0 10px 0";
-    bookmarksTitle.style.fontSize = "14px";
-    bookmarksTitle.style.fontWeight = "bold";
-    bookmarksTitle.style.color = "#4ade80";
+    bookmarksTitle.className = "ai-context-section-title";
     bookmarksSection.appendChild(bookmarksTitle);
 
     bookmarks.forEach((entry) => {
@@ -354,34 +274,20 @@ async function refreshOverlayContent(overlayPanel) {
 
 function createBookmarkEntry(entry, domain, chatId, onDelete, onUpdate) {
   const wrapper = document.createElement("div");
-  wrapper.style.display = "flex";
-  wrapper.style.alignItems = "center";
-  wrapper.style.justifyContent = "space-between";
-  wrapper.style.borderBottom = "1px solid #444";
-  wrapper.style.marginBottom = "6px";
-  wrapper.style.padding = "4px 0";
+  wrapper.className = "ai-context-bookmark";
 
   const delBtn = document.createElement("button");
   delBtn.textContent = "×";
-  delBtn.style.color = "#f87171";
-  delBtn.style.padding = "0 4px";
-  delBtn.style.background = "none";
-  delBtn.style.border = "none";
-  delBtn.style.cursor = "pointer";
-  delBtn.style.marginLeft = "8px";
+  delBtn.className = "ai-context-button delete";
   delBtn.onclick = () => onDelete(entry.id);
 
   const labelContainer = document.createElement("div");
-  labelContainer.style.flex = "1";
-  labelContainer.style.marginRight = "8px";
+  labelContainer.className = "ai-context-bookmark-label";
 
   const labelText = document.createElement("div");
   labelText.textContent = `🔖 ${entry.label || "Bookmark"}`;
-  labelText.style.cursor = "pointer";
-  labelText.style.color = "#ccc";
   labelText.title = new Date(entry.created).toLocaleString();
 
-  // Add back the click functionality for bookmarks
   labelText.onclick = () => {
     try {
       const matches = Array.from(document.querySelectorAll("body *")).filter(
@@ -413,24 +319,14 @@ function createBookmarkEntry(entry, domain, chatId, onDelete, onUpdate) {
   const labelInput = document.createElement("input");
   labelInput.type = "text";
   labelInput.value = entry.label || "";
-  labelInput.style.display = "none";
-  labelInput.style.width = "100%";
-  labelInput.style.backgroundColor = "#2d2d2d";
-  labelInput.style.color = "#e0e0e0";
-  labelInput.style.border = "1px solid #444";
-  labelInput.style.borderRadius = "4px";
-  labelInput.style.padding = "4px";
+  labelInput.className = "ai-context-bookmark-input";
 
   labelContainer.appendChild(labelText);
   labelContainer.appendChild(labelInput);
 
   const editBtn = document.createElement("button");
   editBtn.innerHTML = "✎";
-  editBtn.style.color = "#4ade80";
-  editBtn.style.background = "none";
-  editBtn.style.border = "none";
-  editBtn.style.cursor = "pointer";
-  editBtn.style.fontSize = "16px";
+  editBtn.className = "ai-context-button edit";
 
   editBtn.onclick = async () => {
     const isEditing = labelInput.style.display === "block";
@@ -472,81 +368,32 @@ function createBookmarkEntry(entry, domain, chatId, onDelete, onUpdate) {
 
 function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
   const entryItem = document.createElement("div");
-  entryItem.style.display = "flex";
-  entryItem.style.alignItems = "flex-start";
-  entryItem.style.marginBottom = "8px";
-  entryItem.style.justifyContent = "space-between";
-  entryItem.style.paddingBottom = "8px";
-  entryItem.style.borderBottom = "1px solid #444";
-  entryItem.style.transition = "all 0.3s ease";
+  entryItem.className = "ai-context-entry";
 
   const textContainer = document.createElement("div");
-  textContainer.style.flex = "1";
-  textContainer.style.marginRight = "8px";
+  textContainer.className = "ai-context-entry-text";
 
   const text = document.createElement("div");
   text.textContent = entry.text;
-  text.style.lineHeight = "1.4";
-  text.style.wordBreak = "break-word";
 
   const editTextarea = document.createElement("textarea");
   editTextarea.value = entry.text;
-  editTextarea.style.width = "100%";
-  editTextarea.style.height = "600px";
-  editTextarea.style.minHeight = "100px";
-  editTextarea.style.maxHeight = "75vh";
-  editTextarea.style.backgroundColor = "#2d2d2d";
-  editTextarea.style.color = "#e0e0e0";
-  editTextarea.style.border = "1px solid #444";
-  editTextarea.style.borderRadius = "4px";
-  editTextarea.style.padding = "8px";
-  editTextarea.style.marginTop = "8px";
-  editTextarea.style.display = "none";
-  editTextarea.style.resize = "vertical";
+  editTextarea.className = "ai-context-entry-textarea";
 
   textContainer.appendChild(text);
   textContainer.appendChild(editTextarea);
 
   const buttonContainer = document.createElement("div");
-  buttonContainer.style.display = "flex";
-  buttonContainer.style.gap = "8px";
-  buttonContainer.style.alignItems = "center";
+  buttonContainer.className = "ai-context-entry-buttons";
 
   const deleteButton = document.createElement("button");
   deleteButton.textContent = "×";
-  deleteButton.style.background = "none";
-  deleteButton.style.border = "none";
-  deleteButton.style.color = "#f87171";
-  deleteButton.style.fontSize = "18px";
-  deleteButton.style.cursor = "pointer";
-  deleteButton.style.padding = "0 4px";
-  deleteButton.style.lineHeight = "1";
-  deleteButton.style.opacity = "0.7";
-  deleteButton.style.transition = "opacity 0.2s";
+  deleteButton.className = "ai-context-button delete";
 
   const editButton = document.createElement("button");
   editButton.innerHTML = "✎";
-  editButton.style.background = "none";
-  editButton.style.border = "none";
-  editButton.style.color = "#4ade80";
-  editButton.style.fontSize = "18px";
-  editButton.style.cursor = "pointer";
-  editButton.style.padding = "0 4px";
-  editButton.style.lineHeight = "1";
-  editButton.style.opacity = "0.7";
-  editButton.style.transition = "opacity 0.2s";
+  editButton.className = "ai-context-button edit";
 
-  // Hover effects
-  [deleteButton, editButton].forEach((button) => {
-    button.addEventListener("mouseover", () => {
-      button.style.opacity = "1";
-    });
-    button.addEventListener("mouseout", () => {
-      button.style.opacity = "0.7";
-    });
-  });
-
-  // Edit button click handler
   editButton.addEventListener("click", async function () {
     const isEditing = editTextarea.style.display === "block";
 
@@ -554,11 +401,9 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
       text.style.display = "none";
       editTextarea.style.display = "block";
       editButton.innerHTML = "✓";
-      editButton.style.color = "#4ade80";
 
-      const allEntries = entryItem.parentElement.querySelectorAll(
-        "div[style*='margin-bottom: 8px']"
-      );
+      const allEntries =
+        entryItem.parentElement.querySelectorAll(".ai-context-entry");
       allEntries.forEach((e) => {
         if (e !== entryItem) {
           e.style.display = "none";
@@ -584,11 +429,9 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
       text.style.display = "block";
       editTextarea.style.display = "none";
       editButton.innerHTML = "✎";
-      editButton.style.color = "#4ade80";
 
-      const allEntries = entryItem.parentElement.querySelectorAll(
-        "div[style*='margin-bottom: 8px']"
-      );
+      const allEntries =
+        entryItem.parentElement.querySelectorAll(".ai-context-entry");
       allEntries.forEach((e) => {
         e.style.display = "flex";
       });
@@ -999,53 +842,14 @@ function handleSaveSelectedContext() {
 function showConfirmationBubble(text, type = "success") {
   const bubble = document.createElement("div");
   bubble.innerText = text;
+  bubble.className = `ai-context-bubble ${type}`;
 
-  // Common styles
-  const styles = {
-    position: "fixed",
-    bottom: "20px",
-    right: "20px",
-    padding: "12px 16px",
-    borderRadius: "8px",
-    zIndex: 999999,
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    fontSize: "14px",
-    maxWidth: "300px",
-    transition: "all 0.3s ease",
-  };
-
-  // Type-specific styles
-  const typeStyles = {
-    success: {
-      background: "#1a1a1a",
-      color: "#4ade80",
-      border: "1px solid #4ade80",
-    },
-    warning: {
-      background: "#1a1a1a",
-      color: "#facc15",
-      border: "1px solid #facc15",
-    },
-    error: {
-      background: "#1a1a1a",
-      color: "#f87171",
-      border: "1px solid #f87171",
-    },
-  };
-
-  // Apply styles
-  Object.assign(bubble.style, styles, typeStyles[type] || typeStyles.success);
-
-  // Add bubble to the page
   document.body.appendChild(bubble);
 
-  // Fade-in
   setTimeout(() => {
     bubble.style.opacity = "1";
   }, 10);
 
-  // Remove after delay
   setTimeout(() => {
     bubble.style.opacity = "0";
     bubble.style.transform = "translateY(10px)";
