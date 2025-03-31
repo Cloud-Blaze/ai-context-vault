@@ -5,6 +5,12 @@
 
 // Track any active sync request
 let currentSync = null;
+let lastKnownSha = null;
+let checkInterval = null;
+let runningSync = null;
+
+// Start checks immediately when the script loads
+startPeriodicChecks();
 
 export function getContextKey(domain, chatId) {
   // e.g. domain=chat.openai.com, chatId=abc123
@@ -190,7 +196,10 @@ export async function gatherAllContextData() {
  * - Merges remote and local data
  * - Syncs both directions with timeout and conflict resilience
  */
-export async function syncFullDataToGist(deleteKey = "") {
+export async function syncFullDataToGist(
+  deleteKey = "",
+  syncOnlyServer = false
+) {
   // Abort any in-flight request
   if (currentSync && currentSync.abort) {
     console.log("[AI Context Vault] Aborting previous sync");
@@ -211,7 +220,7 @@ export async function syncFullDataToGist(deleteKey = "") {
 
   try {
     const result = await Promise.race([
-      performGistSync(signal, deleteKey),
+      performGistSync(signal, deleteKey, syncOnlyServer),
       timeout,
     ]);
     return result;
@@ -229,7 +238,135 @@ export async function syncFullDataToGist(deleteKey = "") {
   }
 }
 
-async function performGistSync(signal, deleteKey) {
+/**
+ * Get the current SHA of the Gist file
+ */
+async function getGistSha() {
+  const { gistPAT, gistURL } = await new Promise((resolve) => {
+    chrome.storage.local.get(["gistPAT", "gistURL"], (res) => {
+      resolve({
+        gistPAT: res.gistPAT || "",
+        gistURL: res.gistURL || "",
+      });
+    });
+  });
+
+  if (!gistPAT || !gistURL.includes("/")) {
+    return null;
+  }
+
+  const gistId = gistURL.split("/").pop();
+  const headers = {
+    Authorization: `token ${gistPAT}`,
+  };
+
+  try {
+    const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+      method: "HEAD",
+      headers,
+    });
+
+    if (response.ok) {
+      return response.headers.get("etag")?.replace(/"/g, "");
+    }
+  } catch (error) {
+    console.debug("[AI Context Vault] Failed to get Gist SHA:", error);
+  }
+  return null;
+}
+
+/**
+ * Check if the Gist has been updated
+ */
+async function checkGistUpdates() {
+  // Skip if we're already running a sync
+  if (runningSync) {
+    console.debug(
+      "[AI Context Vault] Sync already in progress, skipping check"
+    );
+    return;
+  }
+
+  const currentSha = await getGistSha();
+  if (currentSha && currentSha !== lastKnownSha && lastKnownSha !== -1) {
+    console.debug("[AI Context Vault] Gist updated, triggering sync");
+    runningSync = true; // Set sync lock
+    try {
+      await syncFullDataToGist("", true);
+
+      // Get current domain and chatId from URL
+      const { domain, chatId } = parseUrlForIds(window.location.href);
+
+      // Dispatch a custom event to refresh the overlay with domain and chatId
+      document.dispatchEvent(
+        new CustomEvent("ai-context-refresh-requested", {
+          detail: { domain, chatId, forceRefresh: true },
+        })
+      );
+    } finally {
+      runningSync = null; // Release sync lock
+    }
+  }
+  lastKnownSha = currentSha;
+}
+
+/**
+ * Start periodic checks for Gist updates
+ */
+export async function startPeriodicChecks() {
+  if (checkInterval) return;
+
+  // Check if Gist configuration exists
+  const { gistPAT, gistURL } = await new Promise((resolve) => {
+    chrome.storage.local.get(["gistPAT", "gistURL"], (res) => {
+      resolve({
+        gistPAT: res.gistPAT || "",
+        gistURL: res.gistURL || "",
+      });
+    });
+  });
+
+  if (!gistPAT || !gistURL.includes("/")) {
+    console.debug(
+      "[AI Context Vault] Missing Gist configuration, skipping periodic checks"
+    );
+    return;
+  }
+
+  // Check every 20 seconds
+  checkInterval = setInterval(checkGistUpdates, 20000);
+
+  // Listen for visibility changes
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      checkGistUpdates();
+    }
+  });
+
+  // Listen for window focus changes
+  window.addEventListener("focus", () => {
+    checkGistUpdates();
+  });
+
+  // Listen for window focus changes
+  window.addEventListener("blur", () => {
+    stopPeriodicChecks();
+  });
+}
+
+/**
+ * Stop periodic checks
+ */
+function stopPeriodicChecks() {
+  if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+  }
+  document.removeEventListener("visibilitychange", checkGistUpdates);
+  window.removeEventListener("focus", checkGistUpdates);
+}
+
+async function performGistSync(signal, deleteKey, syncOnlyServer = false) {
   try {
     const { gistPAT, gistURL } = await new Promise((resolve) => {
       chrome.storage.local.get(["gistPAT", "gistURL"], (res) => {
@@ -263,12 +400,17 @@ async function performGistSync(signal, deleteKey) {
       signal,
     });
 
+    console.error(`https://api.github.com/gists/${gistId}`);
     if (response.ok) {
       const gist = await response.json();
       const file = gist.files["ai_context_vault_data.json"];
       if (file && file.content) {
         remoteData = JSON.parse(file.content);
+        // Update last known SHA
+        lastKnownSha = response.headers.get("etag")?.replace(/"/g, "");
       }
+    } else {
+      lastKnownSha = -1;
     }
 
     // Merge the data
@@ -294,46 +436,48 @@ async function performGistSync(signal, deleteKey) {
       }
       merged[key] = remoteData[key];
     }
+    if (!syncOnlyServer) {
+      // Then merge in local data
+      for (const key in localData) {
+        if (!key.startsWith("ctx_")) continue;
 
-    // Then merge in local data
-    for (const key in localData) {
-      if (!key.startsWith("ctx_")) continue;
+        const localCtx = localData[key];
+        const remoteCtx = merged[key];
 
-      const localCtx = localData[key];
-      const remoteCtx = merged[key];
+        if (!remoteCtx) {
+          merged[key] = localCtx;
+        } else {
+          // Handle context entries
+          if (
+            localCtx &&
+            typeof localCtx === "object" &&
+            Array.isArray(localCtx.entries)
+          ) {
+            const mergedEntries = Array.isArray(remoteCtx?.entries)
+              ? [...remoteCtx.entries]
+              : [];
 
-      if (!remoteCtx) {
-        merged[key] = localCtx;
-      } else {
-        // Handle context entries
-        if (
-          localCtx &&
-          typeof localCtx === "object" &&
-          Array.isArray(localCtx.entries)
-        ) {
-          const mergedEntries = Array.isArray(remoteCtx?.entries)
-            ? [...remoteCtx.entries]
-            : [];
+            localCtx.entries.forEach((localEntry) => {
+              const matchIndex = mergedEntries.findIndex(
+                (e) => e.id === localEntry.id || e.text === localEntry.text
+              );
+              if (matchIndex === -1) {
+                mergedEntries.push(localEntry);
+              } else {
+                mergedEntries[matchIndex] = localEntry;
+              }
+            });
 
-          localCtx.entries.forEach((localEntry) => {
-            const matchIndex = mergedEntries.findIndex(
-              (e) => e.id === localEntry.id || e.text === localEntry.text
-            );
-            if (matchIndex === -1) {
-              mergedEntries.push(localEntry);
-            } else {
-              mergedEntries[matchIndex] = localEntry;
-            }
-          });
-
-          merged[key] = {
-            ...localCtx,
-            entries: mergedEntries,
-            summary: localCtx.summary || remoteCtx?.summary || "",
-          };
+            merged[key] = {
+              ...localCtx,
+              entries: mergedEntries,
+              summary: localCtx.summary || remoteCtx?.summary || "",
+            };
+          }
         }
       }
     }
+    console.error("final merge", syncOnlyServer, merged);
     // Save merged data back to local storage
     await chrome.storage.local.set(merged);
 
