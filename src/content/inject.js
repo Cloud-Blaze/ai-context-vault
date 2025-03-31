@@ -148,24 +148,55 @@ async function refreshOverlayContent(overlayPanel) {
   contextTab.textContent = "Context";
   bookmarksTab.textContent = "Bookmarks";
 
-  contextTab.className = "ai-context-tab active";
-  bookmarksTab.className = "ai-context-tab inactive";
-
+  // Create sections first
   const contextSection = document.createElement("div");
   const bookmarksSection = document.createElement("div");
-  bookmarksSection.style.display = "none";
+
+  // Get the last active tab from storage
+  chrome.storage.local.get(["lastActiveTab"], (result) => {
+    const lastActiveTab = result.lastActiveTab || "context";
+    if (lastActiveTab === "bookmarks") {
+      contextTab.className = "ai-context-tab inactive";
+      bookmarksTab.className = "ai-context-tab active";
+      contextSection.style.display = "none";
+      bookmarksSection.style.display = "block";
+    } else {
+      contextTab.className = "ai-context-tab active";
+      bookmarksTab.className = "ai-context-tab inactive";
+      contextSection.style.display = "block";
+      bookmarksSection.style.display = "none";
+      // Show no context message if we're in context tab and there's no data
+      getContext(domain, chatId).then((contextData) => {
+        if (
+          !contextData ||
+          !contextData.entries ||
+          contextData.entries.length === 0
+        ) {
+          const noContext = document.createElement("p");
+          noContext.textContent =
+            "No context available for this chat. Highlight text and press CMD+I/CTRL+I to add context.";
+          noContext.style.color = "#999";
+          contextSection.appendChild(noContext);
+        }
+      });
+    }
+  });
 
   contextTab.onclick = () => {
     contextTab.className = "ai-context-tab active";
     bookmarksTab.className = "ai-context-tab inactive";
     contextSection.style.display = "block";
     bookmarksSection.style.display = "none";
+    // Save the active tab state
+    chrome.storage.local.set({ lastActiveTab: "context" });
   };
   bookmarksTab.onclick = () => {
     bookmarksTab.className = "ai-context-tab active";
     contextTab.className = "ai-context-tab inactive";
     bookmarksSection.style.display = "block";
     contextSection.style.display = "none";
+    // Save the active tab state
+    chrome.storage.local.set({ lastActiveTab: "bookmarks" });
   };
 
   tabsContainer.appendChild(contextTab);
@@ -264,14 +295,7 @@ async function refreshOverlayContent(overlayPanel) {
     !contextData.entries ||
     contextData.entries.length === 0
   ) {
-    // Only show the message if we're in the context tab
-    if (contextTab.className === "ai-context-tab active") {
-      const noContext = document.createElement("p");
-      noContext.textContent =
-        "No context available for this chat. Highlight text and press CMD+I/CTRL+I to add context.";
-      noContext.style.color = "#999";
-      contentContainer.appendChild(noContext);
-    }
+    // Remove the old message creation here since it's now in the storage callback
   } else {
     if (contextData.summary) {
       const summarySection = document.createElement("div");
@@ -329,7 +353,8 @@ async function refreshOverlayContent(overlayPanel) {
   const bookmarks = await getBookmarks(domain, chatId);
   if (!bookmarks || bookmarks.length === 0) {
     const noBookmarks = document.createElement("p");
-    noBookmarks.textContent = "No bookmarks available.";
+    noBookmarks.textContent =
+      "No bookmarks available. Highlight text and press CMD+B/CTRL+B to add a bookmark.";
     noBookmarks.style.color = "#999";
     bookmarksSection.appendChild(noBookmarks);
   } else {
