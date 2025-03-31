@@ -8,9 +8,44 @@ let currentSync = null;
 let lastKnownSha = null;
 let checkInterval = null;
 let runningSync = null;
+let lastUrl = window.location.href;
+let refreshTimeout = null;
 
 // Start checks immediately when the script loads
 startPeriodicChecks();
+
+// Watch for URL changes
+function setupUrlChangeListener() {
+  function handleUrlChange() {
+    if (window.location.href !== lastUrl) {
+      lastUrl = window.location.href;
+      const { domain, chatId } = parseUrlForIds(window.location.href);
+
+      // Clear any pending refresh
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+
+      // Debounce the refresh
+      refreshTimeout = setTimeout(() => {
+        document.dispatchEvent(
+          new CustomEvent("ai-context-refresh-requested", {
+            detail: { domain, chatId, forceRefresh: true },
+          })
+        );
+      }, 100); // 100ms debounce
+    }
+  }
+
+  // Listen for browser navigation
+  window.addEventListener("popstate", handleUrlChange);
+
+  // Watch for URL changes in single-page apps
+  const observer = new MutationObserver(handleUrlChange);
+  observer.observe(document, { subtree: true, childList: true });
+}
+
+setupUrlChangeListener();
 
 export function getContextKey(domain, chatId) {
   // e.g. domain=chat.openai.com, chatId=abc123

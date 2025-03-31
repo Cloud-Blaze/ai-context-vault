@@ -264,11 +264,14 @@ async function refreshOverlayContent(overlayPanel) {
     !contextData.entries ||
     contextData.entries.length === 0
   ) {
-    const noContext = document.createElement("p");
-    noContext.textContent =
-      "No context available for this chat. Highlight text and press CMD+I/CTRL+I to add context.";
-    noContext.style.color = "#999";
-    contentContainer.appendChild(noContext);
+    // Only show the message if we're in the context tab
+    if (contextTab.className === "ai-context-tab active") {
+      const noContext = document.createElement("p");
+      noContext.textContent =
+        "No context available for this chat. Highlight text and press CMD+I/CTRL+I to add context.";
+      noContext.style.color = "#999";
+      contentContainer.appendChild(noContext);
+    }
   } else {
     if (contextData.summary) {
       const summarySection = document.createElement("div");
