@@ -308,7 +308,7 @@ async function refreshOverlayContent(overlayPanel) {
           chatId,
           async (text) => {
             const storage = await import("../storage/contextStorage");
-            await storage.deleteContext(domain, chatId, text);
+            await storage.deleteContext(domain, chatId, entry.id);
             await refreshOverlayContent(overlayPanel);
           },
           async (id, newLabel) => {

@@ -54,12 +54,18 @@ export async function getContext(domain, chatId) {
 /**
  * Save context object to chrome.storage.local
  */
-export async function saveContext(domain, chatId, data, shouldSync = true) {
+export async function saveContext(
+  domain,
+  chatId,
+  data,
+  shouldSync = true,
+  deleteKey = ""
+) {
   return new Promise((resolve) => {
     const key = getContextKey(domain, chatId);
     chrome.storage.local.set({ [key]: data }, async () => {
       if (shouldSync) {
-        await syncFullDataToGist();
+        await syncFullDataToGist(deleteKey);
       }
       resolve();
     });
@@ -103,10 +109,10 @@ export async function addContext(domain, chatId, text) {
 /**
  * Delete a context entry (by text match for simplicity)
  */
-export async function deleteContext(domain, chatId, text) {
+export async function deleteContext(domain, chatId, id) {
   const ctx = await getContext(domain, chatId);
-  ctx.entries = ctx.entries.filter((e) => e.text !== text);
-  await saveContext(domain, chatId, ctx);
+  ctx.entries = ctx.entries.filter((e) => e.id !== id);
+  await saveContext(domain, chatId, ctx, true, id);
   return ctx;
 }
 
@@ -184,7 +190,7 @@ export async function gatherAllContextData() {
  * - Merges remote and local data
  * - Syncs both directions with timeout and conflict resilience
  */
-export async function syncFullDataToGist() {
+export async function syncFullDataToGist(deleteKey = "") {
   // Abort any in-flight request
   if (currentSync && currentSync.abort) {
     console.log("[AI Context Vault] Aborting previous sync");
@@ -204,7 +210,10 @@ export async function syncFullDataToGist() {
   );
 
   try {
-    const result = await Promise.race([performGistSync(signal), timeout]);
+    const result = await Promise.race([
+      performGistSync(signal, deleteKey),
+      timeout,
+    ]);
     return result;
   } catch (err) {
     console.error(
@@ -220,7 +229,7 @@ export async function syncFullDataToGist() {
   }
 }
 
-async function performGistSync(signal) {
+async function performGistSync(signal, deleteKey) {
   try {
     const { gistPAT, gistURL } = await new Promise((resolve) => {
       chrome.storage.local.get(["gistPAT", "gistURL"], (res) => {
@@ -259,10 +268,6 @@ async function performGistSync(signal) {
       const file = gist.files["ai_context_vault_data.json"];
       if (file && file.content) {
         remoteData = JSON.parse(file.content);
-        console.debug(
-          "[AI Context Vault] Remote data:",
-          Object.keys(remoteData)
-        );
       }
     }
 
@@ -271,9 +276,23 @@ async function performGistSync(signal) {
 
     // First, add all remote data
     for (const key in remoteData) {
-      if (key.startsWith("ctx_") && !key.includes("bookmark")) {
-        merged[key] = remoteData[key];
+      if (deleteKey) {
+        if (Array.isArray(remoteData[key])) {
+          // Handle bookmark arrays
+          remoteData[key] = remoteData[key].filter(
+            (entry) => entry.id !== deleteKey
+          );
+        } else if (
+          remoteData[key]?.entries &&
+          Array.isArray(remoteData[key].entries)
+        ) {
+          // Handle context objects with entries array
+          remoteData[key].entries = remoteData[key].entries.filter(
+            (entry) => entry.id !== deleteKey
+          );
+        }
       }
+      merged[key] = remoteData[key];
     }
 
     // Then merge in local data
@@ -287,17 +306,22 @@ async function performGistSync(signal) {
         merged[key] = localCtx;
       } else {
         // Handle context entries
-        if (localCtx.entries) {
-          const mergedEntries = [...(remoteCtx.entries || [])];
+        if (
+          localCtx &&
+          typeof localCtx === "object" &&
+          Array.isArray(localCtx.entries)
+        ) {
+          const mergedEntries = Array.isArray(remoteCtx?.entries)
+            ? [...remoteCtx.entries]
+            : [];
 
-          (localCtx.entries || []).forEach((localEntry) => {
+          localCtx.entries.forEach((localEntry) => {
             const matchIndex = mergedEntries.findIndex(
               (e) => e.id === localEntry.id || e.text === localEntry.text
             );
             if (matchIndex === -1) {
               mergedEntries.push(localEntry);
             } else {
-              const existing = mergedEntries[matchIndex];
               mergedEntries[matchIndex] = localEntry;
             }
           });
@@ -305,7 +329,7 @@ async function performGistSync(signal) {
           merged[key] = {
             ...localCtx,
             entries: mergedEntries,
-            summary: localCtx.summary || remoteCtx.summary || "",
+            summary: localCtx.summary || remoteCtx?.summary || "",
           };
         }
       }
