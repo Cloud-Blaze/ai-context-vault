@@ -76,7 +76,7 @@
         "https://chat.together.ai/*",
         "https://dust.tt/*"
       ],
-      "js": ["inject.bundle.js", "uiOverlay.bundle.js"]
+      "js": ["inject.bundle.js"]
     }
   ],
   "icons": {

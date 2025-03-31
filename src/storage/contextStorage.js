@@ -81,12 +81,18 @@ export async function saveContext(
 /**
  * Save context object to chrome.storage.local
  */
-export async function saveBookmark(domain, chatId, data, shouldSync = true) {
+export async function saveBookmark(
+  domain,
+  chatId,
+  data,
+  shouldSync = true,
+  deleteKey = ""
+) {
   return new Promise((resolve) => {
     const key = getBookmarkKey(domain, chatId);
     chrome.storage.local.set({ [key]: data }, async () => {
       if (shouldSync) {
-        await syncFullDataToGist();
+        await syncFullDataToGist(deleteKey);
       }
       resolve();
     });
@@ -288,6 +294,7 @@ async function checkGistUpdates() {
   }
 
   const currentSha = await getGistSha();
+  console.debug(lastKnownSha, currentSha);
   if (currentSha && currentSha !== lastKnownSha && lastKnownSha !== -1) {
     console.debug("[AI Context Vault] Gist updated, triggering sync");
     runningSync = true; // Set sync lock
@@ -307,7 +314,6 @@ async function checkGistUpdates() {
       runningSync = null; // Release sync lock
     }
   }
-  lastKnownSha = currentSha;
 }
 
 /**
@@ -390,7 +396,7 @@ async function performGistSync(signal, deleteKey, syncOnlyServer = false) {
 
     // Get local data first
     const localData = await gatherAllContextData();
-    console.debug("[AI Context Vault] Local data:", Object.keys(localData));
+    console.debug("[AI Context Vault] Local data:", localData);
 
     // Get remote data
     let remoteData = {};
@@ -400,14 +406,11 @@ async function performGistSync(signal, deleteKey, syncOnlyServer = false) {
       signal,
     });
 
-    console.error(`https://api.github.com/gists/${gistId}`);
     if (response.ok) {
       const gist = await response.json();
       const file = gist.files["ai_context_vault_data.json"];
       if (file && file.content) {
         remoteData = JSON.parse(file.content);
-        // Update last known SHA
-        lastKnownSha = response.headers.get("etag")?.replace(/"/g, "");
       }
     } else {
       lastKnownSha = -1;
@@ -418,24 +421,28 @@ async function performGistSync(signal, deleteKey, syncOnlyServer = false) {
 
     // First, add all remote data
     for (const key in remoteData) {
-      if (deleteKey) {
-        if (Array.isArray(remoteData[key])) {
-          // Handle bookmark arrays
-          remoteData[key] = remoteData[key].filter(
-            (entry) => entry.id !== deleteKey
-          );
-        } else if (
-          remoteData[key]?.entries &&
-          Array.isArray(remoteData[key].entries)
-        ) {
-          // Handle context objects with entries array
-          remoteData[key].entries = remoteData[key].entries.filter(
-            (entry) => entry.id !== deleteKey
-          );
-        }
+      if (Array.isArray(remoteData[key])) {
+        // Handle bookmark arrays
+        remoteData[key] = remoteData[key].filter(
+          (entry) => entry.id !== deleteKey
+        );
+      } else if (
+        remoteData[key]?.entries &&
+        Array.isArray(remoteData[key].entries)
+      ) {
+        // Handle context objects with entries array
+        remoteData[key].entries = remoteData[key].entries.filter(
+          (entry) => entry.id !== deleteKey
+        );
       }
       merged[key] = remoteData[key];
     }
+
+    console.debug(
+      "[AI Context Vault] syncOnlyServer data:",
+      syncOnlyServer,
+      localData
+    );
     if (!syncOnlyServer) {
       // Then merge in local data
       for (const key in localData) {
@@ -448,36 +455,55 @@ async function performGistSync(signal, deleteKey, syncOnlyServer = false) {
           merged[key] = localCtx;
         } else {
           // Handle context entries
+          // if (
+          //   localCtx &&
+          //   typeof localCtx === "object" &&
+          //   Array.isArray(localCtx.entries)
+          // ) {
+          // If remote has no entries, keep local data
           if (
-            localCtx &&
-            typeof localCtx === "object" &&
-            Array.isArray(localCtx.entries)
+            key ===
+            "ctx_bookmarks_chatgpt.com_67e96e31-671c-8002-b1c3-e370be5333e7"
           ) {
-            const mergedEntries = Array.isArray(remoteCtx?.entries)
-              ? [...remoteCtx.entries]
-              : [];
-
-            localCtx.entries.forEach((localEntry) => {
-              const matchIndex = mergedEntries.findIndex(
-                (e) => e.id === localEntry.id || e.text === localEntry.text
-              );
-              if (matchIndex === -1) {
-                mergedEntries.push(localEntry);
-              } else {
-                mergedEntries[matchIndex] = localEntry;
-              }
-            });
-
-            merged[key] = {
-              ...localCtx,
-              entries: mergedEntries,
-              summary: localCtx.summary || remoteCtx?.summary || "",
-            };
+            console.error("localCtx", localCtx);
+            console.error("remoteCtx", remoteCtx);
+            console.error(
+              "!Array.isArray(remoteCtx?.entries) ||=             remoteCtx.entries.length === 0",
+              !Array.isArray(remoteCtx?.entries),
+              remoteCtx.entries.length === 0
+            );
           }
+          if (
+            !Array.isArray(remoteCtx?.entries) ||
+            remoteCtx.entries.length === 0
+          ) {
+            merged[key] = localCtx;
+            continue;
+          }
+
+          const mergedEntries = [...remoteCtx.entries];
+
+          localCtx.entries.forEach((localEntry) => {
+            const matchIndex = mergedEntries.findIndex(
+              (e) => e.id === localEntry.id || e.text === localEntry.text
+            );
+            if (matchIndex === -1) {
+              mergedEntries.push(localEntry);
+            } else {
+              mergedEntries[matchIndex] = localEntry;
+            }
+          });
+
+          merged[key] = {
+            ...localCtx,
+            entries: mergedEntries,
+            summary: localCtx.summary || remoteCtx?.summary || "",
+          };
+          // }
         }
       }
     }
-    console.error("final merge", syncOnlyServer, merged);
+    console.error("final merge", merged);
     // Save merged data back to local storage
     await chrome.storage.local.set(merged);
 
@@ -502,6 +528,9 @@ async function performGistSync(signal, deleteKey, syncOnlyServer = false) {
       throw new Error(`Gist update failed: ${await patch.text()}`);
     }
 
+    const currentSha = await getGistSha();
+    // Update last known SHA
+    lastKnownSha = currentSha.replace(/"/g, "");
     return merged;
   } catch (error) {
     if (error.name === "AbortError") {
@@ -584,7 +613,7 @@ export async function updateBookmarkLabel(
 export async function deleteBookmark(domain, chatId, bookmarkId) {
   const current = await getBookmarks(domain, chatId);
   const updated = current.filter((entry) => entry.id !== bookmarkId);
-  await saveBookmark(domain, chatId, updated);
+  await saveBookmark(domain, chatId, updated, true, bookmarkId);
   return updated;
 }
 
