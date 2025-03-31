@@ -209,20 +209,12 @@ async function refreshOverlayContent(overlayPanel) {
   const importExportSection = document.createElement("div");
   importExportSection.className = "ai-context-import-export";
 
-  const importExportTitle = document.createElement("h4");
-  importExportTitle.textContent = "Import/Export";
-  importExportTitle.className = "ai-context-section-title";
-
   const importExportTextarea = document.createElement("textarea");
   importExportTextarea.className = "ai-context-import-export-textarea";
   importExportTextarea.placeholder = "Paste JSON data here to import...";
 
   const importExportButtons = document.createElement("div");
   importExportButtons.className = "ai-context-import-export-buttons";
-
-  const exportButton = document.createElement("button");
-  exportButton.textContent = "Export";
-  exportButton.className = "ai-context-import-export-button export";
 
   const importButton = document.createElement("button");
   importButton.textContent = "Import/Export";
@@ -232,26 +224,21 @@ async function refreshOverlayContent(overlayPanel) {
   saveButton.textContent = "Save";
   saveButton.className = "ai-context-import-export-button save";
 
-  importExportButtons.appendChild(exportButton);
   importExportButtons.appendChild(importButton);
   importExportButtons.appendChild(saveButton);
 
-  importExportSection.appendChild(importExportTitle);
   importExportSection.appendChild(importExportTextarea);
   importExportSection.appendChild(importExportButtons);
 
-  // Export functionality
-  exportButton.addEventListener("click", async () => {
-    const contextData = await getContext(domain, chatId);
-    importExportTextarea.value = JSON.stringify(contextData, null, 2);
-    importExportTextarea.style.display = "block";
-    saveButton.style.display = "none";
-  });
+  // Preload the current context data into the textarea
+  const currentContextData = await getContext(domain, chatId);
+  importExportTextarea.value = JSON.stringify(currentContextData, null, 2);
 
   // Import functionality
   importButton.addEventListener("click", () => {
     importExportTextarea.style.display = "block";
     saveButton.style.display = "inline-block";
+    importButton.style.display = "none";
   });
 
   // Save functionality
@@ -273,9 +260,10 @@ async function refreshOverlayContent(overlayPanel) {
       // Refresh the UI
       await refreshOverlayContent(overlayPanel);
 
-      // Hide the textarea and save button
+      // Hide the textarea and save button, show import button again
       importExportTextarea.style.display = "none";
       saveButton.style.display = "none";
+      importButton.style.display = "inline-block";
 
       showConfirmationBubble("Context imported successfully", "success");
     } catch (error) {
