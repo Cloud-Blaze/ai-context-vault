@@ -264,36 +264,44 @@ async function performGistSync(signal) {
     const remoteCtx = remoteData[key];
 
     if (!remoteCtx) {
-      // New local key, add
       merged[key] = localCtx;
     } else {
-      // Merge entries
-      const mergedEntries = [...remoteCtx.entries];
-
-      localCtx.entries.forEach((localEntry) => {
-        const matchIndex = mergedEntries.findIndex(
-          (e) => e.id === localEntry.id || e.text === localEntry.text
-        );
-
-        if (matchIndex === -1) {
-          mergedEntries.push(localEntry);
-        } else {
-          // Use latest version
-          const existing = mergedEntries[matchIndex];
-          if (
-            localEntry.lastModified &&
-            localEntry.lastModified > (existing.lastModified || 0)
-          ) {
-            mergedEntries[matchIndex] = localEntry;
+      if (Array.isArray(localCtx)) {
+        // Bookmark merging: dedupe by ID
+        const mergedArr = [...remoteCtx];
+        for (const b of localCtx) {
+          const existing = mergedArr.find((x) => x.id === b.id);
+          if (!existing) mergedArr.push(b);
+          else if (b.lastModified > (existing.lastModified || 0)) {
+            Object.assign(existing, b);
           }
         }
-      });
-
-      merged[key] = {
-        ...localCtx,
-        entries: mergedEntries,
-        summary: localCtx.summary || remoteCtx.summary || "",
-      };
+        merged[key] = mergedArr;
+      } else {
+        // Context merging
+        const mergedEntries = [...remoteCtx.entries];
+        localCtx.entries.forEach((localEntry) => {
+          const matchIndex = mergedEntries.findIndex(
+            (e) => e.id === localEntry.id || e.text === localEntry.text
+          );
+          if (matchIndex === -1) {
+            mergedEntries.push(localEntry);
+          } else {
+            const existing = mergedEntries[matchIndex];
+            if (
+              localEntry.lastModified &&
+              localEntry.lastModified > (existing.lastModified || 0)
+            ) {
+              mergedEntries[matchIndex] = localEntry;
+            }
+          }
+        });
+        merged[key] = {
+          ...localCtx,
+          entries: mergedEntries,
+          summary: localCtx.summary || remoteCtx.summary || "",
+        };
+      }
     }
   }
 
