@@ -207,33 +207,49 @@ export async function syncFullDataToGist() {
     const result = await Promise.race([performGistSync(signal), timeout]);
     return result;
   } catch (err) {
-    console.warn("[AI Context Vault] Sync failed:", err.message);
+    console.error(
+      "[AI Context Vault] Sync failed:",
+      err.message,
+      "\nStack:",
+      err.stack,
+      "\nAt line:",
+      err.stack?.split("\n")[1]?.match(/:(\\d+):/)?.[1] || "unknown"
+    );
   } finally {
     currentSync = null;
   }
 }
 
 async function performGistSync(signal) {
-  const { gistPAT, gistURL } = await new Promise((resolve) => {
-    chrome.storage.local.get(["gistPAT", "gistURL"], (res) => {
-      resolve({
-        gistPAT: res.gistPAT || "",
-        gistURL: res.gistURL || "",
+  try {
+    const { gistPAT, gistURL } = await new Promise((resolve) => {
+      chrome.storage.local.get(["gistPAT", "gistURL"], (res) => {
+        resolve({
+          gistPAT: res.gistPAT || "",
+          gistURL: res.gistURL || "",
+        });
       });
     });
-  });
 
-  if (!gistPAT || !gistURL.includes("/")) return;
+    if (!gistPAT || !gistURL.includes("/")) {
+      alert(gistPAT);
+      alert(!gistURL.includes("/"));
+      console.warn("[AI Context Vault] Missing Gist configuration");
+      return;
+    }
 
-  const gistId = gistURL.split("/").pop();
-  const headers = {
-    Authorization: `token ${gistPAT}`,
-    "Content-Type": "application/json",
-  };
+    const gistId = gistURL.split("/").pop();
+    const headers = {
+      Authorization: `token ${gistPAT}`,
+      "Content-Type": "application/json",
+    };
 
-  // STEP 1: Fetch remote Gist
-  let remoteData = {};
-  try {
+    // Get local data first
+    const localData = await gatherAllContextData();
+    console.debug("[AI Context Vault] Local data:", Object.keys(localData));
+
+    // Get remote data
+    let remoteData = {};
     const response = await fetch(`https://api.github.com/gists/${gistId}`, {
       method: "GET",
       headers,
@@ -245,90 +261,74 @@ async function performGistSync(signal) {
       const file = gist.files["ai_context_vault_data.json"];
       if (file && file.content) {
         remoteData = JSON.parse(file.content);
+        console.debug(
+          "[AI Context Vault] Remote data:",
+          Object.keys(remoteData)
+        );
       }
     }
-  } catch (e) {
-    if (e.name !== "AbortError") throw e;
-    console.warn("[AI Context Vault] Gist fetch aborted");
-    return;
-  }
 
-  // STEP 2: Get local data
-  const localData = await gatherAllContextData();
+    // Merge the data
+    const merged = {};
 
-  // STEP 3: Merge
-  const merged = { ...remoteData };
+    // First, add all remote data
+    for (const key in remoteData) {
+      if (key.startsWith("ctx_") && !key.includes("bookmark")) {
+        merged[key] = remoteData[key];
+      }
+    }
 
-  for (const key in localData) {
-    const localCtx = localData[key];
-    const remoteCtx = remoteData[key];
+    // Then merge in local data
+    for (const key in localData) {
+      if (!key.startsWith("ctx_") || key.includes("bookmark")) continue;
 
-    if (!remoteCtx) {
-      merged[key] = localCtx;
-    } else {
-      if (Array.isArray(localCtx)) {
-        // Bookmark merging: dedupe by ID
-        const mergedArr = [...remoteCtx];
-        for (const b of localCtx) {
-          const existing = mergedArr.find((x) => x.id === b.id);
-          if (!existing) mergedArr.push(b);
-          else if (b.lastModified > (existing.lastModified || 0)) {
-            Object.assign(existing, b);
-          }
-        }
-        merged[key] = mergedArr;
+      const localCtx = localData[key];
+      const remoteCtx = merged[key];
+
+      if (!remoteCtx) {
+        merged[key] = localCtx;
       } else {
-        // Context merging
-        const mergedEntries = [...remoteCtx.entries];
-        localCtx.entries.forEach((localEntry) => {
-          const matchIndex = mergedEntries.findIndex(
-            (e) => e.id === localEntry.id || e.text === localEntry.text
-          );
-          if (matchIndex === -1) {
-            mergedEntries.push(localEntry);
-          } else {
-            const existing = mergedEntries[matchIndex];
-            if (
-              localEntry.lastModified &&
-              localEntry.lastModified > (existing.lastModified || 0)
-            ) {
-              mergedEntries[matchIndex] = localEntry;
+        // Handle context entries
+        if (localCtx.entries) {
+          const mergedEntries = [...(remoteCtx.entries || [])];
+
+          (localCtx.entries || []).forEach((localEntry) => {
+            const matchIndex = mergedEntries.findIndex(
+              (e) => e.id === localEntry.id || e.text === localEntry.text
+            );
+            if (matchIndex === -1) {
+              mergedEntries.push(localEntry);
+            } else {
+              const existing = mergedEntries[matchIndex];
+              if (localEntry.lastModified > (existing.lastModified || 0)) {
+                mergedEntries[matchIndex] = localEntry;
+              }
             }
-          }
-        });
-        merged[key] = {
-          ...localCtx,
-          entries: mergedEntries,
-          summary: localCtx.summary || remoteCtx.summary || "",
-        };
+          });
+
+          merged[key] = {
+            ...localCtx,
+            entries: mergedEntries,
+            summary: localCtx.summary || remoteCtx.summary || "",
+          };
+        }
       }
     }
-  }
 
-  // STEP 4: Save all merged keys using saveContext
-  for (const key of Object.keys(merged)) {
-    if (!key.startsWith("ctx_")) continue;
-    const [_, domain, ...chatParts] = key.split("_");
-    const chatId = chatParts.join("_");
+    // Save merged data back to local storage
+    await chrome.storage.local.clear();
+    await chrome.storage.local.set(merged);
 
-    if (key.startsWith("ctx_bookmark")) {
-      await saveBookmark(domain, chatId, merged[key], false);
-    } else {
-      await saveContext(domain, chatId, merged[key], false); // avoid infinite recursion
-    }
-  }
-
-  // STEP 5: Patch Gist
-  const body = {
-    description: "AI Context Vault Sync",
-    files: {
-      "ai_context_vault_data.json": {
-        content: JSON.stringify(merged, null, 2),
+    // Update GitHub
+    const body = {
+      description: "AI Context Vault Sync",
+      files: {
+        "ai_context_vault_data.json": {
+          content: JSON.stringify(merged, null, 2),
+        },
       },
-    },
-  };
+    };
 
-  try {
     const patch = await fetch(`https://api.github.com/gists/${gistId}`, {
       method: "PATCH",
       headers,
@@ -337,14 +337,25 @@ async function performGistSync(signal) {
     });
 
     if (!patch.ok) {
-      const err = await patch.json();
-      console.error("[AI Context Vault] Gist update failed", err);
-    } else {
-      console.log("[AI Context Vault] Gist sync complete");
+      throw new Error(`Gist update failed: ${await patch.text()}`);
     }
-  } catch (err) {
-    if (err.name !== "AbortError") throw err;
-    console.warn("[AI Context Vault] Patch aborted");
+
+    return merged;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      console.warn("[AI Context Vault] Sync aborted");
+      return;
+    }
+
+    console.error(
+      "[AI Context Vault] Sync failed at line",
+      error.stack?.split("\n")[1]?.match(/:(\\d+):/)?.[1] || "unknown",
+      "\nError:",
+      error.message,
+      "\nStack:",
+      error.stack
+    );
+    throw error; // Re-throw to be caught by the outer try-catch
   }
 }
 

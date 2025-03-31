@@ -8,6 +8,8 @@ import {
   getContext,
   deleteBookmark,
   updateBookmarkLabel,
+  saveContext,
+  syncFullDataToGist,
 } from "../storage/contextStorage";
 import "./styles.css";
 
@@ -192,7 +194,7 @@ async function refreshOverlayContent(overlayPanel) {
   exportButton.className = "ai-context-import-export-button export";
 
   const importButton = document.createElement("button");
-  importButton.textContent = "Import";
+  importButton.textContent = "Import/Export";
   importButton.className = "ai-context-import-export-button import";
 
   const saveButton = document.createElement("button");
@@ -210,12 +212,7 @@ async function refreshOverlayContent(overlayPanel) {
   // Export functionality
   exportButton.addEventListener("click", async () => {
     const contextData = await getContext(domain, chatId);
-    const bookmarks = await getBookmarks(domain, chatId);
-    const exportData = {
-      context: contextData,
-      bookmarks: bookmarks,
-    };
-    importExportTextarea.value = JSON.stringify(exportData, null, 2);
+    importExportTextarea.value = JSON.stringify(contextData, null, 2);
     importExportTextarea.style.display = "block";
     saveButton.style.display = "none";
   });
@@ -226,15 +223,36 @@ async function refreshOverlayContent(overlayPanel) {
     saveButton.style.display = "inline-block";
   });
 
-  // Save functionality (currently just alerts the data)
-  saveButton.addEventListener("click", () => {
+  // Save functionality
+  saveButton.addEventListener("click", async () => {
     try {
       const importData = JSON.parse(importExportTextarea.value);
-      alert("Import data received:\n" + JSON.stringify(importData, null, 2));
+
+      // Validate the import data structure
+      if (!importData.entries || !Array.isArray(importData.entries)) {
+        throw new Error("Invalid context data structure");
+      }
+
+      // Save new context data
+      await saveContext(domain, chatId, importData, false);
+
+      // Trigger GitHub sync
+      await syncFullDataToGist();
+
+      // Refresh the UI
+      await refreshOverlayContent(overlayPanel);
+
+      // Hide the textarea and save button
       importExportTextarea.style.display = "none";
       saveButton.style.display = "none";
+
+      showConfirmationBubble("Context imported successfully", "success");
     } catch (error) {
-      showConfirmationBubble("Invalid JSON data", "error");
+      console.error("[AI Context Vault] Import failed:", error);
+      showConfirmationBubble(
+        "Failed to import context: " + error.message,
+        "error"
+      );
     }
   });
 
