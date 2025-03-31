@@ -296,11 +296,13 @@ async function refreshOverlayContent(overlayPanel) {
           domain,
           chatId,
           async (text) => {
-            await deleteBookmark(domain, chatId, text);
+            const storage = await import("../storage/contextStorage");
+            await storage.deleteContext(domain, chatId, text);
             await refreshOverlayContent(overlayPanel);
           },
           async (id, newLabel) => {
-            await updateBookmarkLabel(domain, chatId, id, newLabel);
+            const storage = await import("../storage/contextStorage");
+            await storage.updateContext(domain, chatId, entry.text, newLabel);
             await refreshOverlayContent(overlayPanel);
           }
         );
