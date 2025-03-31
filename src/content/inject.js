@@ -163,84 +163,309 @@ async function ensureOverlayExists() {
   return overlayPanel;
 }
 
-// UI Component Functions
-function createTabButton(text, isActive = false) {
-  const button = document.createElement("button");
-  button.textContent = text;
-  Object.assign(button.style, {
+/**
+ * Refresh the content of the overlay with current context data.
+ */
+async function refreshOverlayContent(overlayPanel) {
+  const contentContainer = document.getElementById("__ai_context_content__");
+  if (!contentContainer) {
+    console.error("[AI Context Vault] Content container not found in overlay");
+    return;
+  }
+
+  const { domain, chatId } = parseUrlForIds(window.location.href);
+
+  // Clear content
+  contentContainer.innerHTML = "";
+
+  // Tabs
+  const tabsContainer = document.createElement("div");
+  tabsContainer.style.marginBottom = "12px";
+  tabsContainer.style.display = "flex";
+  tabsContainer.style.gap = "10px";
+
+  const contextTab = document.createElement("button");
+  const bookmarksTab = document.createElement("button");
+
+  contextTab.textContent = "Context";
+  bookmarksTab.textContent = "Bookmarks";
+
+  Object.assign(contextTab.style, {
     padding: "6px 12px",
-    background: isActive ? "#4ade80" : "#222",
-    color: isActive ? "#000" : "#eee",
+    background: "#4ade80",
+    color: "#000",
     borderRadius: "6px",
     fontWeight: "bold",
     cursor: "pointer",
     border: "none",
   });
-  return button;
-}
 
-function createSectionTitle(text) {
-  const title = document.createElement("h4");
-  title.textContent = text;
-  Object.assign(title.style, {
-    margin: "0 0 10px 0",
-    fontSize: "14px",
+  Object.assign(bookmarksTab.style, {
+    padding: "6px 12px",
+    background: "#222",
+    color: "#eee",
+    borderRadius: "6px",
     fontWeight: "bold",
-    color: "#4ade80",
+    cursor: "pointer",
+    border: "none",
   });
-  return title;
+
+  const contextSection = document.createElement("div");
+  const bookmarksSection = document.createElement("div");
+  bookmarksSection.style.display = "none";
+
+  contextTab.onclick = () => {
+    contextTab.style.background = "#4ade80";
+    contextTab.style.color = "#000";
+    bookmarksTab.style.background = "#222";
+    bookmarksTab.style.color = "#eee";
+    contextSection.style.display = "block";
+    bookmarksSection.style.display = "none";
+  };
+  bookmarksTab.onclick = () => {
+    bookmarksTab.style.background = "#4ade80";
+    bookmarksTab.style.color = "#000";
+    contextTab.style.background = "#222";
+    contextTab.style.color = "#eee";
+    bookmarksSection.style.display = "block";
+    contextSection.style.display = "none";
+  };
+
+  tabsContainer.appendChild(contextTab);
+  tabsContainer.appendChild(bookmarksTab);
+  contentContainer.appendChild(tabsContainer);
+  contentContainer.appendChild(contextSection);
+  contentContainer.appendChild(bookmarksSection);
+
+  // ORIGINAL CONTEXT ENTRY LOGIC
+  const contextData = await getContext(domain, chatId);
+  if (
+    !contextData ||
+    !contextData.entries ||
+    contextData.entries.length === 0
+  ) {
+    const noContext = document.createElement("p");
+    noContext.textContent =
+      "No context available for this chat. Highlight text and press CMD+I/CTRL+I to add context.";
+    noContext.style.color = "#999";
+    contentContainer.appendChild(noContext);
+  } else {
+    // Add summary if available
+    if (contextData.summary) {
+      const summarySection = document.createElement("div");
+      summarySection.style.marginBottom = "15px";
+
+      const summaryTitle = document.createElement("h4");
+      summaryTitle.textContent = "Summary";
+      summaryTitle.style.margin = "0 0 5px 0";
+      summaryTitle.style.fontSize = "14px";
+      summaryTitle.style.fontWeight = "bold";
+      summaryTitle.style.color = "#4ade80";
+
+      const summaryText = document.createElement("p");
+      summaryText.textContent = contextData.summary;
+      summaryText.style.margin = "0";
+      summaryText.style.lineHeight = "1.4";
+
+      summarySection.appendChild(summaryTitle);
+      summarySection.appendChild(summaryText);
+      contentContainer.appendChild(summarySection);
+    }
+
+    // Add context entries
+    if (contextData.entries.length > 0) {
+      const entriesSection = document.createElement("div");
+
+      const entriesTitle = document.createElement("h4");
+      entriesTitle.textContent = "Context Items";
+      entriesTitle.style.margin = "0 0 10px 0";
+      entriesTitle.style.fontSize = "14px";
+      entriesTitle.style.fontWeight = "bold";
+      entriesTitle.style.color = "#4ade80";
+
+      entriesSection.appendChild(entriesTitle);
+
+      const sortedEntries = [...contextData.entries].sort(
+        (a, b) => (b.lastModified || b.created) - (a.lastModified || a.created)
+      );
+
+      // Create list of entries
+      sortedEntries.forEach((entry, index) => {
+        const entryItem = createContextEntry(
+          entry,
+          domain,
+          chatId,
+          async (text) => {
+            await deleteBookmark(domain, chatId, text);
+            await refreshOverlayContent(overlayPanel);
+          },
+          async (id, newLabel) => {
+            await updateBookmarkLabel(domain, chatId, id, newLabel);
+            await refreshOverlayContent(overlayPanel);
+          }
+        );
+        entriesSection.appendChild(entryItem);
+      });
+
+      contextSection.appendChild(entriesSection);
+    }
+  }
+
+  // BOOKMARK TAB ENTRIES
+  const bookmarks = await getBookmarks(domain, chatId);
+  if (!bookmarks || bookmarks.length === 0) {
+    const noBookmarks = document.createElement("p");
+    noBookmarks.textContent = "No bookmarks available.";
+    noBookmarks.style.color = "#999";
+    bookmarksSection.appendChild(noBookmarks);
+  } else {
+    const bookmarksTitle = document.createElement("h4");
+    bookmarksTitle.textContent = "Chat Bookmarks";
+    bookmarksTitle.style.margin = "0 0 10px 0";
+    bookmarksTitle.style.fontSize = "14px";
+    bookmarksTitle.style.fontWeight = "bold";
+    bookmarksTitle.style.color = "#4ade80";
+    bookmarksSection.appendChild(bookmarksTitle);
+
+    bookmarks.forEach((entry) => {
+      if (!entry || !entry.selector) return;
+
+      const wrapper = createBookmarkEntry(
+        entry,
+        domain,
+        chatId,
+        async (id) => {
+          await deleteBookmark(domain, chatId, id);
+          await refreshOverlayContent(overlayPanel);
+        },
+        async (id, newLabel) => {
+          await updateBookmarkLabel(domain, chatId, id, newLabel);
+          await refreshOverlayContent(overlayPanel);
+        }
+      );
+      bookmarksSection.appendChild(wrapper);
+    });
+  }
+
+  console.log("[AI Context Vault] Refreshed overlay content with tabs");
 }
 
-function createImportExportButton() {
-  const button = document.createElement("button");
-  button.textContent = "Import/Export";
-  Object.assign(button.style, {
-    padding: "4px 8px",
-    background: "#2d2d2d",
-    color: "#4ade80",
-    borderRadius: "4px",
-    cursor: "pointer",
-    border: "1px solid #4ade80",
-    marginBottom: "10px",
-  });
+function createBookmarkEntry(entry, domain, chatId, onDelete, onUpdate) {
+  const wrapper = document.createElement("div");
+  wrapper.style.display = "flex";
+  wrapper.style.alignItems = "center";
+  wrapper.style.justifyContent = "space-between";
+  wrapper.style.borderBottom = "1px solid #444";
+  wrapper.style.marginBottom = "6px";
+  wrapper.style.padding = "4px 0";
 
-  button.onclick = () => {
-    const textarea = document.createElement("textarea");
-    textarea.value = "Hello World"; // Placeholder for now
-    textarea.style.width = "100%";
-    textarea.style.height = "200px";
-    textarea.style.backgroundColor = "#2d2d2d";
-    textarea.style.color = "#e0e0e0";
-    textarea.style.border = "1px solid #444";
-    textarea.style.borderRadius = "4px";
-    textarea.style.padding = "8px";
-    textarea.style.marginBottom = "8px";
-    textarea.style.display = "block";
+  const delBtn = document.createElement("button");
+  delBtn.textContent = "×";
+  delBtn.style.color = "#f87171";
+  delBtn.style.padding = "0 4px";
+  delBtn.style.background = "none";
+  delBtn.style.border = "none";
+  delBtn.style.cursor = "pointer";
+  delBtn.style.marginLeft = "8px";
+  delBtn.onclick = () => onDelete(entry.id);
 
-    const saveButton = document.createElement("button");
-    saveButton.innerHTML = "✓";
-    saveButton.style.color = "#4ade80";
-    saveButton.style.background = "none";
-    saveButton.style.border = "none";
-    saveButton.style.cursor = "pointer";
-    saveButton.style.fontSize = "18px";
+  const labelContainer = document.createElement("div");
+  labelContainer.style.flex = "1";
+  labelContainer.style.marginRight = "8px";
 
-    const container = document.createElement("div");
-    container.appendChild(textarea);
-    container.appendChild(saveButton);
+  const labelText = document.createElement("div");
+  labelText.textContent = `🔖 ${entry.label || "Bookmark"}`;
+  labelText.style.cursor = "pointer";
+  labelText.style.color = "#ccc";
+  labelText.title = new Date(entry.created).toLocaleString();
 
-    const contextSection = document.querySelector(
-      "#__ai_context_content__ > div:nth-child(2)"
-    );
-    if (contextSection) {
-      const title = contextSection.querySelector("h4");
-      if (title) {
-        contextSection.insertBefore(container, title.nextSibling);
+  // Add back the click functionality for bookmarks
+  labelText.onclick = () => {
+    try {
+      const matches = Array.from(document.querySelectorAll("body *")).filter(
+        (el) => {
+          if (el.closest("#__ai_context_overlay__")) return false;
+          return (
+            el.childNodes.length === 1 &&
+            el.innerText &&
+            el.innerText.includes(entry.fallbackText)
+          );
+        }
+      );
+
+      if (matches.length > 0) {
+        const node = matches[matches.length - 1];
+        node.scrollIntoView({ behavior: "smooth", block: "center" });
+        node.style.outline = "2px dashed #4ade80";
+        setTimeout(() => {
+          node.style.outline = "none";
+        }, 6000);
+      } else {
+        alert("Bookmark element not found on page.");
+      }
+    } catch (err) {
+      console.error("[AI Context Vault] Bookmark jump failed:", err);
+    }
+  };
+
+  const labelInput = document.createElement("input");
+  labelInput.type = "text";
+  labelInput.value = entry.label || "";
+  labelInput.style.display = "none";
+  labelInput.style.width = "100%";
+  labelInput.style.backgroundColor = "#2d2d2d";
+  labelInput.style.color = "#e0e0e0";
+  labelInput.style.border = "1px solid #444";
+  labelInput.style.borderRadius = "4px";
+  labelInput.style.padding = "4px";
+
+  labelContainer.appendChild(labelText);
+  labelContainer.appendChild(labelInput);
+
+  const editBtn = document.createElement("button");
+  editBtn.innerHTML = "✎";
+  editBtn.style.color = "#4ade80";
+  editBtn.style.background = "none";
+  editBtn.style.border = "none";
+  editBtn.style.cursor = "pointer";
+  editBtn.style.fontSize = "16px";
+
+  editBtn.onclick = async () => {
+    const isEditing = labelInput.style.display === "block";
+
+    if (!isEditing) {
+      labelText.style.display = "none";
+      labelInput.style.display = "block";
+      labelInput.focus();
+      editBtn.innerHTML = "✓";
+    } else {
+      const newLabel = labelInput.value.trim();
+      labelText.style.display = "block";
+      labelInput.style.display = "none";
+      editBtn.innerHTML = "✎";
+
+      if (newLabel && newLabel !== entry.label) {
+        try {
+          await onUpdate(entry.id, newLabel);
+          entry.label = newLabel;
+          labelText.textContent = `🔖 ${newLabel}`;
+          showConfirmationBubble("Bookmark label updated", "success");
+        } catch (err) {
+          console.error(
+            "[AI Context Vault] Error updating bookmark label:",
+            err
+          );
+          showConfirmationBubble("Failed to update bookmark", "error");
+        }
       }
     }
   };
 
-  return button;
+  wrapper.appendChild(labelContainer);
+  wrapper.appendChild(delBtn);
+  wrapper.appendChild(editBtn);
+
+  return wrapper;
 }
 
 function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
@@ -343,7 +568,8 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
       const newText = editTextarea.value.trim();
       if (newText && newText !== entry.text) {
         try {
-          await onUpdate(entry.text, newText);
+          const storage = await import("../storage/contextStorage");
+          await storage.updateContext(domain, chatId, entry.text, newText);
           entry.text = newText;
           text.textContent = newText;
           showConfirmationBubble("Context updated successfully", "success");
@@ -375,246 +601,6 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
   entryItem.appendChild(buttonContainer);
 
   return entryItem;
-}
-
-function createBookmarkEntry(entry, domain, chatId, onDelete, onUpdate) {
-  const wrapper = document.createElement("div");
-  wrapper.style.display = "flex";
-  wrapper.style.alignItems = "center";
-  wrapper.style.justifyContent = "space-between";
-  wrapper.style.borderBottom = "1px solid #444";
-  wrapper.style.marginBottom = "6px";
-  wrapper.style.padding = "4px 0";
-
-  const delBtn = document.createElement("button");
-  delBtn.textContent = "×";
-  delBtn.style.color = "#f87171";
-  delBtn.style.padding = "0 4px";
-  delBtn.style.background = "none";
-  delBtn.style.border = "none";
-  delBtn.style.cursor = "pointer";
-  delBtn.style.marginLeft = "8px";
-  delBtn.onclick = () => onDelete(entry.id);
-
-  const labelContainer = document.createElement("div");
-  labelContainer.style.flex = "1";
-  labelContainer.style.marginRight = "8px";
-
-  const labelText = document.createElement("div");
-  labelText.textContent = `🔖 ${entry.label || "Bookmark"}`;
-  labelText.style.cursor = "pointer";
-  labelText.style.color = "#ccc";
-  labelText.title = new Date(entry.created).toLocaleString();
-
-  const labelInput = document.createElement("input");
-  labelInput.type = "text";
-  labelInput.value = entry.label || "";
-  labelInput.style.display = "none";
-  labelInput.style.width = "100%";
-  labelInput.style.backgroundColor = "#2d2d2d";
-  labelInput.style.color = "#e0e0e0";
-  labelInput.style.border = "1px solid #444";
-  labelInput.style.borderRadius = "4px";
-  labelInput.style.padding = "4px";
-
-  labelContainer.appendChild(labelText);
-  labelContainer.appendChild(labelInput);
-
-  const editBtn = document.createElement("button");
-  editBtn.innerHTML = "✎";
-  editBtn.style.color = "#4ade80";
-  editBtn.style.background = "none";
-  editBtn.style.border = "none";
-  editBtn.style.cursor = "pointer";
-  editBtn.style.fontSize = "16px";
-
-  editBtn.onclick = async () => {
-    const isEditing = labelInput.style.display === "block";
-
-    if (!isEditing) {
-      labelText.style.display = "none";
-      labelInput.style.display = "block";
-      labelInput.focus();
-      editBtn.innerHTML = "✓";
-    } else {
-      const newLabel = labelInput.value.trim();
-      labelText.style.display = "block";
-      labelInput.style.display = "none";
-      editBtn.innerHTML = "✎";
-
-      if (newLabel && newLabel !== entry.label) {
-        try {
-          await onUpdate(entry.id, newLabel);
-          entry.label = newLabel;
-          labelText.textContent = `🔖 ${newLabel}`;
-          showConfirmationBubble("Bookmark label updated", "success");
-        } catch (err) {
-          console.error(
-            "[AI Context Vault] Error updating bookmark label:",
-            err
-          );
-          showConfirmationBubble("Failed to update bookmark", "error");
-        }
-      }
-    }
-  };
-
-  wrapper.appendChild(labelContainer);
-  wrapper.appendChild(delBtn);
-  wrapper.appendChild(editBtn);
-
-  return wrapper;
-}
-
-async function refreshOverlayContent(overlayPanel) {
-  const contentContainer = document.getElementById("__ai_context_content__");
-  if (!contentContainer) {
-    console.error("[AI Context Vault] Content container not found in overlay");
-    return;
-  }
-
-  const { domain, chatId } = parseUrlForIds(window.location.href);
-
-  // Clear content
-  contentContainer.innerHTML = "";
-
-  // Create tabs
-  const tabsContainer = document.createElement("div");
-  tabsContainer.style.marginBottom = "12px";
-  tabsContainer.style.display = "flex";
-  tabsContainer.style.gap = "10px";
-
-  const contextTab = createTabButton("Context", true);
-  const bookmarksTab = createTabButton("Bookmarks");
-
-  const contextSection = document.createElement("div");
-  const bookmarksSection = document.createElement("div");
-  bookmarksSection.style.display = "none";
-
-  contextTab.onclick = () => {
-    contextTab.style.background = "#4ade80";
-    contextTab.style.color = "#000";
-    bookmarksTab.style.background = "#222";
-    bookmarksTab.style.color = "#eee";
-    contextSection.style.display = "block";
-    bookmarksSection.style.display = "none";
-  };
-
-  bookmarksTab.onclick = () => {
-    bookmarksTab.style.background = "#4ade80";
-    bookmarksTab.style.color = "#000";
-    contextTab.style.background = "#222";
-    contextTab.style.color = "#eee";
-    bookmarksSection.style.display = "block";
-    contextSection.style.display = "none";
-  };
-
-  tabsContainer.appendChild(contextTab);
-  tabsContainer.appendChild(bookmarksTab);
-  contentContainer.appendChild(tabsContainer);
-  contentContainer.appendChild(contextSection);
-  contentContainer.appendChild(bookmarksSection);
-
-  // Populate context section
-  const contextData = await getContext(domain, chatId);
-  if (
-    !contextData ||
-    !contextData.entries ||
-    contextData.entries.length === 0
-  ) {
-    const noContext = document.createElement("p");
-    noContext.textContent =
-      "No context available for this chat. Highlight text and press CMD+I/CTRL+I to add context.";
-    noContext.style.color = "#999";
-    contextSection.appendChild(noContext);
-  } else {
-    if (contextData.summary) {
-      const summarySection = document.createElement("div");
-      summarySection.style.marginBottom = "15px";
-
-      const summaryTitle = createSectionTitle("Summary");
-      const summaryText = document.createElement("p");
-      summaryText.textContent = contextData.summary;
-      summaryText.style.margin = "0";
-      summaryText.style.lineHeight = "1.4";
-
-      summarySection.appendChild(summaryTitle);
-      summarySection.appendChild(summaryText);
-      contextSection.appendChild(summarySection);
-    }
-
-    if (contextData.entries.length > 0) {
-      const entriesSection = document.createElement("div");
-      const entriesTitle = createSectionTitle("Context Items");
-      entriesSection.appendChild(entriesTitle);
-
-      // Add Import/Export button
-      const importExportButton = createImportExportButton();
-      entriesSection.appendChild(importExportButton);
-
-      const sortedEntries = [...contextData.entries].sort(
-        (a, b) => (b.lastModified || b.created) - (a.lastModified || a.created)
-      );
-
-      sortedEntries.forEach((entry) => {
-        const entryItem = createContextEntry(
-          entry,
-          domain,
-          chatId,
-          async (text) => {
-            await deleteContext(domain, chatId, text);
-            refreshOverlayContent(overlayPanel);
-          },
-          async (oldText, newText) => {
-            await updateContext(domain, chatId, oldText, newText);
-            const event = new CustomEvent("ai-context-updated", {
-              detail: { domain, chatId },
-            });
-            document.dispatchEvent(event);
-          }
-        );
-        entriesSection.appendChild(entryItem);
-      });
-
-      contextSection.appendChild(entriesSection);
-    }
-  }
-
-  // Populate bookmarks section
-  const bookmarks = await getBookmarks(domain, chatId);
-  if (!bookmarks || bookmarks.length === 0) {
-    const noBookmarks = document.createElement("p");
-    noBookmarks.textContent = "No bookmarks available.";
-    noBookmarks.style.color = "#999";
-    bookmarksSection.appendChild(noBookmarks);
-  } else {
-    const bookmarksTitle = createSectionTitle("Chat Bookmarks");
-    bookmarksSection.appendChild(bookmarksTitle);
-
-    bookmarks.forEach((entry) => {
-      if (!entry || !entry.selector) return;
-
-      const bookmarkEntry = createBookmarkEntry(
-        entry,
-        domain,
-        chatId,
-        async (id) => {
-          await deleteBookmark(domain, chatId, id);
-          refreshOverlayContent(overlayPanel);
-        },
-        async (id, newLabel) => {
-          await updateBookmarkLabel(domain, chatId, id, newLabel);
-          const event = new CustomEvent("ai-context-updated", {
-            detail: { domain, chatId },
-          });
-          document.dispatchEvent(event);
-        }
-      );
-      bookmarksSection.appendChild(bookmarkEntry);
-    });
-  }
-
-  console.log("[AI Context Vault] Refreshed overlay content with tabs");
 }
 
 function generateSimpleSelector(el) {
