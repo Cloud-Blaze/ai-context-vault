@@ -33,8 +33,8 @@ function OptionsPage() {
     }
 
     try {
-      const encryptedPAT = await encryptPAT(pat);
-      chrome.storage.local.set({ encryptedPAT }, () => {
+      const encryptedData = await encryptPAT(pat);
+      chrome.storage.local.set({ encryptedPAT: encryptedData }, () => {
         console.log("[AI Context Vault] Saved encrypted GitHub PAT");
         alert("GitHub PAT saved!");
       });

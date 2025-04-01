@@ -423,6 +423,31 @@ function createBookmarkEntry(entry, domain, chatId, onDelete, onUpdate) {
   labelInput.value = entry.label || "";
   labelInput.className = "ai-context-bookmark-input";
 
+  labelInput.addEventListener("keydown", async (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const newLabel = labelInput.value.trim();
+      labelText.style.display = "block";
+      labelInput.style.display = "none";
+      editBtn.innerHTML = "✎";
+
+      if (newLabel && newLabel !== entry.label) {
+        try {
+          await onUpdate(entry.id, newLabel);
+          entry.label = newLabel;
+          labelText.textContent = `🔖 ${newLabel}`;
+          showConfirmationBubble("Bookmark label updated", "success");
+        } catch (err) {
+          console.error(
+            "[AI Context Vault] Error updating bookmark label:",
+            err
+          );
+          showConfirmationBubble("Failed to update bookmark", "error");
+        }
+      }
+    }
+  });
+
   labelContainer.appendChild(labelText);
   labelContainer.appendChild(labelInput);
 
@@ -522,6 +547,19 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
           entry.text = newText;
           text.textContent = newText;
           showConfirmationBubble("Context updated successfully", "success");
+
+          // Update the import/export textarea with latest data
+          const updatedContextData = await getContext(domain, chatId);
+          const importExportTextarea = document.querySelector(
+            ".ai-context-import-export-textarea"
+          );
+          if (importExportTextarea) {
+            importExportTextarea.value = JSON.stringify(
+              updatedContextData,
+              null,
+              2
+            );
+          }
         } catch (error) {
           console.error("[AI Context Vault] Error updating context:", error);
           showConfirmationBubble("Failed to update context", "error");

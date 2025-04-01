@@ -13,11 +13,19 @@
 
 interface Env {
 	ENCRYPTION_KEY: string;
+	PREVIOUS_ENCRYPTION_KEY?: string;  // Optional previous key for version 1
 }
 
 interface RequestBody {
 	action: 'encrypt' | 'decrypt';
 	data: string;
+	version?: number;
+}
+
+interface EncryptedData {
+	version: number;
+	data: string;
+	iv: string;
 }
 
 // CORS headers helper
@@ -61,7 +69,7 @@ const successResponse = (data: any, status: number = 200): Response => {
 };
 
 // Encryption helper functions
-async function encryptData(data: string, key: string): Promise<string> {
+async function encryptData(data: string, key: string, version: number = 2): Promise<EncryptedData> {
 	const encoder = new TextEncoder();
 	const dataBuffer = encoder.encode(data);
 
@@ -88,15 +96,35 @@ async function encryptData(data: string, key: string): Promise<string> {
 	result.set(iv);
 	result.set(encryptedArray, iv.length);
 
-	return btoa(String.fromCharCode(...result));
+	return {
+		version,
+		data: btoa(String.fromCharCode(...result)),
+		iv: btoa(String.fromCharCode(...iv))
+	};
 }
 
-async function decryptData(encryptedData: string, key: string): Promise<string> {
+async function decryptData(encryptedData: EncryptedData, env: Env): Promise<string> {
 	const decoder = new TextDecoder();
 	const encoder = new TextEncoder();
 
+	// Determine which key to use based on version
+	let keyString: string;
+	switch (encryptedData.version) {
+		case 1:
+			if (!env.PREVIOUS_ENCRYPTION_KEY) {
+				throw new Error('Previous encryption key not available for version 1');
+			}
+			keyString = env.PREVIOUS_ENCRYPTION_KEY;
+			break;
+		case 2:
+			keyString = env.ENCRYPTION_KEY;
+			break;
+		default:
+			throw new Error(`Unsupported encryption version: ${encryptedData.version}`);
+	}
+
 	// Hash the key to ensure it's the right length (256 bits)
-	const keyBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(key));
+	const keyBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(keyString));
 
 	const cryptoKey = await crypto.subtle.importKey(
 		'raw',
@@ -106,9 +134,9 @@ async function decryptData(encryptedData: string, key: string): Promise<string> 
 		['decrypt']
 	);
 
-	const dataArray = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
-	const iv = dataArray.slice(0, 12);
-	const data = dataArray.slice(12);
+	const dataArray = Uint8Array.from(atob(encryptedData.data), c => c.charCodeAt(0));
+	const iv = Uint8Array.from(atob(encryptedData.iv), c => c.charCodeAt(0));
+	const data = dataArray.slice(12); // Skip IV as it's now stored separately
 
 	const decryptedData = await crypto.subtle.decrypt(
 		{ name: 'AES-GCM', iv },
@@ -176,12 +204,12 @@ export default {
 				switch (action) {
 					case 'encrypt':
 						console.log('Processing encrypt action');
-						const encrypted = await encryptData(body.data, env.ENCRYPTION_KEY);
-						return successResponse({ encrypted });
+						const encrypted = await encryptData(body.data, env.ENCRYPTION_KEY, body.version || 2);
+						return successResponse(encrypted);
 
 					case 'decrypt':
 						console.log('Processing decrypt action');
-						const decrypted = await decryptData(body.data, env.ENCRYPTION_KEY);
+						const decrypted = await decryptData(body.data as EncryptedData, env);
 						return successResponse({ decrypted });
 
 					default:
@@ -190,7 +218,7 @@ export default {
 				}
 			} catch (e: any) {
 				console.error('Error processing request body:', e);
-				return errorResponse(`Invalid JSON payload: ${e?.message || 'Unknown error'}. Expected format: { "action": "encrypt"|"decrypt", "data": string }`);
+				return errorResponse(`Invalid JSON payload: ${e?.message || 'Unknown error'}. Expected format: { "action": "encrypt"|"decrypt", "data": string, "version"?: number }`);
 			}
 		} catch (error: any) {
 			console.error('Unhandled error:', error);

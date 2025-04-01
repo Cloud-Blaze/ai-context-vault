@@ -38,6 +38,7 @@ export const encryptPAT = async (pat) => {
       body: JSON.stringify({
         action: "encrypt",
         data: pat,
+        version: 2, // Always use latest version for new encryption
       }),
     });
 
@@ -50,7 +51,7 @@ export const encryptPAT = async (pat) => {
     decryptedPatCache = null;
     lastEncryptedPat = null;
     console.debug("[AI Context Vault] PAT encrypted, cache cleared");
-    return data.encrypted;
+    return data;
   } catch (error) {
     console.error("[AI Context Vault] Error encrypting PAT:", error);
     throw error;
@@ -60,7 +61,10 @@ export const encryptPAT = async (pat) => {
 export const decryptPAT = async (encryptedPat) => {
   try {
     // Return cached value if available and PAT hasn't changed
-    if (decryptedPatCache && lastEncryptedPat === encryptedPat) {
+    if (
+      decryptedPatCache &&
+      lastEncryptedPat === JSON.stringify(encryptedPat)
+    ) {
       console.debug("[AI Context Vault] Using cached PAT");
       return decryptedPatCache;
     }
@@ -84,7 +88,7 @@ export const decryptPAT = async (encryptedPat) => {
     const data = await response.json();
     // Cache the decrypted value
     decryptedPatCache = data.decrypted;
-    lastEncryptedPat = encryptedPat;
+    lastEncryptedPat = JSON.stringify(encryptedPat);
     console.debug("[AI Context Vault] PAT decrypted and cached");
     return data.decrypted;
   } catch (error) {
