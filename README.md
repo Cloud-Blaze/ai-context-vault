@@ -54,6 +54,42 @@
 
 > GitHub Gist sync allows you to back up and restore your data across Chrome profiles, browsers, or machines.
 
+## 🔧 Profile Manager (New)
+
+AI Context Vault now supports persistent identity profiles that define how the AI should behave during your chats — across any LLM interface.
+
+### 🧠 What It Does
+
+- Create role-based profiles (e.g. Developer, Business, or Custom)
+- Each profile includes:
+  - Alias name
+  - Summary (overview of your goals)
+  - CSV of selected technologies or business rules
+- Only one profile can be active at a time
+- Active profile auto-injects at the top of every prompt for consistent results
+
+### 🛠 Example Use Cases
+
+- **Developer Mode**: Use a profile that says you're working in React and TypeScript with strict standards.
+- **Business Mode**: Define your tone (e.g. "Formal"), SEO goals, or sales targets.
+- **Custom Modes**: Invent your own — from roleplay to project personas.
+
+### 📁 Stored Locally, Synced Securely
+
+- Profiles are saved locally in `chrome.storage.local`
+- Automatically synced to GitHub Gist if you’ve connected a Personal Access Token (PAT)
+- Encryption handled using Cloudflare’s WebCrypto API (see “Security” section)
+
+### ✨ Access and Edit Anytime
+
+- From the floating overlay (CMD+J / CTRL+J), go to the new **Profiles** tab
+- Or from the **Options Page**, edit aliases, summaries, and attributes visually
+- Profiles use the same UI style and edit patterns as bookmarks/context
+
+---
+
+> AI Context Vault gives your chats a persistent identity layer — across models and sessions. Use it to make every prompt smarter, faster, and more “you.”
+
 1. **Create a GitHub Gist**
 
    - Go to [https://gist.github.com](https://gist.github.com)
@@ -91,6 +127,96 @@
 - Export/import JSON of context entries (for migration or sharing).
 
 ### 🧑🏽‍💻 Todos
+
+---
+
+## 👤 Profile Manager (New)
+
+The Profile Manager allows you to define persistent roles (Developer, Business, Custom) and inject relevant AI context dynamically into any chat interface.
+
+### Features:
+
+- Role-based profiles: Developer, Business, or Custom
+- CSV-generated context from checkbox selections
+- Profiles auto-inject on every prompt when active
+- GitHub Gist Sync alongside bookmarks/context
+- Inline editing, deletion, and activation toggle
+
+### Implementation Tasks:
+
+#### Inject.js
+
+- [ ] Create **Profiles** tab in overlay
+- [ ] List aliases with inline editing
+- [ ] Star toggle for active profile
+- [ ] [+ New Profile] redirects to options.html
+
+#### Options.js
+
+- [ ] Build form UI with dropdowns and checkboxes
+- [ ] Handle profile alias validation
+- [ ] Generate CSV from selections
+- [ ] Persist and update profile data
+
+#### ContextStorage.js
+
+- [ ] Implement `saveProfile()`, `getProfiles()`, `updateProfile()`, `deleteProfile()`
+- [ ] Sync profiles using `ctx_profiles_` key prefix
+
+---
+
+## 🧠 Context Questions Feature (Planned)
+
+Pulls structured prompt/question data dynamically from GitHub-hosted JSON categorized by AI topics (SEO, Ads, Business, etc).
+
+### Cloud Data Structure
+
+- Each JSON file contains:
+
+```json
+[
+  { "Q": "How can I optimize my SEO title tags?" },
+  { "Q": "What is the role of content marketing in ranking?" }
+]
+```
+
+- Files organized by category and tab (e.g., `/cloud/Marketing_Sales/Google_SEO.json`)
+- Top-level index JSON references all available categories and tabs
+
+### UI/UX Design Plan:
+
+- Sidebar or hover button near chat input
+- Picker UI:
+  - Step 1: Select Category
+  - Step 2: Select Subtopic
+  - Step 3: Load and insert questions
+- Optional: “Insert Random Question” or “Smart Suggest” based on conversation history
+
+### Implementation Tasks:
+
+#### Cloud Integration
+
+- [ ] Create category index JSON (e.g. categories.json)
+- [ ] Auto-fetch category files on demand
+- [ ] Cache responses in localStorage
+
+#### inject.js UI
+
+- [ ] Build dropdown or floating panel next to chat
+- [ ] Populate dynamically from GitHub
+- [ ] Support click-to-insert for each question
+- [ ] Smart scroll-to and highlight
+
+#### GitHub Storage
+
+- [ ] Upload structured files per tab
+- [ ] Update top-level manifest on sync
+- [ ] Maintain versioning of questions
+
+#### Long-Term Ideas
+
+- [ ] AI-assisted clustering of related questions
+- [ ] Allow users to save "favorites" or personal bundles
 
 - [ ] Add ability to copy all context/bookmarks as JSON
 - [ ] Add a polished icon for the extension
