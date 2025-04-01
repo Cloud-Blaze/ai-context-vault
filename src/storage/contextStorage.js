@@ -3,6 +3,8 @@
 // Now uses chrome.storage.local instead of window.localStorage
 ////////////////////////////////////////////////////////////////////////////////
 
+import { decryptPAT } from "../services/patEncryption";
+
 // Track any active sync request
 let currentSync = null;
 let lastKnownSha = null;
@@ -283,25 +285,26 @@ export async function syncFullDataToGist(
  * Get the current SHA of the Gist file
  */
 async function getGistSha() {
-  const { gistPAT, gistURL } = await new Promise((resolve) => {
-    chrome.storage.local.get(["gistPAT", "gistURL"], (res) => {
+  const { encryptedPAT, gistURL } = await new Promise((resolve) => {
+    chrome.storage.local.get(["encryptedPAT", "gistURL"], (res) => {
       resolve({
-        gistPAT: res.gistPAT || "",
+        encryptedPAT: res.encryptedPAT || "",
         gistURL: res.gistURL || "",
       });
     });
   });
 
-  if (!gistPAT || !gistURL.includes("/")) {
+  if (!encryptedPAT || !gistURL.includes("/")) {
     return null;
   }
 
-  const gistId = gistURL.split("/").pop();
-  const headers = {
-    Authorization: `token ${gistPAT}`,
-  };
-
   try {
+    const pat = await decryptPAT(encryptedPAT);
+    const gistId = gistURL.split("/").pop();
+    const headers = {
+      Authorization: `token ${pat}`,
+    };
+
     const response = await fetch(`https://api.github.com/gists/${gistId}`, {
       method: "HEAD",
       headers,
@@ -358,16 +361,16 @@ export async function startPeriodicChecks() {
   if (checkInterval) return;
 
   // Check if Gist configuration exists
-  const { gistPAT, gistURL } = await new Promise((resolve) => {
-    chrome.storage.local.get(["gistPAT", "gistURL"], (res) => {
+  const { encryptedPAT, gistURL } = await new Promise((resolve) => {
+    chrome.storage.local.get(["encryptedPAT", "gistURL"], (res) => {
       resolve({
-        gistPAT: res.gistPAT || "",
+        encryptedPAT: res.encryptedPAT || "",
         gistURL: res.gistURL || "",
       });
     });
   });
 
-  if (!gistPAT || !gistURL.includes("/")) {
+  if (!encryptedPAT || !gistURL.includes("/")) {
     console.debug(
       "[AI Context Vault] Missing Gist configuration, skipping periodic checks"
     );
@@ -409,23 +412,24 @@ function stopPeriodicChecks() {
 
 async function performGistSync(signal, deleteKey, syncOnlyServer = false) {
   try {
-    const { gistPAT, gistURL } = await new Promise((resolve) => {
-      chrome.storage.local.get(["gistPAT", "gistURL"], (res) => {
+    const { encryptedPAT, gistURL } = await new Promise((resolve) => {
+      chrome.storage.local.get(["encryptedPAT", "gistURL"], (res) => {
         resolve({
-          gistPAT: res.gistPAT || "",
+          encryptedPAT: res.encryptedPAT || "",
           gistURL: res.gistURL || "",
         });
       });
     });
 
-    if (!gistPAT || !gistURL.includes("/")) {
+    if (!encryptedPAT || !gistURL.includes("/")) {
       console.warn("[AI Context Vault] Missing Gist configuration");
       return;
     }
 
+    const pat = await decryptPAT(encryptedPAT);
     const gistId = gistURL.split("/").pop();
     const headers = {
-      Authorization: `token ${gistPAT}`,
+      Authorization: `token ${pat}`,
       "Content-Type": "application/json",
     };
 

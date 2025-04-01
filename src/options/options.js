@@ -4,6 +4,7 @@ import {
   gatherAllContextData,
   syncFullDataToGist,
 } from "../storage/contextStorage";
+import { encryptPAT, decryptPAT } from "../services/patEncryption";
 
 function OptionsPage() {
   const [pat, setPat] = useState("");
@@ -11,12 +12,37 @@ function OptionsPage() {
   const [, setNothing] = useState("");
 
   useEffect(() => {
-    // Load both gistPAT and gistURL from chrome.storage.local
-    chrome.storage.local.get(["gistPAT", "gistURL"], (res) => {
-      if (res.gistPAT) setPat(res.gistPAT);
+    // Load both encrypted PAT and gistURL from chrome.storage.local
+    chrome.storage.local.get(["encryptedPAT", "gistURL"], async (res) => {
+      if (res.encryptedPAT) {
+        try {
+          const decryptedPAT = await decryptPAT(res.encryptedPAT);
+          setPat(decryptedPAT);
+        } catch (error) {
+          console.error("[AI Context Vault] Failed to decrypt PAT:", error);
+        }
+      }
       if (res.gistURL) setGistUrl(res.gistURL);
     });
   }, []);
+
+  const handleManualPAT = async (pat) => {
+    if (!pat || pat.length < 10) {
+      alert("Please provide a valid PAT token");
+      return;
+    }
+
+    try {
+      const encryptedPAT = await encryptPAT(pat);
+      chrome.storage.local.set({ encryptedPAT }, () => {
+        console.log("[AI Context Vault] Saved encrypted GitHub PAT");
+        alert("GitHub PAT saved!");
+      });
+    } catch (error) {
+      console.error("[AI Context Vault] Failed to encrypt PAT:", error);
+      alert("Failed to save PAT. Please try again.");
+    }
+  };
 
   return (
     <div style={{ fontFamily: "sans-serif", padding: 20 }}>
@@ -102,17 +128,6 @@ export function handleCreateOrUpdateGist(gistData) {
     }
     const token = res.githubToken;
     // placeholder for gist logic
-  });
-}
-
-export function handleManualPAT(pat) {
-  if (!pat || pat.length < 10) {
-    alert("Please provide a valid PAT token");
-    return;
-  }
-  chrome.storage.local.set({ gistPAT: pat }, () => {
-    console.log("[AI Context Vault] Saved GitHub PAT");
-    alert("GitHub PAT saved!");
   });
 }
 

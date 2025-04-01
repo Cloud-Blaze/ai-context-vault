@@ -1,0 +1,11 @@
+name = "cloudflare-encryption"
+main = "src/index.ts"
+compatibility_date = "2024-03-27"
+
+[vars]
+# Add your public environment variables here
+
+# Example:
+# MY_PUBLIC_VARIABLE = "production_value"
+
+# Your secrets will be stored using `wrangler secret put ENCRYPTION_KEY`

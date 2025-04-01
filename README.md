@@ -65,11 +65,15 @@
    - Visit [GitHub Personal Access Tokens](https://github.com/settings/tokens)
    - Create a Fine-grained token with `gist` permissions
    - Copy the token (you won't see it again)
+   - Your PAT is automatically encrypted using Cloudflare's WebCrypto API before being stored
+   - The encryption key is securely stored in Cloudflare Workers and never leaves their infrastructure
+   - Your PAT is only decrypted when needed for GitHub Gist operations
 
 3. **Paste into Extension Settings**
    - Open the extension's Options page
    - Paste your Gist URL and PAT
    - Data will auto-sync from now on every time context or bookmarks change
+   - Your PAT remains encrypted at rest and is only decrypted when needed for GitHub operations
 
 ### 🔸 **Context Injection (Send Override)**
 
