@@ -2,6 +2,58 @@
 
 > _A browser extension to easily manage, store, and inject custom context into AI chat interfaces (ChatGPT, Claude, DeepSeek Web, etc.). Built for productivity, clarity, and never repeating yourself._
 
+## 🤯 Why AI Always Forgets (and Why Context Vault Had to Exist)
+
+Most people don’t realize it, but every time you start a new message in ChatGPT or any LLM...
+
+> You are speaking to **amnesia.**
+
+Even if the UI shows a long scroll of previous chats, the model itself only sees a **partial window of memory** — a recent slice called the **context window** (measured in tokens).
+
+### 🔬 The Hidden Limit: Token Windows
+
+Large Language Models don’t have infinite memory. They operate on **tokens**, and every interaction you have is tokenized like this:
+
+- Your current message → tokens
+- The last few replies → tokens
+- System messages and prompts → tokens
+- The model's own response → more tokens
+
+A model like GPT-4-turbo might support 128,000 tokens (~300 pages of text). That seems huge... until you realize how fast it fills up.
+
+Once that window is full, the oldest messages are dropped.
+
+Not by you.
+
+By **necessity.**
+
+---
+
+### 🧠 The Myth of Memory
+
+Chat UIs show you every past exchange. But LLMs don’t “remember” them. They don’t “know” what you said 2 weeks ago — unless:
+
+- It’s reloaded into context
+- You manually re-injected it
+- You’re paying for pro features with special memory layers
+
+But even then, OpenAI can delete messages. Claude doesn’t remember old threads. DeepSeek, Gemini, Perplexity — all of them are **stateless** by default.
+
+The only memory they have is the one **you control**.
+
+---
+
+### 🛡️ Enter: AI Context Vault
+
+**AI Context Vault** was born from this need:
+
+> To reclaim the timeline. To preserve your mind dumps.  
+> To remember what the machine was never built to hold.
+
+Every time you highlight, bookmark, or annotate a key idea, you’re **outsmarting the amnesia**.
+
+Every time you inject context, you’re **restoring narrative power.**
+
 ---
 
 # 📹 Learn More By Watching
@@ -129,6 +181,49 @@ AI Context Vault now supports persistent identity profiles that define how the A
 ### 🔸 **Context Transfer**
 
 - Export/import JSON of context entries (for migration or sharing).
+
+## 👁‍🗨 Introducing GOD MODE
+
+When enabled, **GOD MODE** listens in silence.
+
+It captures:
+
+- Every message you type
+- Every reply the AI sends
+- All of it, formatted in JSON
+- Saved to your GitHub Gist permanently
+
+This is your **black box** recorder. Your archive. Your proof.  
+If OpenAI deletes a chat, or Claude wipes your thread, or your browser crashes...
+
+> You still have **everything**.
+
+---
+
+## 🧘 Monk Mode = Oracle Memory
+
+You’re not just chatting. You’re **training your second brain**.
+
+With AI Context Vault:
+
+- Every insight lives forever
+- Every idea is recoverable
+- Every memory can be reloaded on command
+
+You become the **editor of your own past**.
+
+---
+
+## ✊ This Is for Builders, Thinkers, Writers, Coders
+
+You shouldn’t lose your prompts.
+You shouldn’t trust servers with your thoughts.
+You shouldn’t scroll forever to find what matters.
+
+> You should **own your memory**.  
+> And now — you do.
+
+---
 
 ### 🧑🏽‍💻 Todos
 
