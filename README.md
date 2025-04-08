@@ -1,329 +1,183 @@
-# 🚀 **AI Context Vault (Chrome Extension)**
+# 🚀 AI Context Vault (Chrome Extension)
 
-> _A browser extension to easily manage, store, and inject custom context into AI chat interfaces (ChatGPT, Claude, DeepSeek Web, etc.). Built for productivity, clarity, and never repeating yourself._
+> _A browser extension to manage, store, and inject custom context into AI chat interfaces (ChatGPT, Claude, DeepSeek Web, etc.). Built for productivity, clarity, and protecting your mental well-being._
+
+---
+
+## Mission & Vision: Empower Your Mind, Safeguard Your Narrative
+
+**Our Vision:**  
+To reclaim and protect your narrative in a world where AI has limited memory. AI Context Vault is designed not only to preserve your critical ideas but also to act as a digital safety net—prompting supportive intervention when emotional challenges arise.
+
+**Our Mission:**
+
+- **Real-Time Support & Safety:**  
+  When heightened emotional states or triggers are detected, our tool will gently pause posting on AI interfaces until you have time to regain balance.
+- **Supportive Connections:**  
+  In moments of overwhelming stress, the extension can automatically alert a pre-designated support contact—be it a friend, family member, or mental health professional.
+- **Preserve and Empower Your Memory:**  
+  Every thought, insight, or idea is safely saved. This isn’t just about data—it’s about safeguarding your most precious narratives.
+- **Own Your Digital Experience:**  
+  With integrated human support and secure storage, your digital interactions become a part of your growth and healing, ensuring that every contribution to your work is intentional and considered.
+
+> This isn’t merely a tool—it’s a commitment to protect your mind and help you rebuild your digital footprint with clarity, integrity, and care.
+
+---
 
 ## 🤯 Why AI Always Forgets (and Why Context Vault Had to Exist)
 
-Most people don’t realize it, but every time you start a new message in ChatGPT or any LLM...
+Every time you start a new message with ChatGPT or any LLM, you’re facing **digital amnesia.**
 
-> You are speaking to **amnesia.**
+Even if the interface displays a long history of chats, the model only sees a **partial window of memory**—the context window measured in tokens.  
+Once that window fills up, the oldest messages disappear—not by your choice, but by **necessity.**
 
-Even if the UI shows a long scroll of previous chats, the model itself only sees a **partial window of memory** — a recent slice called the **context window** (measured in tokens).
+### 🔬 Token Windows & The Illusion of Memory
 
-### 🔬 The Hidden Limit: Token Windows
-
-Large Language Models don’t have infinite memory. They operate on **tokens**, and every interaction you have is tokenized like this:
-
-- Your current message → tokens
-- The last few replies → tokens
-- System messages and prompts → tokens
-- The model's own response → more tokens
-
-A model like GPT-4-turbo might support 128,000 tokens (~300 pages of text). That seems huge... until you realize how fast it fills up.
-
-Once that window is full, the oldest messages are dropped.
-
-Not by you.
-
-By **necessity.**
+- **Token Windows:**  
+  Every interaction is tokenized. Your current message, recent responses, and system prompts all take up tokens. Even models with vast capacities (like GPT-4-turbo’s 128,000 tokens) fill up quickly.
+- **Memory’s Limits:**  
+  When that token window is full, older messages are automatically dropped, regardless of their importance to your narrative.
 
 ---
 
-### 🧠 The Myth of Memory
+## 🧠 The Myth of Memory
 
-Chat UIs show you every past exchange. But LLMs don’t “remember” them. They don’t “know” what you said 2 weeks ago — unless:
-
-- It’s reloaded into context
-- You manually re-injected it
-- You’re paying for pro features with special memory layers
-
-But even then, OpenAI can delete messages. Claude doesn’t remember old threads. DeepSeek, Gemini, Perplexity — all of them are **stateless** by default.
-
-The only memory they have is the one **you control**.
+Chat UIs may display your entire history, but LLMs don’t “remember” them unless you re-inject the context manually. Services like Claude or DeepSeek remain **stateless by default**—the only true memory is the one you maintain.
 
 ---
 
-### 🛡️ Enter: AI Context Vault
+## 🛡️ Introducing AI Context Vault
 
-**AI Context Vault** was born from this need:
+AI Context Vault was created to help you:
 
-> To reclaim the timeline. To preserve your mind dumps.  
-> To remember what the machine was never built to hold.
+> **Reclaim Your Timeline. Preserve Your Insights.**  
+> Save what the machine was never designed to hold.
 
-Every time you highlight, bookmark, or annotate a key idea, you’re **outsmarting the amnesia**.
-
-Every time you inject context, you’re **restoring narrative power.**
+Every highlight, bookmark, or annotation restores your narrative power and ensures that even in moments of vulnerability, your insights remain yours alone.
 
 ---
 
-# 📹 Learn More By Watching
+## 🎛️ Key Features & Behaviors
 
-[![Watch](https://img.youtube.com/vi/ZIPAgmuEVTU/0.jpg)](https://www.youtube.com/watch?v=ZIPAgmuEVTU)
+### ✨ Core Features
 
-# 🎛️ **Key Features & Behaviors**
+- **Context Saving (Hotkey: CTRL/CMD+I):**  
+  Capture selected text from any AI chat and securely store it, tied to the chat’s unique URL.
 
-## ✨ Features
+- **Context Management UI (Hotkey: CTRL/CMD+J):**  
+  A floating overlay enables you to view, edit, and delete context entries, along with managing bookmarks in one place.
 
-- 🧠 Save context snippets from any AI chat with `CMD+I` (`CTRL+I` on Windows)
-- 📝 Edit and manage context per chat
-- 🔁 **GitHub Gist Sync** for persistent cloud storage across devices and browsers
-  - Automatically syncs all saved context and bookmarks to your GitHub Gist
-  - Uses a personal access token (PAT) with `gist` scope
-  - Keeps everything backed up and portable
-- 🔖 **Bookmarks**: Highlight key parts of chats and jump to them later
-  - Press `CMD+B` (`CTRL+B`) to add a bookmark
-  - Bookmarks show up in the overlay alongside context
-  - Click bookmarks to scroll to their matching text in the chat
-  - Rename bookmarks inline for clarity
-  - Easily delete or manage them like context
+- **Bookmarks (Hotkey: CTRL/CMD+B):**  
+  Save key parts of your conversation with detailed anchors, editable labels, and timestamps. Your bookmarks sync seamlessly via GitHub Gist.
 
-### 🔸 **Context Saving (Hotkey: CTRL or CMD+I)**
+- **GitHub Gist Sync:**  
+  Automatically back up and sync your saved context and bookmarks across all devices using a personal access token (PAT) with gist scope.
 
-- Grab selected/highlighted text on-page.
-- Store in local storage tied specifically to the chat URL domain and full URL parameters.
-- Duplicate entries prevented.
+---
 
-### 🔸 **Context Management UI (Hotkey: CTRL or CMD+J)**
+### 🔧 Profile Manager (New)
 
-- Floating overlay UI to quickly:
-  - View/edit/delete context entries
-  - Edit summary for the current chat
-  - Manage bookmarks visually
-  - Switch between context and bookmark tabs
-  - Sort entries by most recently updated
+Now supporting persistent identity profiles that define how AI interacts with you:
 
-### 🔸 **📌 Bookmarks (Hotkey: CTRL or CMD+B)**
+- **What It Does:**  
+  Create role-based profiles (e.g., Developer, Business, or Custom) with an alias, goal summary, and specific directives. Only one profile is active at a time, auto-injecting into every prompt for consistent results.
 
-- Select key parts of a conversation, hit the hotkey, and save that line as a bookmark.
-- Each bookmark includes:
-  - A fallback text anchor (for accurate scroll matching)
-  - A human-readable label (editable inline)
-  - Timestamp and metadata
-- In the overlay:
-  - View all bookmarks for the current chat
-  - Click to auto-scroll and highlight the original chat message
-  - Edit label by clicking the ✎ icon (and save with ✓)
-  - Delete instantly with ×
-- Bookmarks persist across sessions and sync with GitHub Gist.
+- **Usage Examples:**
+
+  - **Developer Mode:** For working in strict coding environments like React/TypeScript.
+  - **Business Mode:** To set a formal tone with specific SEO and sales targets.
+  - **Custom Modes:** Tailor profiles for unique projects or personal branding.
+
+- **Storage & Security:**  
+  Profiles are stored locally and securely synced via GitHub Gist with encryption provided by Cloudflare’s WebCrypto API.
+
+---
+
+### 🚨 Emotional Safety Mode (Under Development)
+
+Designed for moments when emotional stress threatens your digital interactions:
+
+- **Automatic Trigger Pausing:**  
+  When high stress or emotional triggers are detected, AI Context Vault gently pauses postings on AI interfaces to prevent impulsive actions.
+- **Immediate Support Alert:**  
+  The system automatically notifies your pre-configured trusted support—ensuring help is within reach when you need it most.
+- **Calming Protocols:**  
+  On detection of a challenging moment, the extension displays supportive messages and reminders to help you regain balance before proceeding.
+
+---
+
+## 📹 Learn More By Watching
+
+[![Watch the Demo](https://img.youtube.com/vi/ZIPAgmuEVTU/0.jpg)](https://www.youtube.com/watch?v=ZIPAgmuEVTU)
+
+---
 
 ## 🔧 GitHub Sync Setup
 
-> GitHub Gist sync allows you to back up and restore your data across Chrome profiles, browsers, or machines.
+1. **Create a GitHub Gist:**
 
-## 🔧 Profile Manager (New)
+   - Visit [https://gist.github.com](https://gist.github.com) and create a new _secret_ gist (it can be empty).
+   - Copy the Gist URL.
 
-AI Context Vault now supports persistent identity profiles that define how the AI should behave during your chats — across any LLM interface.
+2. **Generate a Personal Access Token (PAT):**
 
-### 🧠 What It Does
+   - Go to [GitHub Personal Access Tokens](https://github.com/settings/tokens) and create a fine-grained token with `gist` permissions.
+   - Copy and securely store the token—it will be encrypted using Cloudflare’s WebCrypto API.
 
-- Create role-based profiles (e.g. Developer, Business, or Custom)
-- Each profile includes:
-  - Alias name
-  - Summary (overview of your goals)
-  - CSV of selected technologies or business rules
-- Only one profile can be active at a time
-- Active profile auto-injects at the top of every prompt for consistent results
-
-### 🛠 Example Use Cases
-
-- **Developer Mode**: Use a profile that says you're working in React and TypeScript with strict standards.
-- **Business Mode**: Define your tone (e.g. "Formal"), SEO goals, or sales targets.
-- **Custom Modes**: Invent your own — from roleplay to project personas.
-
-### 📁 Stored Locally, Synced Securely
-
-- Profiles are saved locally in `chrome.storage.local`
-- Automatically synced to GitHub Gist if you’ve connected a Personal Access Token (PAT)
-- Encryption handled using Cloudflare’s WebCrypto API (see “Security” section)
-
-### ✨ Access and Edit Anytime
-
-- From the floating overlay (CMD+J / CTRL+J), go to the new **Profiles** tab
-- Or from the **Options Page**, edit aliases, summaries, and attributes visually
-- Profiles use the same UI style and edit patterns as bookmarks/context
+3. **Configure in Extension Settings:**
+   - Open the Options page and paste your Gist URL and PAT.
+   - Your data will automatically sync and remain secure.
 
 ---
 
-> AI Context Vault gives your chats a persistent identity layer — across models and sessions. Use it to make every prompt smarter, faster, and more “you.”
+## 🔸 Context Injection & Transfer
 
-1. **Create a GitHub Gist**
+- **Context Injection (Send Override):**  
+  Use `ALT+ENTER` to add context without sending, or `ALT+SHIFT+ENTER` to inject context and send immediately.  
+  The system formats the context with an initial summary, bulleted memory entries, then your prompt.
 
-   - Go to [https://gist.github.com](https://gist.github.com)
-   - Create a new _secret_ gist (it can be empty)
-   - Copy the Gist URL
+- **Context Transfer:**  
+  Easily export or import your context entries as JSON for backup or migration.
 
-2. **Generate a Personal Access Token (PAT)**
-
-   - Visit [GitHub Personal Access Tokens](https://github.com/settings/tokens)
-   - Create a Fine-grained token with `gist` permissions
-   - Copy the token (you won't see it again)
-   - Your PAT is automatically encrypted using Cloudflare's WebCrypto API before being stored
-   - The encryption key is securely stored in Cloudflare Workers and never leaves their infrastructure
-   - Your PAT is only decrypted when needed for GitHub Gist operations
-
-3. **Paste into Extension Settings**
-   - Open the extension's Options page
-   - Paste your Gist URL and PAT
-   - Data will auto-sync from now on every time context or bookmarks change
-   - Your PAT remains encrypted at rest and is only decrypted when needed for GitHub operations
-
-### 🔸 **Context Injection (Send Override)**
-
-- Use `ALT+ENTER` to prepend context to your message without sending
-- Use `ALT+SHIFT+ENTER` to inject context and send immediately
-- Use `CTRL or CMD +I` Add any message in existing prompts to your chat database (synced across github gists for multiple chrome browser/computer support)
-- Use `CTRL or CMD +J` Toggle the CRUD management tool for the chat you are on.
-- Context is automatically formatted with:
-  - Initial summary (if exists) followed by a newline
-  - All active memory entries as bulleted lists, then two newlines
-  - Finally, user's actual typed prompt
-
-### 🔸 **Context Transfer**
-
-- Export/import JSON of context entries (for migration or sharing).
+---
 
 ## 👁‍🗨 Introducing GOD MODE
 
-When enabled, **GOD MODE** listens in silence.
-
-It captures:
-
-- Every message you type
-- Every reply the AI sends
-- All of it, formatted in JSON
-- Saved to your GitHub Gist permanently
-
-This is your **black box** recorder. Your archive. Your proof.  
-If OpenAI deletes a chat, or Claude wipes your thread, or your browser crashes...
-
-> You still have **everything**.
+When enabled, **GOD MODE** silently records every interaction into a JSON log and saves it permanently to your GitHub Gist. This “black box” recording ensures you never lose your complete dialogue, even if chats disappear or systems crash.
 
 ---
 
 ## 🧘 Monk Mode = Oracle Memory
 
-You’re not just chatting. You’re **training your second brain**.
-
-With AI Context Vault:
-
-- Every insight lives forever
-- Every idea is recoverable
-- Every memory can be reloaded on command
-
-You become the **editor of your own past**.
+You’re not just chatting—you're training your second brain.  
+Every insight, idea, and memory is captured, making you the editor of your own past.
 
 ---
 
-## ✊ This Is for Builders, Thinkers, Writers, Coders
+## ✊ For Builders, Thinkers, Writers, & Entrepreneurs
 
-You shouldn’t lose your prompts.
-You shouldn’t trust servers with your thoughts.
-You shouldn’t scroll forever to find what matters.
-
-> You should **own your memory**.  
-> And now — you do.
+You should never lose your prompts or trust your thoughts to fleeting servers.  
+It’s time to **own your memory** and build a digital narrative that empowers and protects you.
 
 ---
 
-### 🧑🏽‍💻 Todos
+### 🧑🏽‍💻 Todos & Future Roadmap
+
+- **Profile Manager Enhancements:**  
+  Expand inline editing, deletion features, and support for custom role configurations.
+- **Context Questions Feature (Planned):**  
+  Dynamically load categorized questions from GitHub-hosted JSON files, offering smart suggestions near the chat input.
+- **UI/UX Improvements:**  
+  Enhance the overlay with smart scrolling, draggable panels, and cross-browser support (Firefox, Safari).
+- **Emotional Safety Mode:**  
+  Refine trigger detection, enhance support alert features, and incorporate calming, supportive protocols.
+- **Long-Term Vision:**  
+  Consider AI-assisted prompt clustering, premium features with extended synchronization capabilities, and publishing on the Chrome Web Store with a dedicated support website.
 
 ---
 
-## 👤 Profile Manager (New)
+## ❤️ Built for Tinkerers, Memory-Lovers, & Productivity Aficionados
 
-The Profile Manager allows you to define persistent roles (Developer, Business, Custom) and inject relevant AI context dynamically into any chat interface.
+AI Context Vault is your shield against digital forgetfulness—ensuring your interactions, insights, and mental wellness remain yours to own. Commit to the journey, secure your narrative, and empower your future.
 
-### Features:
-
-- Role-based profiles: Developer, Business, or Custom
-- CSV-generated context from checkbox selections
-- Profiles auto-inject on every prompt when active
-- GitHub Gist Sync alongside bookmarks/context
-- Inline editing, deletion, and activation toggle
-
-### Implementation Tasks:
-
-#### Inject.js
-
-- [ ] Create **Profiles** tab in overlay
-- [ ] List aliases with inline editing
-- [ ] Star toggle for active profile
-- [ ] [+ New Profile] redirects to options.html
-
-#### Options.js
-
-- [ ] Build form UI with dropdowns and checkboxes
-- [ ] Handle profile alias validation
-- [ ] Generate CSV from selections
-- [ ] Persist and update profile data
-
-#### ContextStorage.js
-
-- [ ] Implement `saveProfile()`, `getProfiles()`, `updateProfile()`, `deleteProfile()`
-- [ ] Sync profiles using `ctx_profiles_` key prefix
-
----
-
-## 🧠 Context Questions Feature (Planned)
-
-Pulls structured prompt/question data dynamically from GitHub-hosted JSON categorized by AI topics (SEO, Ads, Business, etc).
-
-### Cloud Data Structure
-
-- Each JSON file contains:
-
-```json
-[
-  { "Q": "How can I optimize my SEO title tags?" },
-  { "Q": "What is the role of content marketing in ranking?" }
-]
-```
-
-- Files organized by category and tab (e.g., `/cloud/Marketing_Sales/Google_SEO.json`)
-- Top-level index JSON references all available categories and tabs
-
-### UI/UX Design Plan:
-
-- Sidebar or hover button near chat input
-- Picker UI:
-  - Step 1: Select Category
-  - Step 2: Select Subtopic
-  - Step 3: Load and insert questions
-- Optional: “Insert Random Question” or “Smart Suggest” based on conversation history
-
-### Implementation Tasks:
-
-#### Cloud Integration
-
-- [ ] Create category index JSON (e.g. categories.json)
-- [ ] Auto-fetch category files on demand
-- [ ] Cache responses in localStorage
-
-#### inject.js UI
-
-- [ ] Build dropdown or floating panel next to chat
-- [ ] Populate dynamically from GitHub
-- [ ] Support click-to-insert for each question
-- [ ] Smart scroll-to and highlight
-
-#### GitHub Storage
-
-- [ ] Upload structured files per tab
-- [ ] Update top-level manifest on sync
-- [ ] Maintain versioning of questions
-
-#### Long-Term Ideas
-
-- [ ] AI-assisted clustering of related questions
-- [ ] Allow users to save "favorites" or personal bundles
-
-- [ ] Add ability to copy all context/bookmarks as JSON
-- [ ] Add a polished icon for the extension
-- [ ] Publish on the Chrome Web Store
-- [ ] Create a $7.99 licensed version with a GitHub Sync nag screen every 10 context adds
-- [ ] Simple cloudless auth check for donors (serverless endpoint w/ hardcoded list)
-- [ ] Firefox and Safari versions
-- [ ] Auto-bookmark mode (optional)
-- [ ] Publish website under github and chrome store
-
-## ❤️ Built for tinkerers, memory-lovers, and productivity nerds.
+_Git commit today—own your memory and protect your mind with CloudBlaze.ai._
