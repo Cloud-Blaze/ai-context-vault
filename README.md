@@ -142,19 +142,6 @@ Designed for moments when emotional stress threatens your digital interactions:
 
 ---
 
-## 👁‍🗨 Introducing GOD MODE
-
-When enabled, **GOD MODE** silently records every interaction into a JSON log and saves it permanently to your GitHub Gist. This “black box” recording ensures you never lose your complete dialogue, even if chats disappear or systems crash.
-
----
-
-## 🧘 Monk Mode = Oracle Memory
-
-You’re not just chatting—you're training your second brain.  
-Every insight, idea, and memory is captured, making you the editor of your own past.
-
----
-
 ## ✊ For Builders, Thinkers, Writers, & Entrepreneurs
 
 You should never lose your prompts or trust your thoughts to fleeting servers.  
@@ -164,14 +151,27 @@ It’s time to **own your memory** and build a digital narrative that empowers a
 
 ### 🧑🏽‍💻 Todos & Future Roadmap
 
+- **God Mode Expansion:**  
+  Improve long-form logging, add Markdown/JSON hybrid export, and enable offline history replay with filtering.
+
+- **Monk Mode Enhancements:**  
+  Track chat thread state in real-time, support selective recall injection, and enable conversation clustering via memory tags.
+
 - **Profile Manager Enhancements:**  
   Expand inline editing, deletion features, and support for custom role configurations.
+
 - **Context Questions Feature (Planned):**  
   Dynamically load categorized questions from GitHub-hosted JSON files, offering smart suggestions near the chat input.
+
 - **UI/UX Improvements:**  
   Enhance the overlay with smart scrolling, draggable panels, and cross-browser support (Firefox, Safari).
+
 - **Emotional Safety Mode:**  
   Refine trigger detection, enhance support alert features, and incorporate calming, supportive protocols.
+
+- **Cross-Browser Compatibility:**  
+  Begin Firefox and Safari support rollout with storage fallback handling and manifest compatibility workarounds.
+
 - **Long-Term Vision:**  
   Consider AI-assisted prompt clustering, premium features with extended synchronization capabilities, and publishing on the Chrome Web Store with a dedicated support website.
 
