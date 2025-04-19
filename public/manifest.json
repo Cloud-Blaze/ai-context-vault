@@ -1,14 +1,13 @@
 {
   "name": "AI Context Vault",
   "description": "Injects saved memory into AI chats 🧠. Bookmarks, context snippets, encrypted Gist sync. More tools coming soon 🚀",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "manifest_version": 3,
   "permissions": [
     "storage",
     "activeTab",
     "scripting"
   ],
-  "options_page": "options.html",
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://claude.ai/*",
@@ -88,6 +87,7 @@
       ]
     }
   ],
+  "options_page": "options.html",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
