@@ -36,7 +36,7 @@ To reclaim and protect your narrative in a world where AI has limited memory. AI
 Every time you start a new message with ChatGPT or any LLM, you’re facing **digital amnesia.**
 
 Even if the interface displays a long history of chats, the model only sees a **partial window of memory**—the context window measured in tokens.  
-Once that window fills up, the oldest messages disappear—not by your choice, but by **necessity.**
+Once that window of memory fills up, the oldest messages disappear—not by your choice, but by **necessity.**  Go ahead and test it.  On a long thread there are deleted messages in chatgpt and more.
 
 ### 🔬 Token Windows & The Illusion of Memory
 
