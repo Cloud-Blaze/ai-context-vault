@@ -9,6 +9,13 @@
 **Our Vision:**  
 To reclaim and protect your narrative in a world where AI has limited memory. AI Context Vault is designed not only to preserve your critical ideas but also to act as a digital safety net—prompting supportive intervention when emotional challenges arise.
 
+---
+
+## 📹 Learn More By Watching a walk through
+
+[![Watch the Demo](https://img.youtube.com/vi/ZIPAgmuEVTU/0.jpg)](https://www.youtube.com/watch?v=ZIPAgmuEVTU)
+
+
 **Our Mission:**
 
 - **Real-Time Support & Safety:**  
@@ -103,12 +110,6 @@ Designed for moments when emotional stress threatens your digital interactions:
   The system automatically notifies your pre-configured trusted support—ensuring help is within reach when you need it most.
 - **Calming Protocols:**  
   On detection of a challenging moment, the extension displays supportive messages and reminders to help you regain balance before proceeding.
-
----
-
-## 📹 Learn More By Watching
-
-[![Watch the Demo](https://img.youtube.com/vi/ZIPAgmuEVTU/0.jpg)](https://www.youtube.com/watch?v=ZIPAgmuEVTU)
 
 ---
 
