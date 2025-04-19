@@ -11,7 +11,7 @@ import {
   saveContext,
   getContextKey,
 } from "../storage/contextStorage";
-import "./styles.css";
+import "./inject.css";
 
 // Function to format timestamp in DD/MM HH:mm format
 function formatTimestamp(timestamp) {

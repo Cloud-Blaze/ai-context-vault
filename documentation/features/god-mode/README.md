@@ -72,7 +72,7 @@ src/
     └── components/
         └── oracle-viewer/          # The Interface
             ├── index.tsx
-            ├── styles.css
+            ├── inject.css
             └── components/
                 ├── log-viewer.tsx  # View your thoughts
                 ├── search.tsx      # Find anything
