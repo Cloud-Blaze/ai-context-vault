@@ -15,7 +15,6 @@ To reclaim and protect your narrative in a world where AI has limited memory. AI
 
 [![Watch the Demo](https://img.youtube.com/vi/ZIPAgmuEVTU/0.jpg)](https://www.youtube.com/watch?v=ZIPAgmuEVTU)
 
-
 **Our Mission:**
 
 - **Real-Time Support & Safety:**  
@@ -36,7 +35,7 @@ To reclaim and protect your narrative in a world where AI has limited memory. AI
 Every time you start a new message with ChatGPT or any LLM, you’re facing **digital amnesia.**
 
 Even if the interface displays a long history of chats, the model only sees a **partial window of memory**—the context window measured in tokens.  
-Once that window of memory fills up, the oldest messages disappear—not by your choice, but by **necessity.**  Go ahead and test it.  On a long thread there are deleted messages in chatgpt and more.
+Once that window of memory fills up, the oldest messages disappear—not by your choice, but by **necessity.** Go ahead and test it. On a long thread there are deleted messages in chatgpt and more.
 
 ### 🔬 Token Windows & The Illusion of Memory
 
@@ -151,29 +150,45 @@ It’s time to **own your memory** and build a digital narrative that empowers a
 
 ### 🧑🏽‍💻 Todos & Future Roadmap
 
-- **God Mode Expansion:**  
-  Improve long-form logging, add Markdown/JSON hybrid export, and enable offline history replay with filtering.
+- [ ] **God Mode Expansion**  
+       Improve long-form logging, add Markdown/JSON hybrid export, and enable offline history replay with filtering.
 
-- **Monk Mode Enhancements:**  
-  Track chat thread state in real-time, support selective recall injection, and enable conversation clustering via memory tags.
+- [ ] **Monk Mode Enhancements**  
+       Track chat thread state in real-time, support selective recall injection, and enable conversation clustering via memory tags.
 
-- **Profile Manager Enhancements:**  
-  Expand inline editing, deletion features, and support for custom role configurations.
+- [ ] **Profile Manager Enhancements**
 
-- **Context Questions Feature (Planned):**  
-  Dynamically load categorized questions from GitHub-hosted JSON files, offering smart suggestions near the chat input.
+  - [ ] Support inline editing and deletion directly from overlay
+  - [ ] Add support for custom role categories beyond Developer/Business
+  - [ ] Tag profiles by domain, persona, or tone
+  - [ ] Enable encrypted field-by-field sync across devices via Gist
 
-- **UI/UX Improvements:**  
-  Enhance the overlay with smart scrolling, draggable panels, and cross-browser support (Firefox, Safari).
+- [ ] **Emotional Safety Mode (Under Development)**
 
-- **Emotional Safety Mode:**  
-  Refine trigger detection, enhance support alert features, and incorporate calming, supportive protocols.
+  - [ ] Trigger detection using NLP and context scoring
+  - [ ] Automatic pause of unsafe posting attempts
+  - [ ] Display calm overlay with breathing reminder or prayer
+  - [ ] Notify emergency support contacts if enabled
+  - [ ] Log and encrypt all high-risk sessions
 
-- **Cross-Browser Compatibility:**  
-  Begin Firefox and Safari support rollout with storage fallback handling and manifest compatibility workarounds.
+- [ ] **Context Questions Feature (Planned)**  
+       Dynamically load categorized questions from GitHub-hosted JSON files, offering smart suggestions near the chat input.
 
-- **Long-Term Vision:**  
-  Consider AI-assisted prompt clustering, premium features with extended synchronization capabilities, and publishing on the Chrome Web Store with a dedicated support website.
+- [ ] **UI/UX Improvements**  
+       Enhance the overlay with smart scrolling, draggable panels, badge counters, fuzzy search, and global shortcut remapping.
+
+- [ ] **Cross-Browser Compatibility**
+
+  - [ ] Firefox support (MV3, storage.sync fallback, Gist OAuth)
+  - [ ] Safari support (WebKit extensions, async permission fallback)
+
+- [ ] **Long-Term Vision**
+  - [ ] AI-assisted prompt clustering
+  - [ ] Premium features with extended syncing or backup
+  - [ ] Full-blown memory browser & export
+  - [ ] Integration with CoPilot, Notion AI, and other tools
+  - [ ] Publish on Firefox and Safari stores with dedicated site
+        support website.
 
 ---
 
