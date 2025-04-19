@@ -1,9 +1,13 @@
 {
   "name": "AI Context Vault",
   "description": "AI Context Vault injects saved memory into AI chats. Includes bookmarks, context snippets. Power users can enable encrypted GitHub Gist sync via PAT to sync across all devices. Coming soon: profiles, prompt suggestion categories, and safe intervention overlays that protect your mental health. God Mode caches all chats and responses into an encrypted JSON vault for future replay, recovery, and full-context injection.",
-  "version": "1.0.0",
+  "version": "1.0.7",
   "manifest_version": 3,
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
   "options_page": "options.html",
   "host_permissions": [
     "https://chat.openai.com/*",
@@ -76,8 +80,12 @@
         "https://chat.together.ai/*",
         "https://dust.tt/*"
       ],
-      "js": ["inject.bundle.js"],
-      "css": ["styles.css"]
+      "js": [
+        "inject.bundle.js"
+      ],
+      "css": [
+        "styles.css"
+      ]
     }
   ],
   "icons": {
