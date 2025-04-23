@@ -3,31 +3,44 @@ const CopyPlugin = require("copy-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 module.exports = {
+  mode: "development",
   entry: {
-    background: "./src/background/background.js",
-    inject: "./src/content/inject.js",
-    options: "./src/options/options.js",
+    content: ["./src/content.ts", "./src/content/inject.css"],
+    popup: "./src/popup.ts",
+    background: "./src/background.ts",
   },
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "[name].bundle.js",
+    filename: "[name].js",
   },
-  devtool: "cheap-module-source-map",
+  devtool: "source-map",
   module: {
     rules: [
       {
-        test: /\.jsx?$/,
-        exclude: /node_modules/,
-        use: {
-          loader: "babel-loader",
-          options: {
-            presets: ["@babel/preset-env", "@babel/preset-react"],
+        test: /\.ts$/,
+        use: [
+          {
+            loader: "ts-loader",
+            options: {
+              compilerOptions: {
+                declaration: false,
+                declarationMap: false,
+              },
+            },
           },
-        },
+        ],
+        exclude: /node_modules/,
       },
       {
-        test: /\.css$/i,
+        test: /\.css$/,
         use: [MiniCssExtractPlugin.loader, "css-loader"],
+      },
+      {
+        test: /\.(png|svg|jpg|jpeg|gif)$/i,
+        type: "asset/resource",
+        generator: {
+          filename: "icons/[name][ext]",
+        },
       },
     ],
   },
@@ -37,15 +50,22 @@ module.exports = {
     }),
     new CopyPlugin({
       patterns: [
-        {
-          from: "public",
-          to: ".",
-        },
+        { from: "manifest.json", to: "manifest.json" },
+        { from: "popup.html", to: "popup.html" },
+        { from: "public/icons/icon.png", to: "icons/icon.png" },
+        { from: "public/icons/icon16.png", to: "icons/icon16.png" },
+        { from: "public/icons/icon48.png", to: "icons/icon48.png" },
+        { from: "public/icons/icon128.png", to: "icons/icon128.png" },
+        { from: "public/icons/icon512.png", to: "icons/icon512.png" },
+        { from: "public/icons/icon.svg", to: "icons/icon.svg" },
       ],
     }),
   ],
   resolve: {
-    extensions: [".js", ".jsx"],
+    extensions: [".ts", ".js"],
+    alias: {
+      src: path.resolve(__dirname, "src"),
+    },
   },
   devServer: {
     static: {

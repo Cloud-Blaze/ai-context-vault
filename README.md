@@ -22,17 +22,17 @@ To reclaim and protect your narrative in a world where AI has limited memory. AI
 - **Supportive Connections:**  
   In moments of overwhelming stress, the extension can automatically alert a pre-designated support contact—be it a friend, family member, or mental health professional.
 - **Preserve and Empower Your Memory:**  
-  Every thought, insight, or idea is safely saved. This isn’t just about data—it’s about safeguarding your most precious narratives.
+  Every thought, insight, or idea is safely saved. This isn't just about data—it's about safeguarding your most precious narratives.
 - **Own Your Digital Experience:**  
   With integrated human support and secure storage, your digital interactions become a part of your growth and healing, ensuring that every contribution to your work is intentional and considered.
 
-> This isn’t merely a tool—it’s a commitment to protect your mind and help you rebuild your digital footprint with clarity, integrity, and care.
+> This isn't merely a tool—it's a commitment to protect your mind and help you rebuild your digital footprint with clarity, integrity, and care.
 
 ---
 
 ## 🤯 Why AI Always Forgets (and Why Context Vault Had to Exist)
 
-Every time you start a new message with ChatGPT or any LLM, you’re facing **digital amnesia.**
+Every time you start a new message with ChatGPT or any LLM, you're facing **digital amnesia.**
 
 Even if the interface displays a long history of chats, the model only sees a **partial window of memory**—the context window measured in tokens.  
 Once that window of memory fills up, the oldest messages disappear—not by your choice, but by **necessity.** Go ahead and test it. On a long thread there are deleted messages in chatgpt and more.
@@ -40,15 +40,15 @@ Once that window of memory fills up, the oldest messages disappear—not by your
 ### 🔬 Token Windows & The Illusion of Memory
 
 - **Token Windows:**  
-  Every interaction is tokenized. Your current message, recent responses, and system prompts all take up tokens. Even models with vast capacities (like GPT-4-turbo’s 128,000 tokens) fill up quickly.
-- **Memory’s Limits:**  
+  Every interaction is tokenized. Your current message, recent responses, and system prompts all take up tokens. Even models with vast capacities (like GPT-4-turbo's 128,000 tokens) fill up quickly.
+- **Memory's Limits:**  
   When that token window is full, older messages are automatically dropped, regardless of their importance to your narrative.
 
 ---
 
 ## 🧠 The Myth of Memory
 
-Chat UIs may display your entire history, but LLMs don’t “remember” them unless you re-inject the context manually. Services like Claude or DeepSeek remain **stateless by default**—the only true memory is the one you maintain.
+Chat UIs may display your entire history, but LLMs don't "remember" them unless you re-inject the context manually. Services like Claude or DeepSeek remain **stateless by default**—the only true memory is the one you maintain.
 
 ---
 
@@ -68,7 +68,7 @@ Every highlight, bookmark, or annotation restores your narrative power and ensur
 ### ✨ Core Features
 
 - **Context Saving (Hotkey: CTRL/CMD+I):**  
-  Capture selected text from any AI chat and securely store it, tied to the chat’s unique URL.
+  Capture selected text from any AI chat and securely store it, tied to the chat's unique URL.
 
 - **Context Management UI (Hotkey: CTRL/CMD+J):**  
   A floating overlay enables you to view, edit, and delete context entries, along with managing bookmarks in one place.
@@ -95,7 +95,7 @@ Now supporting persistent identity profiles that define how AI interacts with yo
   - **Custom Modes:** Tailor profiles for unique projects or personal branding.
 
 - **Storage & Security:**  
-  Profiles are stored locally and securely synced via GitHub Gist with encryption provided by Cloudflare’s WebCrypto API.
+  Profiles are stored locally and securely synced via GitHub Gist with encryption provided by Cloudflare's WebCrypto API.
 
 ---
 
@@ -122,7 +122,7 @@ Designed for moments when emotional stress threatens your digital interactions:
 2. **Generate a Personal Access Token (PAT):**
 
    - Go to [GitHub Personal Access Tokens](https://github.com/settings/tokens) and create a fine-grained token with `gist` permissions.
-   - Copy and securely store the token—it will be encrypted using Cloudflare’s WebCrypto API.
+   - Copy and securely store the token—it will be encrypted using Cloudflare's WebCrypto API.
 
 3. **Configure in Extension Settings:**
    - Open the Options page and paste your Gist URL and PAT.
@@ -144,7 +144,7 @@ Designed for moments when emotional stress threatens your digital interactions:
 ## ✊ For Builders, Thinkers, Writers, & Entrepreneurs
 
 You should never lose your prompts or trust your thoughts to fleeting servers.  
-It’s time to **own your memory** and build a digital narrative that empowers and protects you.
+It's time to **own your memory** and build a digital narrative that empowers and protects you.
 
 ---
 
@@ -197,3 +197,58 @@ It’s time to **own your memory** and build a digital narrative that empowers a
 AI Context Vault is your shield against digital forgetfulness—ensuring your interactions, insights, and mental wellness remain yours to own. Commit to the journey, secure your narrative, and empower your future.
 
 _Git commit today—own your memory and protect your mind with CloudBlaze.ai._
+
+## Features
+
+- 🧠 Automatic tracking of all chat messages
+- 💾 Local storage of conversation history
+- 🔄 Optional GitHub Gist sync
+- ⌨️ Quick access with CMD/CTRL + G
+- 🎯 Smart context restoration
+- 🔒 Privacy-focused design
+
+## Installation
+
+1. Clone this repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Build the extension:
+   ```bash
+   npm run build
+   ```
+4. Load the extension in Chrome:
+   - Open Chrome and navigate to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the `dist` directory from this project
+
+## Usage
+
+1. Click the extension icon to open the popup
+2. Toggle "God Mode" to enable/disable tracking
+3. Use CMD/CTRL + G to view your conversation history
+4. Click "Clear All Data" to remove stored conversations
+
+## Development
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run watch` - Watch for changes and rebuild
+- `npm test` - Run tests
+
+## Architecture
+
+The extension is built with TypeScript and uses a modular architecture:
+
+- `src/features/god-mode/` - Core tracking functionality
+- `src/storage/` - Data persistence layer
+- `src/utils/` - Shared utilities
+- `src/content.ts` - Content script for chat pages
+- `src/popup.ts` - Extension popup UI
+- `src/background.ts` - Background service worker
+
+## License
+
+MIT

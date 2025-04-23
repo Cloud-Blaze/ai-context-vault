@@ -3,11 +3,7 @@
   "description": "Injects saved memory into AI chats 🧠. Bookmarks, context snippets, encrypted Gist sync. More tools coming soon 🚀",
   "version": "1.0.6",
   "manifest_version": 3,
-  "permissions": [
-    "storage",
-    "activeTab",
-    "scripting"
-  ],
+  "permissions": ["storage", "activeTab"],
   "host_permissions": [
     "https://*.google.com/*",
     "https://*.ai.facebook.com/*",
@@ -105,12 +101,8 @@
         "https://*.wysa.com/*",
         "https://*.yiyan.baidu.com/*"
       ],
-      "js": [
-        "inject.bundle.js"
-      ],
-      "css": [
-        "inject.css"
-      ]
+      "js": ["inject.bundle.js"],
+      "css": ["inject.css"]
     }
   ],
   "options_page": "options.html",
