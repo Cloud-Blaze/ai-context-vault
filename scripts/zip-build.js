@@ -22,3 +22,9 @@ console.log(`Copied to ${destination}`);
 execSync(`git add releases/*`, { stdio: "inherit" });
 execSync(`git commit -am "🚀 Release ${version}"`, { stdio: "inherit" });
 console.log(`🚀 Committed release ${version} to Git`);
+
+// Tag the release
+execSync(`git tag -a v${version} -m "Release v${version}"`, {
+  stdio: "inherit",
+});
+console.log(`🏷️ Tagged release v${version}`);
