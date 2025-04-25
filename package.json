@@ -1,7 +1,7 @@
 {
   "name": "ai-context-vault",
-  "version": "1.0.0",
-  "description": "Never lose your AI conversation context again",
+  "version": "1.0.12",
+  "description": "Chrome extension to store and auto-inject user context into AI chat interfaces.",
   "scripts": {
     "generate-icons": "node scripts/generate-icons.js",
     "prebuild": "npm run generate-icons",
