@@ -58,6 +58,18 @@ module.exports = {
         { from: "public/icons/icon128.png", to: "icons/icon128.png" },
         { from: "public/icons/icon512.png", to: "icons/icon512.png" },
         { from: "public/icons/icon.svg", to: "icons/icon.svg" },
+        { from: "public/icons/icon-grey.png", to: "icons/icon-grey.png" },
+        { from: "public/icons/icon-grey-16.png", to: "icons/icon-grey-16.png" },
+        { from: "public/icons/icon-grey-48.png", to: "icons/icon-grey-48.png" },
+        {
+          from: "public/icons/icon-grey-128.png",
+          to: "icons/icon-grey-128.png",
+        },
+        {
+          from: "public/icons/icon-grey-512.png",
+          to: "icons/icon-grey-512.png",
+        },
+        { from: "public/icons/icon-grey.svg", to: "icons/icon-grey.svg" },
       ],
     }),
   ],
