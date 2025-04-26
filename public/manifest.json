@@ -3,11 +3,7 @@
   "description": "Injects saved memory into AI chats 🧠. Bookmarks, context snippets, encrypted Gist sync. More tools coming soon 🚀",
   "version": "1.0.9",
   "manifest_version": 3,
-  "permissions": [
-    "storage",
-    "activeTab",
-    "scripting"
-  ],
+  "permissions": ["scripting", "storage", "activeTab"],
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://claude.ai/*",
@@ -47,7 +43,7 @@
     }
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.bundle.js"
   },
   "content_scripts": [
     {
@@ -80,12 +76,8 @@
         "https://chat.together.ai/*",
         "https://dust.tt/*"
       ],
-      "js": [
-        "inject.bundle.js"
-      ],
-      "csSs": [
-        "inject.css"
-      ]
+      "js": ["inject.bundle.js"],
+      "css": ["inject.css"]
     }
   ],
   "commands": {
