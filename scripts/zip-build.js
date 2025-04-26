@@ -19,7 +19,6 @@ fs.copyFileSync(outFile, destination);
 console.log(`Copied to ${destination}`);
 
 // Git commit the release
-execSync(`git add releases/*`, { stdio: "inherit" });
 execSync(`git commit -am "🚀 Release ${version}"`, { stdio: "inherit" });
 console.log(`🚀 Committed release ${version} to Git`);
 
