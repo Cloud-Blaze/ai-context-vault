@@ -1,14 +1,18 @@
 {
   "name": "ai-context-vault",
-  "version": "1.0.12",
+  "version": "1.0.19",
   "description": "Chrome extension to store and auto-inject user context into AI chat interfaces.",
   "scripts": {
     "generate-icons": "node scripts/generate-icons.js",
     "generate-icons-grey": "node scripts/generate-icons-grey.js",
     "prebuild": "npm run generate-icons; npm run generate-icons-grey",
-    "build": "webpack --config webpack.config.js",
-    "watch": "webpack --config webpack.config.js --watch",
-    "dev": "webpack serve --config webpack.config.js",
+    "dev": "webpack serve --mode development",
+    "clean": "rimraf dist/*",
+    "build": "webpack --mode production",
+    "version:bump": "node scripts/bump-version.js",
+    "zip": "node scripts/zip-build.js",
+    "make-release": "node scripts/release.js",
+    "release": "npm run clean && npm run version:bump && npm run build && npm run zip && npm run make-release",
     "test": "jest"
   },
   "author": "CloudBlaze.ai",
