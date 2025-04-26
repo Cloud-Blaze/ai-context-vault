@@ -29,7 +29,22 @@ execSync(`git tag -a v${version} -m "Release v${version}"`, {
 });
 console.log(`🏷️ Tagged release v${version}`);
 
-execSync(`git push"`, {
+// Push changes and tags
+execSync(`git push && git push --tags`, {
   stdio: "inherit",
 });
 console.log(`Pushed to remote`);
+
+// Create GitHub release and upload asset
+try {
+  execSync(
+    `gh release create v${version} --title "Release v${version}" --notes "Release v${version}" ${destination}`,
+    {
+      stdio: "inherit",
+    }
+  );
+  console.log(`📦 Created GitHub release v${version} and uploaded asset`);
+} catch (error) {
+  console.error("Failed to create GitHub release:", error.message);
+  process.exit(1);
+}
