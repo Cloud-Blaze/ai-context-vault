@@ -4,7 +4,8 @@
   "description": "Chrome extension to store and auto-inject user context into AI chat interfaces.",
   "scripts": {
     "generate-icons": "node scripts/generate-icons.js",
-    "prebuild": "npm run generate-icons",
+    "generate-icons-grey": "node scripts/generate-icons-grey.js",
+    "prebuild": "npm run generate-icons; npm run generate-icons-grey",
     "build": "webpack --config webpack.config.js",
     "watch": "webpack --config webpack.config.js --watch",
     "dev": "webpack serve --config webpack.config.js",

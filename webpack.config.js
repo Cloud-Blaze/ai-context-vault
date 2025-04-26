@@ -12,6 +12,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "[name].js",
+    clean: true,
   },
   devtool: "source-map",
   module: {
@@ -50,7 +51,7 @@ module.exports = {
     }),
     new CopyPlugin({
       patterns: [
-        { from: "manifest.json", to: "manifest.json" },
+        { from: "public/manifest.json", to: "manifest.json" },
         { from: "popup.html", to: "popup.html" },
         { from: "public/icons/icon.png", to: "icons/icon.png" },
         { from: "public/icons/icon16.png", to: "icons/icon16.png" },
