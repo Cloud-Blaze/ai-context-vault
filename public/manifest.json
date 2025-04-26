@@ -1,13 +1,14 @@
 {
   "name": "AI Context Vault",
   "description": "Injects saved memory into AI chats 🧠. Bookmarks, context snippets, encrypted Gist sync. More tools coming soon 🚀",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "manifest_version": 3,
   "permissions": [
     "storage",
     "activeTab",
     "background"
   ],
+  "options_page": "options.html",
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://claude.ai/*",
