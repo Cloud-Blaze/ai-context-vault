@@ -28,3 +28,8 @@ execSync(`git tag -a v${version} -m "Release v${version}"`, {
   stdio: "inherit",
 });
 console.log(`🏷️ Tagged release v${version}`);
+
+execSync(`git push"`, {
+  stdio: "inherit",
+});
+console.log(`Pushed to remote`);
