@@ -431,7 +431,8 @@ async function refreshOverlayContent(overlayPanel) {
         padding: "8px",
         marginBottom: "8px",
         borderRadius: "4px",
-        backgroundColor: "transparent",
+        backgroundColor:
+          entry.type === "input" ? "rgba(50, 50, 50, 0.85)" : "#000",
         border: "1px solid #666",
         color: "#fff",
       });
@@ -458,83 +459,98 @@ async function refreshOverlayContent(overlayPanel) {
       text.style.whiteSpace = "pre-wrap";
       text.style.color = "#fff";
 
-      // Add "Add to Context" button
-      const addToContextButton = document.createElement("button");
-      addToContextButton.textContent = "Add to Context";
-      Object.assign(addToContextButton.style, {
-        marginTop: "8px",
-        padding: "4px 8px",
-        backgroundColor: "#10b981",
-        color: "#fff",
-        border: "none",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontSize: "12px",
-        fontWeight: "500",
-        transition: "background-color 0.2s",
-      });
+      // Check if text is already in context
+      const isInContext = contextData?.entries?.some(
+        (ctxEntry) => ctxEntry.text === entry.text
+      );
 
-      addToContextButton.addEventListener("mouseover", () => {
-        addToContextButton.style.backgroundColor = "#059669";
-      });
+      // Create a container for the text content
+      const textContainer = document.createElement("div");
+      textContainer.style.marginBottom = "8px";
+      textContainer.appendChild(text);
 
-      addToContextButton.addEventListener("mouseout", () => {
-        addToContextButton.style.backgroundColor = "#10b981";
-      });
-
-      addToContextButton.addEventListener("click", async () => {
-        try {
-          const { domain, chatId } = parseUrlForIds(window.location.href);
-
-          // Only add the text content, not the entire log entry
-          const textToAdd = entry.text;
-          if (!textToAdd || textToAdd.trim() === "") {
-            console.warn(
-              "[AI Context Vault] No text content to add to context"
-            );
-            return;
-          }
-
-          // Use the standard context storage
-          const storage = await import("../storage/contextStorage");
-          await storage.addContext(domain, chatId, textToAdd);
-
-          // Show success message
-          const bubble = document.createElement("div");
-          bubble.textContent = "Added to context!";
-          Object.assign(bubble.style, {
-            position: "fixed",
-            bottom: "20px",
-            right: "20px",
-            padding: "8px 16px",
-            backgroundColor: "#10b981",
-            color: "#fff",
-            borderRadius: "4px",
-            zIndex: "2147483647",
-            fontSize: "14px",
-            fontWeight: "500",
-          });
-          document.body.appendChild(bubble);
-          setTimeout(() => bubble.remove(), 2000);
-
-          // Refresh the overlay content
-          const overlayPanel = document.getElementById(
-            "__ai_context_overlay__"
-          );
-          if (overlayPanel) {
-            await refreshOverlayContent(overlayPanel);
-          }
-        } catch (error) {
-          console.error("Error adding to context:", error);
-          showConfirmationBubble("Failed to add to context", "error");
-        }
-      });
-
+      // Add header and text first
       header.appendChild(type);
       header.appendChild(time);
       logEntry.appendChild(header);
-      logEntry.appendChild(text);
-      logEntry.appendChild(addToContextButton);
+      logEntry.appendChild(textContainer);
+
+      // Only add the button if the text isn't already in context
+      if (!isInContext) {
+        const addToContextButton = document.createElement("button");
+        addToContextButton.textContent = "Add to Context";
+        Object.assign(addToContextButton.style, {
+          marginTop: "8px",
+          padding: "4px 8px",
+          backgroundColor: "#10b981",
+          color: "#fff",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "12px",
+          fontWeight: "500",
+          transition: "background-color 0.2s",
+        });
+
+        addToContextButton.addEventListener("mouseover", () => {
+          addToContextButton.style.backgroundColor = "#059669";
+        });
+
+        addToContextButton.addEventListener("mouseout", () => {
+          addToContextButton.style.backgroundColor = "#10b981";
+        });
+
+        addToContextButton.addEventListener("click", async () => {
+          try {
+            const { domain, chatId } = parseUrlForIds(window.location.href);
+
+            // Only add the text content, not the entire log entry
+            const textToAdd = entry.text;
+            if (!textToAdd || textToAdd.trim() === "") {
+              console.warn(
+                "[AI Context Vault] No text content to add to context"
+              );
+              return;
+            }
+
+            // Use the standard context storage
+            const storage = await import("../storage/contextStorage");
+            await storage.addContext(domain, chatId, textToAdd);
+
+            // Show success message
+            const bubble = document.createElement("div");
+            bubble.textContent = "Added to context!";
+            Object.assign(bubble.style, {
+              position: "fixed",
+              bottom: "20px",
+              right: "20px",
+              padding: "8px 16px",
+              backgroundColor: "#10b981",
+              color: "#fff",
+              borderRadius: "4px",
+              zIndex: "2147483647",
+              fontSize: "14px",
+              fontWeight: "500",
+            });
+            document.body.appendChild(bubble);
+            setTimeout(() => bubble.remove(), 2000);
+
+            // Refresh the overlay content
+            const overlayPanel = document.getElementById(
+              "__ai_context_overlay__"
+            );
+            if (overlayPanel) {
+              await refreshOverlayContent(overlayPanel);
+            }
+          } catch (error) {
+            console.error("Error adding to context:", error);
+            showConfirmationBubble("Failed to add to context", "error");
+          }
+        });
+
+        logEntry.appendChild(addToContextButton);
+      }
+
       logsContainer.appendChild(logEntry);
     });
 
