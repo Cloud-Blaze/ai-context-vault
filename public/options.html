@@ -82,6 +82,23 @@
     .button:hover {
       background-color: #3c64a8;
     }
+
+    input[type="checkbox"] {
+      transform: scale(1.5);
+      margin-right: 10px;
+      cursor: pointer;
+      animation: rainbow 2s linear infinite;
+    }
+
+    @keyframes rainbow {
+      0% {
+        filter: hue-rotate(0deg);
+      }
+
+      100% {
+        filter: hue-rotate(360deg);
+      }
+    }
   </style>
 </head>
 
@@ -97,27 +114,6 @@
       <p>Save snippets of context from anywhere, and they'll be automatically included in your prompts.</p>
       <p>Your GitHub Personal Access Token (PAT) is automatically encrypted using Cloudflare's WebCrypto API and only
         decrypted when needed for GitHub operations.</p>
-    </div>
-
-    <div class="info-block">
-      <h2>God Mode Settings</h2>
-      <div>
-        <label>
-          <input type="checkbox" id="enableGodMode" class="checkbox">
-          Enable God Mode (Track potentially deleted requests and responses)
-        </label>
-      </div>
-      <div id="godModeSettings" style="display: none; margin-top: 15px;">
-        <div style="margin-bottom: 15px;">
-          <label for="godModePat">GitHub PAT for God Mode:</label><br>
-          <input type="password" id="godModePat" class="input" placeholder="Enter GitHub PAT">
-        </div>
-        <div>
-          <label for="godModeGistUrl">God Mode Gist URL:</label><br>
-          <input type="text" id="godModeGistUrl" class="input"
-            placeholder="Enter Gist URL (must be different from main context)">
-        </div>
-      </div>
     </div>
 
     <div class="info-block">
