@@ -89,7 +89,14 @@ export async function getContext(domain, chatId) {
       if (!res[key]) {
         return resolve({ chatId, summary: "", entries: [] });
       }
-      resolve(res[key]);
+
+      // Ensure entries is an array
+      const context = res[key];
+      if (!Array.isArray(context.entries)) {
+        context.entries = [];
+      }
+
+      resolve(context);
     });
   });
 }
@@ -142,17 +149,15 @@ export async function saveBookmark(
 export async function addContext(domain, chatId, text) {
   const ctx = await getContext(domain, chatId);
   // Simple dedup check
-  // alert(0);
-  // console.error(ctx);
-  // if (!ctx.entries.some((e) => e.text === text)) {
-  //   ctx.entries.push({
-  //     id: `entry_${Date.now()}`,
-  //     text,
-  //     active: true,
-  //     created: Date.now(),
-  //     lastModified: Date.now(),
-  //   });
-  // }
+  if (!ctx.entries.some((e) => e.text === text)) {
+    ctx.entries.push({
+      id: `entry_${Date.now()}`,
+      text,
+      active: true,
+      created: Date.now(),
+      lastModified: Date.now(),
+    });
+  }
   await saveContext(domain, chatId, ctx);
   return ctx;
 }
