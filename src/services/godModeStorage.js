@@ -19,58 +19,78 @@ class GodModeStorage {
     });
   }
 
-  async getLogs() {
+  async getLogs(chatId) {
     try {
       const isGodModeEnabled = await this.checkEnabledState();
       if (!isGodModeEnabled) {
-        return [];
+        return { chatId, summary: "", entries: [] };
       }
 
       const logs = localStorage.getItem(this.storageKey);
-      return logs ? JSON.parse(logs) : [];
+      const allLogs = logs ? JSON.parse(logs) : {};
+      return allLogs[chatId] || { chatId, summary: "", entries: [] };
     } catch (error) {
       console.error("Error getting logs:", error);
-      return [];
+      return { chatId, summary: "", entries: [] };
     }
   }
 
-  async addLog(log) {
+  async addLog(chatId, log) {
     try {
       const isGodModeEnabled = await this.checkEnabledState();
       if (!isGodModeEnabled) {
         return;
       }
 
-      const logs = await this.getLogs();
+      const logs = localStorage.getItem(this.storageKey);
+      const allLogs = logs ? JSON.parse(logs) : {};
+      const chatLogs = allLogs[chatId] || { chatId, summary: "", entries: [] };
 
       // Check if this exact content already exists in recent logs (last 10)
-      const recentLogs = logs.slice(-10);
+      const recentLogs = chatLogs.entries;
       const isDuplicate = recentLogs.some(
         (existingLog) =>
           existingLog.content === log.content && existingLog.type === log.type
       );
 
       if (!isDuplicate) {
-        logs.push({
-          ...log,
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
+        chatLogs.entries.push({
+          id: `entry_${Date.now()}`,
+          text: log.content,
+          type: log.type,
+          metadata: log.metadata,
+          created: Date.now(),
+          lastModified: Date.now(),
         });
-        localStorage.setItem(this.storageKey, JSON.stringify(logs));
+
+        allLogs[chatId] = chatLogs;
+        localStorage.setItem(this.storageKey, JSON.stringify(allLogs));
       }
     } catch (error) {
       console.error("Error adding log:", error);
     }
   }
 
-  async clearLogs() {
+  async clearLogs(chatId) {
     try {
       const isGodModeEnabled = await this.checkEnabledState();
       if (!isGodModeEnabled) {
         return;
       }
 
-      localStorage.removeItem(this.storageKey);
+      const logs = localStorage.getItem(this.storageKey);
+      const allLogs = logs ? JSON.parse(logs) : {};
+
+      if (chatId) {
+        delete allLogs[chatId];
+      } else {
+        // Clear all logs if no chatId provided
+        Object.keys(allLogs).forEach((key) => {
+          delete allLogs[key];
+        });
+      }
+
+      localStorage.setItem(this.storageKey, JSON.stringify(allLogs));
     } catch (error) {
       console.error("Error clearing logs:", error);
     }

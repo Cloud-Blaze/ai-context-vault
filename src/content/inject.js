@@ -123,6 +123,25 @@ async function ensureOverlayExists() {
     console.log("[AI Context Vault] Overlay already exists in DOM");
   }
 
+  // Update the overlay panel width
+  // Object.assign(overlayPanel.style, {
+  //   position: "fixed",
+  //   top: "20px",
+  //   right: "20px",
+  //   width: "600px !important", // Increased from 400px to 500px
+  //   maxHeight: "80vh",
+  //   backgroundColor: "#1a1a1a",
+  //   border: "1px solid #333",
+  //   borderRadius: "8px",
+  //   boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
+  //   zIndex: "2147483647",
+  //   display: "none",
+  //   flexDirection: "column",
+  //   overflow: "hidden",
+  //   color: "#fff",
+  //   fontFamily: "system-ui, -apple-system, sans-serif",
+  // });
+
   return overlayPanel;
 }
 
@@ -389,9 +408,9 @@ async function refreshOverlayContent(overlayPanel) {
 
   // Add God Mode section
   const storage = GodModeStorage.getInstance();
-  const logs = await storage.getLogs();
+  const logs = await storage.getLogs(chatId);
 
-  if (logs.length === 0) {
+  if (logs.entries.length === 0) {
     const noLogs = document.createElement("p");
     noLogs.textContent = "No God Mode logs available yet.";
     noLogs.style.color = "#999";
@@ -405,15 +424,16 @@ async function refreshOverlayContent(overlayPanel) {
       padding: "8px",
     });
 
-    logs.reverse().forEach((log) => {
-      const entry = document.createElement("div");
-      entry.className = "ai-context-godmode-entry";
-      Object.assign(entry.style, {
+    logs.entries.reverse().forEach((entry) => {
+      const logEntry = document.createElement("div");
+      logEntry.className = "ai-context-godmode-entry";
+      Object.assign(logEntry.style, {
         padding: "8px",
         marginBottom: "8px",
         borderRadius: "4px",
-        backgroundColor: log.type === "input" ? "#f3f4f6" : "#fff",
-        border: "1px solid #e5e7eb",
+        backgroundColor: "transparent",
+        border: "1px solid #666",
+        color: "#fff",
       });
 
       const header = document.createElement("div");
@@ -421,25 +441,87 @@ async function refreshOverlayContent(overlayPanel) {
       header.style.justifyContent = "space-between";
       header.style.marginBottom = "4px";
       header.style.fontSize = "12px";
-      header.style.color = "#6b7280";
+      header.style.color = "#999";
 
       const type = document.createElement("span");
-      type.textContent = log.type === "input" ? "User Input" : "AI Output";
+      type.textContent = entry.type === "input" ? "User Input" : "AI Output";
       type.style.fontWeight = "600";
 
       const time = document.createElement("span");
-      time.textContent = new Date(log.metadata.timestamp).toLocaleTimeString();
+      time.textContent = new Date(
+        entry.metadata.timestamp
+      ).toLocaleTimeString();
 
       const text = document.createElement("div");
-      text.textContent = log.content;
+      text.textContent = entry.text;
       text.style.fontSize = "13px";
       text.style.whiteSpace = "pre-wrap";
+      text.style.color = "#fff";
+
+      // Add "Add to Context" button
+      const addToContextButton = document.createElement("button");
+      addToContextButton.textContent = "Add to Context";
+      Object.assign(addToContextButton.style, {
+        marginTop: "8px",
+        padding: "4px 8px",
+        backgroundColor: "#10b981",
+        color: "#fff",
+        border: "none",
+        borderRadius: "4px",
+        cursor: "pointer",
+        fontSize: "12px",
+        fontWeight: "500",
+        transition: "background-color 0.2s",
+      });
+
+      addToContextButton.addEventListener("mouseover", () => {
+        addToContextButton.style.backgroundColor = "#059669";
+      });
+
+      addToContextButton.addEventListener("mouseout", () => {
+        addToContextButton.style.backgroundColor = "#10b981";
+      });
+
+      addToContextButton.addEventListener("click", async () => {
+        try {
+          const { domain, chatId } = parseUrlForIds(window.location.href);
+          await saveContext(domain, chatId, {
+            text: entry.text,
+            type: entry.type,
+            metadata: entry.metadata,
+          });
+
+          // Show success message
+          const bubble = document.createElement("div");
+          bubble.textContent = "Added to context!";
+          Object.assign(bubble.style, {
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            padding: "8px 16px",
+            backgroundColor: "#10b981",
+            color: "#fff",
+            borderRadius: "4px",
+            zIndex: "2147483647",
+            fontSize: "14px",
+            fontWeight: "500",
+          });
+          document.body.appendChild(bubble);
+          setTimeout(() => bubble.remove(), 2000);
+
+          // Refresh the overlay to show the new context
+          refreshOverlayContent(overlayPanel);
+        } catch (error) {
+          console.error("Error adding to context:", error);
+        }
+      });
 
       header.appendChild(type);
       header.appendChild(time);
-      entry.appendChild(header);
-      entry.appendChild(text);
-      logsContainer.appendChild(entry);
+      logEntry.appendChild(header);
+      logEntry.appendChild(text);
+      logEntry.appendChild(addToContextButton);
+      logsContainer.appendChild(logEntry);
     });
 
     godModeSection.appendChild(logsContainer);
@@ -1148,88 +1230,15 @@ export function scrollToBookmark(entry) {
   }
 }
 
-// God Mode History UI
-function createGodModeHistoryUI() {
-  const historyPanel = document.createElement("div");
-  historyPanel.id = "__ai_context_godmode_history__";
-  historyPanel.className = "ai-context-godmode-history";
-  Object.assign(historyPanel.style, {
-    position: "fixed",
-    bottom: "20px",
-    right: "20px",
-    width: "300px",
-    maxHeight: "400px",
-    backgroundColor: "#fff",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-    zIndex: "2147483647",
-    display: "none",
-    flexDirection: "column",
-    overflow: "hidden",
-  });
-
-  const header = document.createElement("div");
-  header.className = "ai-context-godmode-history-header";
-  Object.assign(header.style, {
-    padding: "12px",
-    borderBottom: "1px solid #e5e7eb",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  });
-
-  const title = document.createElement("h3");
-  title.textContent = "God Mode History";
-  title.style.margin = "0";
-  title.style.fontSize = "14px";
-  title.style.fontWeight = "600";
-
-  const closeButton = document.createElement("button");
-  closeButton.innerHTML = "×";
-  closeButton.style.background = "none";
-  closeButton.style.border = "none";
-  closeButton.style.fontSize = "20px";
-  closeButton.style.cursor = "pointer";
-  closeButton.style.padding = "0";
-  closeButton.style.width = "24px";
-  closeButton.style.height = "24px";
-  closeButton.style.display = "flex";
-  closeButton.style.alignItems = "center";
-  closeButton.style.justifyContent = "center";
-
-  const content = document.createElement("div");
-  content.className = "ai-context-godmode-history-content";
-  Object.assign(content.style, {
-    padding: "12px",
-    overflowY: "auto",
-    flex: "1",
-  });
-
-  header.appendChild(title);
-  header.appendChild(closeButton);
-  historyPanel.appendChild(header);
-  historyPanel.appendChild(content);
-
-  closeButton.addEventListener("click", () => {
-    historyPanel.style.display = "none";
-  });
-
-  document.body.appendChild(historyPanel);
-  return historyPanel;
-}
-
-// Mutation Observer for God Mode
 function setupGodModeObserver() {
-  const historyPanel = createGodModeHistoryUI();
-  const content = historyPanel.querySelector(
-    ".ai-context-godmode-history-content"
-  );
   const storage = GodModeStorage.getInstance();
 
   const observer = new MutationObserver(async (mutations) => {
     const isGodModeEnabled = await storage.checkEnabledState();
     if (!isGodModeEnabled) return;
+
+    const { chatId } = parseUrlForIds(window.location.href);
+    if (!chatId) return;
 
     for (const mutation of mutations) {
       if (
@@ -1238,53 +1247,60 @@ function setupGodModeObserver() {
         mutation.addedNodes &&
         mutation.addedNodes.length > 0
       ) {
-        // console.log("[God Mode] Detected DOM changes:", {
-        //   type: mutation.type,
-        //   addedNodes: mutation.addedNodes.length,
-        //   target: mutation.target,
-        // });
-
         for (const node of mutation.addedNodes) {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            // Look for AI responses
-            const aiResponses = node.querySelectorAll(
-              'div[class*="message"], div[class*="response"]'
+            // Look for user messages
+            const userMessages = node.querySelectorAll(
+              'div[data-message-author-role="user"]'
             );
-            for (const response of aiResponses) {
-              const text = response.textContent.trim();
+            for (const message of userMessages) {
+              const text = message
+                .querySelector(".whitespace-pre-wrap")
+                ?.textContent.trim();
               if (text) {
-                await storage.addLog({
+                await storage.addLog(chatId, {
+                  type: "input",
+                  content: text,
+                  metadata: {
+                    url: window.location.href,
+                    timestamp: new Date().toISOString(),
+                    messageId: message.getAttribute("data-message-id"),
+                  },
+                });
+              }
+            }
+
+            // Look for AI responses
+            const aiMessages = node.querySelectorAll(
+              'div[data-message-author-role="assistant"]'
+            );
+            for (const message of aiMessages) {
+              const text = message
+                .querySelector(".markdown.prose p")
+                ?.textContent.trim();
+              if (text) {
+                await storage.addLog(chatId, {
                   type: "output",
                   content: text,
                   metadata: {
                     url: window.location.href,
                     timestamp: new Date().toISOString(),
+                    messageId: message.getAttribute("data-message-id"),
+                    model: message.getAttribute("data-message-model-slug"),
                   },
                 });
-                updateHistoryUI(content, storage);
               }
             }
 
-            // // Look for user inputs
-            // const userInputs = node.querySelectorAll(
-            //   'textarea, input[type="text"]'
-            // );
-            // for (const input of userInputs) {
-            //   input.addEventListener("change", async () => {
-            //     const text = input.value.trim();
-            //     if (text) {
-            //       await storage.addLog({
-            //         type: "input",
-            //         content: text,
-            //         metadata: {
-            //           url: window.location.href,
-            //           timestamp: new Date().toISOString(),
-            //         },
-            //       });
-            //       updateHistoryUI(content, storage);
-            //     }
-            //   });
-            // }
+            // Refresh the overlay content if we found any messages
+            if (userMessages.length > 0 || aiMessages.length > 0) {
+              const overlayPanel = document.getElementById(
+                "__ai_context_overlay__"
+              );
+              if (overlayPanel) {
+                refreshOverlayContent(overlayPanel);
+              }
+            }
           }
         }
       }
@@ -1297,48 +1313,6 @@ function setupGodModeObserver() {
   });
 
   return observer;
-}
-
-async function updateHistoryUI(content, storage) {
-  const logs = await storage.getLogs();
-  content.innerHTML = "";
-
-  logs.reverse().forEach((log) => {
-    const entry = document.createElement("div");
-    entry.className = "ai-context-godmode-history-entry";
-    Object.assign(entry.style, {
-      padding: "8px",
-      marginBottom: "8px",
-      borderRadius: "4px",
-      backgroundColor: log.type === "input" ? "#f3f4f6" : "#fff",
-      border: "1px solid #e5e7eb",
-    });
-
-    const header = document.createElement("div");
-    header.style.display = "flex";
-    header.style.justifyContent = "space-between";
-    header.style.marginBottom = "4px";
-    header.style.fontSize = "12px";
-    header.style.color = "#6b7280";
-
-    const type = document.createElement("span");
-    type.textContent = log.type === "input" ? "User Input" : "AI Output";
-    type.style.fontWeight = "600";
-
-    const time = document.createElement("span");
-    time.textContent = new Date(log.metadata.timestamp).toLocaleTimeString();
-
-    const text = document.createElement("div");
-    text.textContent = log.content;
-    text.style.fontSize = "13px";
-    text.style.whiteSpace = "pre-wrap";
-
-    header.appendChild(type);
-    header.appendChild(time);
-    entry.appendChild(header);
-    entry.appendChild(text);
-    content.appendChild(entry);
-  });
 }
 
 // Initialize God Mode
