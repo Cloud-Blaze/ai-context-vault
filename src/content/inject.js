@@ -509,8 +509,55 @@ async function refreshOverlayContent(overlayPanel) {
           document.body.appendChild(bubble);
           setTimeout(() => bubble.remove(), 2000);
 
-          // Refresh the overlay to show the new context
-          refreshOverlayContent(overlayPanel);
+          // Get the context section and refresh it
+          const contextTab = document.querySelector(".ai-context-tab.active");
+          const contextSection = contextTab.nextElementSibling;
+          const contextData = await getContext(domain, chatId);
+
+          // Clear and rebuild the context section
+          contextSection.innerHTML = "";
+          if (
+            contextData &&
+            contextData.entries &&
+            contextData.entries.length > 0
+          ) {
+            const entriesSection = document.createElement("div");
+            const entriesTitle = document.createElement("h4");
+            entriesTitle.textContent = "Context Items";
+            entriesTitle.className = "ai-context-section-title";
+            entriesSection.appendChild(entriesTitle);
+
+            const sortedEntries = [...contextData.entries].sort(
+              (a, b) =>
+                (b.lastModified || b.created) - (a.lastModified || a.created)
+            );
+
+            sortedEntries.forEach((entry) => {
+              const entryItem = createContextEntry(
+                entry,
+                domain,
+                chatId,
+                async (text) => {
+                  const storage = await import("../storage/contextStorage");
+                  await storage.deleteContext(domain, chatId, entry.id);
+                  await refreshOverlayContent(overlayPanel);
+                },
+                async (id, newLabel) => {
+                  const storage = await import("../storage/contextStorage");
+                  await storage.updateContext(
+                    domain,
+                    chatId,
+                    entry.text,
+                    newLabel
+                  );
+                  await refreshOverlayContent(overlayPanel);
+                }
+              );
+              entriesSection.appendChild(entryItem);
+            });
+
+            contextSection.appendChild(entriesSection);
+          }
         } catch (error) {
           console.error("Error adding to context:", error);
         }

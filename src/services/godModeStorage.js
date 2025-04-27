@@ -42,6 +42,19 @@ class GodModeStorage {
         return;
       }
 
+      // Validate log content
+      if (!log || !log.content || typeof log.content !== "string") {
+        console.warn("[AI Context Vault] Invalid log content:", log);
+        return;
+      }
+
+      // Trim and validate content
+      const trimmedContent = log.content.trim();
+      if (!trimmedContent) {
+        console.warn("[AI Context Vault] Empty log content after trimming");
+        return;
+      }
+
       const logs = localStorage.getItem(this.storageKey);
       const allLogs = logs ? JSON.parse(logs) : {};
       const chatLogs = allLogs[chatId] || { chatId, summary: "", entries: [] };
@@ -50,15 +63,15 @@ class GodModeStorage {
       const recentLogs = chatLogs.entries;
       const isDuplicate = recentLogs.some(
         (existingLog) =>
-          existingLog.content === log.content && existingLog.type === log.type
+          existingLog.text === trimmedContent && existingLog.type === log.type
       );
 
       if (!isDuplicate) {
         chatLogs.entries.push({
           id: `entry_${Date.now()}`,
-          text: log.content,
+          text: trimmedContent,
           type: log.type,
-          metadata: log.metadata,
+          metadata: log.metadata || {},
           created: Date.now(),
           lastModified: Date.now(),
         });

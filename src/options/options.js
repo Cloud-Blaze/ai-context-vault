@@ -368,6 +368,12 @@ export async function createOrUpdateGist(callbackFunc) {
       // 1) Gather data from the new chrome.storage local approach
       const data = await gatherAllContextData();
 
+      // Fetch God Mode logs
+      const godModeLogs = localStorage.getItem("godModeLogs");
+      if (godModeLogs) {
+        data.godModeLogs = JSON.parse(godModeLogs);
+      }
+
       // 2) Build gist payload
       const gistPayload = {
         description: "AI Context Vault Sync",
@@ -494,8 +500,13 @@ export async function createOrUpdateGodModeGist(callbackFunc) {
           }
 
           // 1) Gather data from the new chrome.storage local approach
-          //todo fetch
-          const data = {}; //todo god mode cached localdata
+          const data = {};
+
+          // Fetch God Mode logs
+          const godModeLogs = localStorage.getItem("godModeLogs");
+          if (godModeLogs) {
+            data.godModeLogs = JSON.parse(godModeLogs);
+          }
 
           // 2) Build gist payload
           const gistPayload = {
