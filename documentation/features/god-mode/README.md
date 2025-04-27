@@ -21,7 +21,7 @@ This isn't just another feature. This is your **digital memory palace**. Every t
 - ✅ Every AI response, raw and unfiltered
 - ✅ Every deleted thread, every lost context
 - ✅ Every emotional inflection, every creative spark
-- ✅ Every fucking thing that matters
+- ✅ Everything that matters
 
 ### 🧪 The Sacred Archive
 
@@ -31,7 +31,7 @@ This isn't just data. This is your **thought process**. Your creative highs. You
 
 1. Check that box in `Options.html` — "Oracle God Mode Tracker"
 2. Let it run. It's always watching, always recording
-3. Hit `CMD+G` when you need to see the full context
+3. Hit `CMD+G` or `CTRL+G` when you need to see the full context
 4. Watch as your entire conversation history unfolds
 
 ### 🛡️ Your Data, Your Rules
@@ -45,7 +45,7 @@ This isn't just data. This is your **thought process**. Your creative highs. You
 
 This is just the beginning. When the APIs open up...
 
-- 🔄 Automatic context injection when Sam deletes shit
+- 🔄 Automatic context injection when Sam deletes stuff
 - 🎯 Smart replay of lost conversations
 - 🧠 Context-aware memory restoration
 - ⚡ Real-time sync with your thought process
