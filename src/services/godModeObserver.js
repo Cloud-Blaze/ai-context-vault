@@ -96,7 +96,7 @@ export class GodModeObserver {
 
     const { domain, chatId } = this.parseUrlForIds(window.location.href);
     if (!chatId) return;
-
+    console.error("mutations!!!", mutations);
     for (const mutation of mutations) {
       const addedNodes = Array.from(mutation.addedNodes);
       for (const node of addedNodes) {
@@ -104,6 +104,7 @@ export class GodModeObserver {
           const containers = this.adapter.identifyMessageContainers(node);
           for (const container of containers) {
             const content = this.adapter.extractMessageContent(container);
+            console.trace(content, "content");
             if (content) {
               const metadata = this.adapter.getMessageMetadata(container);
               await GodModeObserver.storage.addLog({

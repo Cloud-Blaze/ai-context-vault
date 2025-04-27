@@ -425,6 +425,7 @@ async function refreshOverlayContent(overlayPanel) {
     });
 
     logs.entries.reverse().forEach((entry) => {
+      console.debug("entry", entry);
       const logEntry = document.createElement("div");
       logEntry.className = "ai-context-godmode-entry";
       Object.assign(logEntry.style, {
@@ -485,32 +486,70 @@ async function refreshOverlayContent(overlayPanel) {
         imageContainer.appendChild(image);
         imageContainer.appendChild(imageText);
         text.appendChild(imageContainer);
-      } else if (entry.text.includes("<pre") || entry.text.includes("```")) {
-        // Handle code blocks
-        console.log("[AI Context Vault] Found code block in entry:", {
+      } else if (entry.metadata?.codeBlock) {
+        // Handle ChatGPT article structure and code blocks
+        console.log("[AI Context Vault] Found structured content:", {
           type: entry.type,
-          textPreview: entry.text.substring(0, 100) + "...",
+          hasArticle: entry.text.includes("<article"),
+          hasPre: entry.text.includes("<pre"),
+          hasCodeBlocks: entry.text.includes("```"),
+          textLength: entry.text.length,
+          textPreview: entry.text.substring(0, 200) + "...",
         });
 
-        const codeContainer = document.createElement("div");
-        codeContainer.style.marginBottom = "8px";
-        codeContainer.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
-        codeContainer.style.padding = "8px";
-        codeContainer.style.borderRadius = "4px";
-        codeContainer.style.fontFamily = "monospace";
-        codeContainer.style.whiteSpace = "pre-wrap";
-        codeContainer.style.overflowX = "auto";
+        // Create a container for the structured content
+        const contentContainer = document.createElement("div");
+        contentContainer.style.marginBottom = "8px";
 
-        // Extract code content
-        let codeContent = entry.text;
-        if (codeContent.includes("```")) {
-          codeContent = codeContent.replace(/```[\s\S]*?```/g, (match) => {
-            return match.replace(/```.*?\n/, "").replace(/```$/, "");
-          });
+        // Process the content
+        const lines = entry.text.split("\n");
+        console.log("[AI Context Vault] Processing lines:", {
+          lineCount: lines.length,
+          firstFewLines: lines.slice(0, 3),
+        });
+
+        for (const line of lines) {
+          if (line.trim() === "") continue;
+
+          // Handle code blocks from metadata
+          if (entry.metadata?.codeBlock) {
+            // Add the text line as a separate div
+            const textLine = document.createElement("div");
+            textLine.textContent = line;
+            textLine.style.marginBottom = "4px";
+            textLine.style.color = "rgb(74, 222, 128)";
+            contentContainer.appendChild(textLine);
+
+            // Add the code block in a separate container
+            const codeContainer = document.createElement("div");
+            codeContainer.style.marginBottom = "8px";
+            codeContainer.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
+            codeContainer.style.padding = "8px";
+            codeContainer.style.borderRadius = "4px";
+            codeContainer.style.fontFamily = "monospace";
+            codeContainer.style.whiteSpace = "pre-wrap";
+            codeContainer.style.overflowX = "auto";
+
+            const codeContent = entry.metadata.codeBlock.content;
+            codeContainer.textContent = codeContent.substring(0, 100) + "...";
+            contentContainer.appendChild(codeContainer);
+          } else {
+            // Handle regular text
+            const textLine = document.createElement("div");
+            textLine.textContent = line;
+            textLine.style.marginBottom = "4px";
+            contentContainer.appendChild(textLine);
+          }
         }
 
-        codeContainer.textContent = codeContent;
-        text.appendChild(codeContainer);
+        console.log("[AI Context Vault] Final content container:", {
+          childCount: contentContainer.children.length,
+          hasCodeBlocks: contentContainer.querySelectorAll(
+            'div[style*="monospace"]'
+          ).length,
+        });
+
+        text.appendChild(contentContainer);
       } else {
         text.textContent = entry.text;
       }
@@ -563,8 +602,12 @@ async function refreshOverlayContent(overlayPanel) {
           try {
             const { domain, chatId } = parseUrlForIds(window.location.href);
 
-            // Only add the text content, not the entire log entry
-            const textToAdd = entry.text;
+            // Get the full content including code blocks
+            let textToAdd = entry.text;
+            if (entry.metadata?.codeBlock) {
+              textToAdd += "\n\n" + entry.metadata.codeBlock.content;
+            }
+
             if (!textToAdd || textToAdd.trim() === "") {
               console.warn(
                 "[AI Context Vault] No text content to add to context"
@@ -1328,6 +1371,9 @@ const chatgptConfig = {
     userMessage: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
     aiMessage: 'div[data-message-author-role="assistant"]',
     aiText: ".markdown.prose p",
+    codeBlock: "pre",
+    codeContent: "code",
+    codeLanguage: "div.flex.items-center",
     imageGen: ".group\\/imagegen-image",
     imageUrl: "img",
     messageId: "[data-message-id]",
@@ -1335,8 +1381,42 @@ const chatgptConfig = {
   },
   extractors: {
     userText: (element) => element.textContent.trim(),
-    aiText: (element) =>
-      element.querySelector(chatgptConfig.selectors.aiText)?.textContent.trim(),
+    aiText: (element) => {
+      const text = element
+        .querySelector(chatgptConfig.selectors.aiText)
+        ?.textContent.trim();
+      console.log("[AI Context Vault] Extracting AI text:", { text });
+      return text;
+    },
+    codeBlock: (element) => {
+      const preElement = element.querySelector(
+        chatgptConfig.selectors.codeBlock
+      );
+      if (!preElement) return null;
+
+      const codeElement = preElement.querySelector(
+        chatgptConfig.selectors.codeContent
+      );
+      const languageElement = preElement.querySelector(
+        chatgptConfig.selectors.codeLanguage
+      );
+
+      console.log("[AI Context Vault] Found code block:", {
+        hasPre: !!preElement,
+        hasCode: !!codeElement,
+        hasLanguage: !!languageElement,
+        language: languageElement?.textContent.trim(),
+        content: codeElement?.textContent.trim(),
+      });
+
+      if (!codeElement) return null;
+
+      return {
+        language: languageElement?.textContent.trim() || "text",
+        content: codeElement.textContent.trim(),
+        html: codeElement.innerHTML,
+      };
+    },
     imageUrl: async (element) => {
       const imgElement = element.querySelector(
         chatgptConfig.selectors.imageUrl
@@ -1357,10 +1437,7 @@ const chatgptConfig = {
         return null;
       }
     },
-    messageId: (element) =>
-      element
-        .closest(chatgptConfig.selectors.messageId)
-        ?.getAttribute("data-message-id"),
+    messageId: (element) => element.getAttribute("data-message-id"),
     modelSlug: (element) => element.getAttribute("data-message-model-slug"),
   },
 };
@@ -1393,12 +1470,16 @@ function setupGodModeObserver() {
     if (!chatId) return;
 
     for (const mutation of mutations) {
-      if (
-        mutation &&
-        mutation.type === "childList" &&
-        mutation.addedNodes &&
-        mutation.addedNodes.length > 0
-      ) {
+      console.log("[AI Context Vault] Mutation observed:", {
+        type: mutation.type,
+        target: mutation.target,
+        addedNodes: mutation.addedNodes.length,
+        removedNodes: mutation.removedNodes.length,
+        characterData: mutation.type === "characterData",
+        attributeName: mutation.attributeName,
+      });
+
+      if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
         for (const node of mutation.addedNodes) {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // Look for user messages
@@ -1408,6 +1489,7 @@ function setupGodModeObserver() {
             for (const message of userMessages) {
               const text = providerConfig.extractors.userText(message);
               if (text) {
+                console.log("[AI Context Vault] Found user message:", { text });
                 await storage.addLog(chatId, {
                   type: "input",
                   content: text,
@@ -1426,64 +1508,70 @@ function setupGodModeObserver() {
               providerConfig.selectors.aiMessage
             );
             for (const message of aiMessages) {
-              // Check for regular text responses
-              const text = providerConfig.extractors.aiText(message);
+              console.debug(
+                "[AI Context Vault] Processing AI message:",
+                message
+              );
+
+              // Get message ID and model
+              const messageId = providerConfig.extractors.messageId(message);
+              const model = providerConfig.extractors.modelSlug(message);
+
+              // Check for code blocks
+              const codeBlock = providerConfig.extractors.codeBlock(message);
 
               // Check for image generations
               const imageGen = message.querySelector(
                 providerConfig.selectors.imageGen
               );
 
-              if (text) {
-                await storage.addLog(chatId, {
-                  type: "output",
-                  content: text,
-                  metadata: {
-                    url: window.location.href,
-                    timestamp: new Date().toISOString(),
-                    messageId: providerConfig.extractors.messageId(message),
-                    model: providerConfig.extractors.modelSlug(message),
-                    provider: providerConfig.name,
-                  },
-                });
-              } else if (imageGen) {
+              // Get the main text content
+              const text = providerConfig.extractors.aiText(message);
+
+              // Create the base log entry
+              const logEntry = {
+                type: "output",
+                content: text || "",
+                metadata: {
+                  url: window.location.href,
+                  timestamp: new Date().toISOString(),
+                  messageId,
+                  model,
+                  provider: providerConfig.name,
+                },
+              };
+
+              // Add code block if present
+              if (codeBlock) {
+                logEntry.metadata.codeBlock = {
+                  language: codeBlock.language,
+                  content: codeBlock.content,
+                };
+              }
+
+              // Handle image generation
+              if (imageGen) {
                 try {
                   const imageData = await providerConfig.extractors.imageUrl(
                     imageGen
                   );
                   if (imageData) {
-                    await storage.addLog(chatId, {
-                      type: "output",
-                      content: "Generated image",
-                      metadata: {
-                        url: window.location.href,
-                        timestamp: new Date().toISOString(),
-                        messageId: providerConfig.extractors.messageId(message),
-                        model: providerConfig.extractors.modelSlug(message),
-                        imageUrl: imageData.url,
-                        imageBlob: imageData.blob,
-                        imageType: imageData.type,
-                        imageSize: imageData.size,
-                        isImageGeneration: true,
-                        provider: providerConfig.name,
-                      },
-                    });
+                    logEntry.metadata.imageUrl = imageData.url;
+                    logEntry.metadata.imageBlob = imageData.blob;
+                    logEntry.metadata.imageType = imageData.type;
+                    logEntry.metadata.imageSize = imageData.size;
+                    logEntry.metadata.isImageGeneration = true;
                   }
                 } catch (error) {
-                  console.error("Error processing image:", error);
-                  // Continue with other messages even if image processing fails
+                  console.error(
+                    "[AI Context Vault] Error processing image:",
+                    error
+                  );
                 }
               }
-            }
 
-            // Refresh the overlay content if we found any messages
-            if (userMessages.length > 0 || aiMessages.length > 0) {
-              const overlayPanel = document.getElementById(
-                "__ai_context_overlay__"
-              );
-              if (overlayPanel) {
-                refreshOverlayContent(overlayPanel);
-              }
+              // Add the log entry
+              await storage.addLog(chatId, logEntry);
             }
           }
         }
@@ -1491,9 +1579,18 @@ function setupGodModeObserver() {
     }
   });
 
+  // Configure observer to watch for all relevant changes
   observer.observe(document.body, {
-    childList: true,
-    subtree: true,
+    childList: true, // Watch for nodes being added/removed
+    subtree: true, // Watch all descendants
+    characterData: true, // Watch for text changes
+    attributes: true, // Watch for attribute changes
+    attributeFilter: [
+      // Only watch these specific attributes
+      "data-message-id",
+      "data-message-model-slug",
+      "data-message-author-role",
+    ],
   });
 
   return observer;
