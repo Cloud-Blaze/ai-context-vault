@@ -454,10 +454,66 @@ async function refreshOverlayContent(overlayPanel) {
       ).toLocaleTimeString();
 
       const text = document.createElement("div");
-      text.textContent = entry.text;
       text.style.fontSize = "13px";
       text.style.whiteSpace = "pre-wrap";
       text.style.color = "#fff";
+
+      // Handle image generation entries
+      if (entry.type === "output" && entry.metadata?.imageUrl) {
+        console.log("[AI Context Vault] Found image generation entry:", {
+          type: entry.type,
+          metadata: entry.metadata,
+          hasImageUrl: !!entry.metadata.imageUrl,
+          hasImageBlob: !!entry.metadata.imageBlob,
+        });
+
+        const imageContainer = document.createElement("div");
+        imageContainer.style.marginBottom = "8px";
+
+        const image = document.createElement("img");
+        image.src = entry.metadata.imageUrl;
+        image.alt = "Generated image";
+        image.style.maxWidth = "100%";
+        image.style.borderRadius = "8px";
+        image.style.marginBottom = "4px";
+
+        const imageText = document.createElement("div");
+        imageText.textContent = "Generated image";
+        imageText.style.fontSize = "12px";
+        imageText.style.color = "#999";
+
+        imageContainer.appendChild(image);
+        imageContainer.appendChild(imageText);
+        text.appendChild(imageContainer);
+      } else if (entry.text.includes("<pre") || entry.text.includes("```")) {
+        // Handle code blocks
+        console.log("[AI Context Vault] Found code block in entry:", {
+          type: entry.type,
+          textPreview: entry.text.substring(0, 100) + "...",
+        });
+
+        const codeContainer = document.createElement("div");
+        codeContainer.style.marginBottom = "8px";
+        codeContainer.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
+        codeContainer.style.padding = "8px";
+        codeContainer.style.borderRadius = "4px";
+        codeContainer.style.fontFamily = "monospace";
+        codeContainer.style.whiteSpace = "pre-wrap";
+        codeContainer.style.overflowX = "auto";
+
+        // Extract code content
+        let codeContent = entry.text;
+        if (codeContent.includes("```")) {
+          codeContent = codeContent.replace(/```[\s\S]*?```/g, (match) => {
+            return match.replace(/```.*?\n/, "").replace(/```$/, "");
+          });
+        }
+
+        codeContainer.textContent = codeContent;
+        text.appendChild(codeContainer);
+      } else {
+        text.textContent = entry.text;
+      }
 
       // Check if text is already in context
       const isInContext = contextData?.entries?.some(
@@ -475,8 +531,11 @@ async function refreshOverlayContent(overlayPanel) {
       logEntry.appendChild(header);
       logEntry.appendChild(textContainer);
 
-      // Only add the button if the text isn't already in context
-      if (!isInContext) {
+      // Only add the button if the text isn't already in context and it's not an image
+      if (
+        !isInContext &&
+        !(entry.type === "output" && entry.metadata?.imageUrl)
+      ) {
         const addToContextButton = document.createElement("button");
         addToContextButton.textContent = "Add to Context";
         Object.assign(addToContextButton.style, {
