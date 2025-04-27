@@ -11,16 +11,6 @@
   - 📜 `#oracle-log-viewer`
 - Uses basic styles for dark overlay
 
----
-
-### 🧠 Next up:
-
-Do you want me to dump:
-
-- `log-viewer.js` for scrollable Markdown-ified logs?
-- `search.js` for fuzzy keyword live filtering?
-- `export.js` to save chat history as `.md` or `.json`?
-
 ```
 // src/ui/components/oracle-viewer/index.js
 
