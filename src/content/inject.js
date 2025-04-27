@@ -471,7 +471,7 @@ async function refreshOverlayContent(overlayPanel) {
         const imageContainer = document.createElement("div");
         imageContainer.style.marginBottom = "8px";
 
-        const image = document.createElement("img");
+        const image = document.createElement('img[alt="Generated image"]');
         image.src = entry.metadata.imageUrl;
         image.alt = "Generated image";
         image.style.maxWidth = "100%";
@@ -1369,13 +1369,12 @@ const chatgptConfig = {
   name: "chatgpt",
   selectors: {
     userMessage: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
-    aiMessage: 'div[data-message-author-role="assistant"]',
+    aiMessage: "article",
     aiText: ".markdown.prose p",
     codeBlock: "pre",
     codeContent: "code",
     codeLanguage: "div.flex.items-center",
-    imageGen: ".group\\/imagegen-image",
-    imageUrl: "img",
+    imageUrl: 'img[alt="Generated image"]',
     messageId: "[data-message-id]",
     modelSlug: "[data-message-model-slug]",
   },
@@ -1418,22 +1417,42 @@ const chatgptConfig = {
       };
     },
     imageUrl: async (element) => {
-      const imgElement = element.querySelector(
-        chatgptConfig.selectors.imageUrl
+      // Find all images under main
+      const imgElements = document.querySelectorAll(
+        'img[alt="Generated image"]'
       );
-      if (!imgElement?.src) return null;
+
+      if (!imgElements.length) {
+        console.error("[AI Context Vault] No images found");
+        return null;
+      }
+
+      // Get the first visible image
+      const visibleImg = Array.from(imgElements).find((img) => {
+        const style = window.getComputedStyle(img);
+        return parseFloat(style.opacity) > 0;
+      });
+
+      if (!visibleImg?.src) {
+        console.error("[AI Context Vault] No visible image found");
+        return null;
+      }
 
       try {
-        const response = await fetch(imgElement.src);
+        console.log(
+          "[AI Context Vault] Fetching image from URL:",
+          visibleImg.src
+        );
+        const response = await fetch(visibleImg.src);
         const blob = await response.blob();
         return {
-          url: imgElement.src,
+          url: visibleImg.src,
           blob: blob,
           type: blob.type,
           size: blob.size,
         };
       } catch (error) {
-        console.error("Error fetching image:", error);
+        console.error("[AI Context Vault] Error fetching image:", error);
         return null;
       }
     },
@@ -1478,10 +1497,66 @@ function setupGodModeObserver() {
         characterData: mutation.type === "characterData",
         attributeName: mutation.attributeName,
       });
-
       if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
         for (const node of mutation.addedNodes) {
           if (node.nodeType === Node.ELEMENT_NODE) {
+            // Check for images
+            const images = document.querySelectorAll(
+              'img[alt="Generated image"]'
+            );
+            for (const image of images) {
+              const parentMessage = image.closest(
+                providerConfig.selectors.aiMessage
+              );
+              if (parentMessage) {
+                const messageId =
+                  providerConfig.extractors.messageId(parentMessage);
+                const model =
+                  providerConfig.extractors.modelSlug(parentMessage);
+                const text = providerConfig.extractors.aiText(parentMessage);
+                const codeBlock =
+                  providerConfig.extractors.codeBlock(parentMessage);
+
+                try {
+                  const imageData = await providerConfig.extractors.imageUrl(
+                    parentMessage
+                  );
+                  console.debug(imageData, "imageData");
+                  if (imageData) {
+                    const logEntry = {
+                      type: "output",
+                      content: text || "",
+                      metadata: {
+                        timestamp: new Date().toISOString(),
+                        messageId,
+                        model,
+                        provider: providerConfig.name,
+                        imageUrl: imageData.url,
+                        imageBlob: imageData.blob,
+                        imageType: imageData.type,
+                        imageSize: imageData.size,
+                        isImageGeneration: true,
+                      },
+                    };
+
+                    if (codeBlock) {
+                      logEntry.metadata.codeBlock = {
+                        language: codeBlock.language,
+                        content: codeBlock.content,
+                      };
+                    }
+
+                    await storage.addLog(chatId, logEntry);
+                  }
+                } catch (error) {
+                  console.error(
+                    "[AI Context Vault] Error processing image:",
+                    error
+                  );
+                }
+              }
+            }
+
             // Look for user messages
             const userMessages = node.querySelectorAll(
               providerConfig.selectors.userMessage
@@ -1494,7 +1569,6 @@ function setupGodModeObserver() {
                   type: "input",
                   content: text,
                   metadata: {
-                    url: window.location.href,
                     timestamp: new Date().toISOString(),
                     messageId: providerConfig.extractors.messageId(message),
                     provider: providerConfig.name,
@@ -1503,37 +1577,30 @@ function setupGodModeObserver() {
               }
             }
 
-            // Look for AI responses
+            // Look for AI responses that don't have images
             const aiMessages = node.querySelectorAll(
               providerConfig.selectors.aiMessage
             );
             for (const message of aiMessages) {
+              // Skip if this message has an image
+              if (message.querySelector('img[alt="Generated image"]')) {
+                continue;
+              }
+
               console.debug(
                 "[AI Context Vault] Processing AI message:",
                 message
               );
 
-              // Get message ID and model
               const messageId = providerConfig.extractors.messageId(message);
               const model = providerConfig.extractors.modelSlug(message);
-
-              // Check for code blocks
               const codeBlock = providerConfig.extractors.codeBlock(message);
-
-              // Check for image generations
-              const imageGen = message.querySelector(
-                providerConfig.selectors.imageGen
-              );
-
-              // Get the main text content
               const text = providerConfig.extractors.aiText(message);
 
-              // Create the base log entry
               const logEntry = {
                 type: "output",
                 content: text || "",
                 metadata: {
-                  url: window.location.href,
                   timestamp: new Date().toISOString(),
                   messageId,
                   model,
@@ -1541,7 +1608,6 @@ function setupGodModeObserver() {
                 },
               };
 
-              // Add code block if present
               if (codeBlock) {
                 logEntry.metadata.codeBlock = {
                   language: codeBlock.language,
@@ -1549,28 +1615,6 @@ function setupGodModeObserver() {
                 };
               }
 
-              // Handle image generation
-              if (imageGen) {
-                try {
-                  const imageData = await providerConfig.extractors.imageUrl(
-                    imageGen
-                  );
-                  if (imageData) {
-                    logEntry.metadata.imageUrl = imageData.url;
-                    logEntry.metadata.imageBlob = imageData.blob;
-                    logEntry.metadata.imageType = imageData.type;
-                    logEntry.metadata.imageSize = imageData.size;
-                    logEntry.metadata.isImageGeneration = true;
-                  }
-                } catch (error) {
-                  console.error(
-                    "[AI Context Vault] Error processing image:",
-                    error
-                  );
-                }
-              }
-
-              // Add the log entry
               await storage.addLog(chatId, logEntry);
             }
           }
@@ -1581,12 +1625,11 @@ function setupGodModeObserver() {
 
   // Configure observer to watch for all relevant changes
   observer.observe(document.body, {
-    childList: true, // Watch for nodes being added/removed
-    subtree: true, // Watch all descendants
-    characterData: true, // Watch for text changes
-    attributes: true, // Watch for attribute changes
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
     attributeFilter: [
-      // Only watch these specific attributes
       "data-message-id",
       "data-message-model-slug",
       "data-message-author-role",
