@@ -10,20 +10,47 @@ function OptionsPage() {
   const [pat, setPat] = useState("");
   const [gistUrl, setGistUrl] = useState("");
   const [, setNothing] = useState("");
+  const [enableGodMode, setEnableGodMode] = useState(false);
+  const [godModePat, setGodModePat] = useState("");
+  const [godModeGistUrl, setGodModeGistUrl] = useState("");
 
   useEffect(() => {
     // Load both encrypted PAT and gistURL from chrome.storage.local
-    chrome.storage.local.get(["encryptedPAT", "gistURL"], async (res) => {
-      if (res.encryptedPAT) {
-        try {
-          const decryptedPAT = await decryptPAT(res.encryptedPAT);
-          setPat(decryptedPAT);
-        } catch (error) {
-          console.error("[AI Context Vault] Failed to decrypt PAT:", error);
+    chrome.storage.local.get(
+      [
+        "encryptedPAT",
+        "gistURL",
+        "godModeEnabled",
+        "godModeEncryptedPAT",
+        "godModeGistURL",
+      ],
+      async (res) => {
+        if (res.encryptedPAT) {
+          try {
+            const decryptedPAT = await decryptPAT(res.encryptedPAT);
+            setPat(decryptedPAT);
+          } catch (error) {
+            console.error("[AI Context Vault] Failed to decrypt PAT:", error);
+          }
         }
+        if (res.gistURL) setGistUrl(res.gistURL);
+        if (res.godModeEnabled) setEnableGodMode(res.godModeEnabled);
+        if (res.godModeEncryptedPAT) {
+          try {
+            const decryptedGodModePAT = await decryptPAT(
+              res.godModeEncryptedPAT
+            );
+            setGodModePat(decryptedGodModePAT);
+          } catch (error) {
+            console.error(
+              "[AI Context Vault] Failed to decrypt God Mode PAT:",
+              error
+            );
+          }
+        }
+        if (res.godModeGistURL) setGodModeGistUrl(res.godModeGistURL);
       }
-      if (res.gistURL) setGistUrl(res.gistURL);
-    });
+    );
   }, []);
 
   const handleManualPAT = async (pat) => {
@@ -42,6 +69,43 @@ function OptionsPage() {
       console.error("[AI Context Vault] Failed to encrypt PAT:", error);
       alert("Failed to save PAT. Please try again.");
     }
+  };
+
+  const handleGodModeToggle = async (enabled) => {
+    setEnableGodMode(enabled);
+    chrome.storage.local.set({ godModeEnabled: enabled });
+  };
+
+  const handleGodModePAT = async (pat) => {
+    if (!pat || pat.length < 10) {
+      alert("Please provide a valid God Mode PAT token");
+      return;
+    }
+
+    try {
+      const encryptedData = await encryptPAT(pat);
+      chrome.storage.local.set({ godModeEncryptedPAT: encryptedData }, () => {
+        console.log("[AI Context Vault] Saved encrypted God Mode GitHub PAT");
+        alert("God Mode GitHub PAT saved!");
+      });
+    } catch (error) {
+      console.error(
+        "[AI Context Vault] Failed to encrypt God Mode PAT:",
+        error
+      );
+      alert("Failed to save God Mode PAT. Please try again.");
+    }
+  };
+
+  const handleGodModeGistUrl = (url) => {
+    if (!url) {
+      alert("Please provide a valid Gist URL");
+      return;
+    }
+    chrome.storage.local.set({ godModeGistURL: url }, () => {
+      console.log("[AI Context Vault] Saved God Mode Gist URL");
+      alert("God Mode Gist URL saved!");
+    });
   };
 
   return (
@@ -84,6 +148,59 @@ function OptionsPage() {
         style={{ width: 400, marginRight: 8 }}
       />
       <button onClick={() => saveGistURL(gistUrl)}>Save Gist URL</button>
+
+      <hr />
+
+      <h2>God Mode Settings</h2>
+      <div>
+        <label>
+          <input
+            type="checkbox"
+            id="enableGodMode"
+            checked={enableGodMode}
+            onChange={(e) => handleGodModeToggle(e.target.checked)}
+          />
+          Enable God Mode (Track potentially deleted requests and responses)
+        </label>
+      </div>
+
+      {enableGodMode && (
+        <div style={{ marginTop: 15 }}>
+          <div style={{ marginBottom: 15 }}>
+            <label htmlFor="godModePat">GitHub PAT for God Mode:</label>
+            <input
+              id="godModePat"
+              type="password"
+              className="input"
+              value={godModePat}
+              onChange={(e) => setGodModePat(e.target.value)}
+              placeholder="Enter GitHub PAT for God Mode"
+              style={{ width: 300, marginRight: 8 }}
+            />
+            <button
+              className="button"
+              onClick={() => handleGodModePAT(godModePat)}
+            >
+              Save God Mode Token
+            </button>
+          </div>
+          <div>
+            <label htmlFor="godModeGistUrl">God Mode Gist URL:</label>
+            <input
+              id="godModeGistUrl"
+              type="text"
+              className="input"
+              value={godModeGistUrl}
+              onChange={(e) => setGodModeGistUrl(e.target.value)}
+              placeholder="Enter Gist URL for God Mode (must be different from main context)"
+              style={{ width: 400, marginRight: 8 }}
+            />
+            <button onClick={() => handleGodModeGistUrl(godModeGistUrl)}>
+              Save God Mode Gist URL
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
