@@ -167,8 +167,13 @@ function OptionsPage() {
       // If God Mode Gist URL is empty, try to use the main Gist URL
       chrome.storage.local.get(["gistURL"], (res) => {
         if (res.gistURL) {
-          chrome.storage.local.set({ godModeGistURL: res.gistURL }, () => {
-            console.log("[AI Context Vault] Using main Gist URL for God Mode");
+          // Add a suffix to make it different from the main context Gist URL
+          const godModeGistUrl = `${res.gistURL}-god-mode`;
+          chrome.storage.local.set({ godModeGistURL: godModeGistUrl }, () => {
+            console.log(
+              "[AI Context Vault] Using modified main Gist URL for God Mode"
+            );
+            setGodModeGistUrl(godModeGistUrl);
           });
         } else {
           alert(
@@ -190,7 +195,6 @@ function OptionsPage() {
 
       chrome.storage.local.set({ godModeGistURL: url }, () => {
         console.log("[AI Context Vault] Saved God Mode Gist URL");
-        alert("God Mode Gist URL saved");
       });
     });
   };
@@ -200,7 +204,7 @@ function OptionsPage() {
       <h1>AI Context Vault - Options</h1>
       <hr />
 
-      <h2>GitHub Gist Sync Settings</h2>
+      <h2>GitHub Gist Sync Context Settings</h2>
       <label htmlFor="pat">GitHub PAT:</label>
       <input
         id="pat"
