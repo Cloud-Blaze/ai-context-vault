@@ -12,6 +12,7 @@ import {
   getContextKey,
 } from "../storage/contextStorage";
 import "./inject.css";
+import { GodModeStorage } from "../services/godModeStorage.js";
 
 // Function to format timestamp in DD/MM HH:mm format
 function formatTimestamp(timestamp) {
@@ -144,13 +145,16 @@ async function refreshOverlayContent(overlayPanel) {
 
   const contextTab = document.createElement("button");
   const bookmarksTab = document.createElement("button");
+  const godModeTab = document.createElement("button");
 
   contextTab.textContent = "Context";
   bookmarksTab.textContent = "Bookmarks";
+  godModeTab.textContent = "God Mode";
 
   // Create sections first
   const contextSection = document.createElement("div");
   const bookmarksSection = document.createElement("div");
+  const godModeSection = document.createElement("div");
 
   // Get the last active tab from storage
   chrome.storage.local.get(["lastActiveTab"], (result) => {
@@ -158,52 +162,64 @@ async function refreshOverlayContent(overlayPanel) {
     if (lastActiveTab === "bookmarks") {
       contextTab.className = "ai-context-tab inactive";
       bookmarksTab.className = "ai-context-tab active";
+      godModeTab.className = "ai-context-tab inactive";
       contextSection.style.display = "none";
       bookmarksSection.style.display = "block";
+      godModeSection.style.display = "none";
+    } else if (lastActiveTab === "godmode") {
+      contextTab.className = "ai-context-tab inactive";
+      bookmarksTab.className = "ai-context-tab inactive";
+      godModeTab.className = "ai-context-tab active";
+      contextSection.style.display = "none";
+      bookmarksSection.style.display = "none";
+      godModeSection.style.display = "block";
     } else {
       contextTab.className = "ai-context-tab active";
       bookmarksTab.className = "ai-context-tab inactive";
+      godModeTab.className = "ai-context-tab inactive";
       contextSection.style.display = "block";
       bookmarksSection.style.display = "none";
-      // Show no context message if we're in context tab and there's no data
-      getContext(domain, chatId).then((contextData) => {
-        if (
-          !contextData ||
-          !contextData.entries ||
-          contextData.entries.length === 0
-        ) {
-          const noContext = document.createElement("p");
-          noContext.textContent =
-            "No context available for this chat. Highlight text and press CMD+I/CTRL+I to add context.";
-          noContext.style.color = "#999";
-          contextSection.appendChild(noContext);
-        }
-      });
+      godModeSection.style.display = "none";
     }
   });
 
   contextTab.onclick = () => {
     contextTab.className = "ai-context-tab active";
     bookmarksTab.className = "ai-context-tab inactive";
+    godModeTab.className = "ai-context-tab inactive";
     contextSection.style.display = "block";
     bookmarksSection.style.display = "none";
-    // Save the active tab state
+    godModeSection.style.display = "none";
     chrome.storage.local.set({ lastActiveTab: "context" });
   };
+
   bookmarksTab.onclick = () => {
     bookmarksTab.className = "ai-context-tab active";
     contextTab.className = "ai-context-tab inactive";
+    godModeTab.className = "ai-context-tab inactive";
     bookmarksSection.style.display = "block";
     contextSection.style.display = "none";
-    // Save the active tab state
+    godModeSection.style.display = "none";
     chrome.storage.local.set({ lastActiveTab: "bookmarks" });
+  };
+
+  godModeTab.onclick = () => {
+    godModeTab.className = "ai-context-tab active";
+    contextTab.className = "ai-context-tab inactive";
+    bookmarksTab.className = "ai-context-tab inactive";
+    godModeSection.style.display = "block";
+    contextSection.style.display = "none";
+    bookmarksSection.style.display = "none";
+    chrome.storage.local.set({ lastActiveTab: "godmode" });
   };
 
   tabsContainer.appendChild(contextTab);
   tabsContainer.appendChild(bookmarksTab);
+  tabsContainer.appendChild(godModeTab);
   contentContainer.appendChild(tabsContainer);
   contentContainer.appendChild(contextSection);
   contentContainer.appendChild(bookmarksSection);
+  contentContainer.appendChild(godModeSection);
 
   // Add Import/Export section to context section
   const importExportSection = document.createElement("div");
@@ -369,6 +385,64 @@ async function refreshOverlayContent(overlayPanel) {
       );
       bookmarksSection.appendChild(wrapper);
     });
+  }
+
+  // Add God Mode section
+  const storage = GodModeStorage.getInstance();
+  const logs = await storage.getLogs();
+
+  if (logs.length === 0) {
+    const noLogs = document.createElement("p");
+    noLogs.textContent = "No God Mode logs available yet.";
+    noLogs.style.color = "#999";
+    godModeSection.appendChild(noLogs);
+  } else {
+    const logsContainer = document.createElement("div");
+    logsContainer.className = "ai-context-godmode-logs";
+    Object.assign(logsContainer.style, {
+      maxHeight: "400px",
+      overflowY: "auto",
+      padding: "8px",
+    });
+
+    logs.reverse().forEach((log) => {
+      const entry = document.createElement("div");
+      entry.className = "ai-context-godmode-entry";
+      Object.assign(entry.style, {
+        padding: "8px",
+        marginBottom: "8px",
+        borderRadius: "4px",
+        backgroundColor: log.type === "input" ? "#f3f4f6" : "#fff",
+        border: "1px solid #e5e7eb",
+      });
+
+      const header = document.createElement("div");
+      header.style.display = "flex";
+      header.style.justifyContent = "space-between";
+      header.style.marginBottom = "4px";
+      header.style.fontSize = "12px";
+      header.style.color = "#6b7280";
+
+      const type = document.createElement("span");
+      type.textContent = log.type === "input" ? "User Input" : "AI Output";
+      type.style.fontWeight = "600";
+
+      const time = document.createElement("span");
+      time.textContent = new Date(log.metadata.timestamp).toLocaleTimeString();
+
+      const text = document.createElement("div");
+      text.textContent = log.content;
+      text.style.fontSize = "13px";
+      text.style.whiteSpace = "pre-wrap";
+
+      header.appendChild(type);
+      header.appendChild(time);
+      entry.appendChild(header);
+      entry.appendChild(text);
+      logsContainer.appendChild(entry);
+    });
+
+    godModeSection.appendChild(logsContainer);
   }
 
   console.log("[AI Context Vault] Refreshed overlay content with tabs");
@@ -700,7 +774,7 @@ function setupKeyboardShortcuts() {
   );
 }
 /**
- * Toggle the context overlay visibility with a settings cog to open options.html.
+ * Toggle the context overlay visibility with a settings cog to open index.html.
  */
 async function toggleOverlay() {
   const panel = await ensureOverlayExists();
@@ -1073,3 +1147,240 @@ export function scrollToBookmark(entry) {
     alert("Error resolving bookmark.");
   }
 }
+
+// God Mode History UI
+function createGodModeHistoryUI() {
+  const historyPanel = document.createElement("div");
+  historyPanel.id = "__ai_context_godmode_history__";
+  historyPanel.className = "ai-context-godmode-history";
+  Object.assign(historyPanel.style, {
+    position: "fixed",
+    bottom: "20px",
+    right: "20px",
+    width: "300px",
+    maxHeight: "400px",
+    backgroundColor: "#fff",
+    border: "1px solid #e5e7eb",
+    borderRadius: "8px",
+    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+    zIndex: "2147483647",
+    display: "none",
+    flexDirection: "column",
+    overflow: "hidden",
+  });
+
+  const header = document.createElement("div");
+  header.className = "ai-context-godmode-history-header";
+  Object.assign(header.style, {
+    padding: "12px",
+    borderBottom: "1px solid #e5e7eb",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  });
+
+  const title = document.createElement("h3");
+  title.textContent = "God Mode History";
+  title.style.margin = "0";
+  title.style.fontSize = "14px";
+  title.style.fontWeight = "600";
+
+  const closeButton = document.createElement("button");
+  closeButton.innerHTML = "×";
+  closeButton.style.background = "none";
+  closeButton.style.border = "none";
+  closeButton.style.fontSize = "20px";
+  closeButton.style.cursor = "pointer";
+  closeButton.style.padding = "0";
+  closeButton.style.width = "24px";
+  closeButton.style.height = "24px";
+  closeButton.style.display = "flex";
+  closeButton.style.alignItems = "center";
+  closeButton.style.justifyContent = "center";
+
+  const content = document.createElement("div");
+  content.className = "ai-context-godmode-history-content";
+  Object.assign(content.style, {
+    padding: "12px",
+    overflowY: "auto",
+    flex: "1",
+  });
+
+  header.appendChild(title);
+  header.appendChild(closeButton);
+  historyPanel.appendChild(header);
+  historyPanel.appendChild(content);
+
+  closeButton.addEventListener("click", () => {
+    historyPanel.style.display = "none";
+  });
+
+  document.body.appendChild(historyPanel);
+  return historyPanel;
+}
+
+// Mutation Observer for God Mode
+function setupGodModeObserver() {
+  const historyPanel = createGodModeHistoryUI();
+  const content = historyPanel.querySelector(
+    ".ai-context-godmode-history-content"
+  );
+  const storage = GodModeStorage.getInstance();
+
+  const observer = new MutationObserver(async (mutations) => {
+    const isGodModeEnabled = await storage.checkEnabledState();
+    if (!isGodModeEnabled) return;
+
+    for (const mutation of mutations) {
+      if (
+        mutation &&
+        mutation.type === "childList" &&
+        mutation.addedNodes &&
+        mutation.addedNodes.length > 0
+      ) {
+        // console.log("[God Mode] Detected DOM changes:", {
+        //   type: mutation.type,
+        //   addedNodes: mutation.addedNodes.length,
+        //   target: mutation.target,
+        // });
+
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // Look for AI responses
+            const aiResponses = node.querySelectorAll(
+              'div[class*="message"], div[class*="response"]'
+            );
+            for (const response of aiResponses) {
+              const text = response.textContent.trim();
+              if (text) {
+                await storage.addLog({
+                  type: "output",
+                  content: text,
+                  metadata: {
+                    url: window.location.href,
+                    timestamp: new Date().toISOString(),
+                  },
+                });
+                updateHistoryUI(content, storage);
+              }
+            }
+
+            // // Look for user inputs
+            // const userInputs = node.querySelectorAll(
+            //   'textarea, input[type="text"]'
+            // );
+            // for (const input of userInputs) {
+            //   input.addEventListener("change", async () => {
+            //     const text = input.value.trim();
+            //     if (text) {
+            //       await storage.addLog({
+            //         type: "input",
+            //         content: text,
+            //         metadata: {
+            //           url: window.location.href,
+            //           timestamp: new Date().toISOString(),
+            //         },
+            //       });
+            //       updateHistoryUI(content, storage);
+            //     }
+            //   });
+            // }
+          }
+        }
+      }
+    }
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+
+  return observer;
+}
+
+async function updateHistoryUI(content, storage) {
+  const logs = await storage.getLogs();
+  content.innerHTML = "";
+
+  logs.reverse().forEach((log) => {
+    const entry = document.createElement("div");
+    entry.className = "ai-context-godmode-history-entry";
+    Object.assign(entry.style, {
+      padding: "8px",
+      marginBottom: "8px",
+      borderRadius: "4px",
+      backgroundColor: log.type === "input" ? "#f3f4f6" : "#fff",
+      border: "1px solid #e5e7eb",
+    });
+
+    const header = document.createElement("div");
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.style.marginBottom = "4px";
+    header.style.fontSize = "12px";
+    header.style.color = "#6b7280";
+
+    const type = document.createElement("span");
+    type.textContent = log.type === "input" ? "User Input" : "AI Output";
+    type.style.fontWeight = "600";
+
+    const time = document.createElement("span");
+    time.textContent = new Date(log.metadata.timestamp).toLocaleTimeString();
+
+    const text = document.createElement("div");
+    text.textContent = log.content;
+    text.style.fontSize = "13px";
+    text.style.whiteSpace = "pre-wrap";
+
+    header.appendChild(type);
+    header.appendChild(time);
+    entry.appendChild(header);
+    entry.appendChild(text);
+    content.appendChild(entry);
+  });
+}
+
+// Initialize God Mode
+let godModeObserver = null;
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "GOD_MODE_STATE_CHANGED") {
+    if (message.enabled) {
+      if (!godModeObserver) {
+        godModeObserver = setupGodModeObserver();
+      }
+      const historyPanel = document.getElementById(
+        "__ai_context_godmode_history__"
+      );
+      if (historyPanel) {
+        historyPanel.style.display = "flex";
+      }
+    } else {
+      if (godModeObserver) {
+        godModeObserver.disconnect();
+        godModeObserver = null;
+      }
+      const historyPanel = document.getElementById(
+        "__ai_context_godmode_history__"
+      );
+      if (historyPanel) {
+        historyPanel.style.display = "none";
+      }
+    }
+  }
+});
+
+// Check initial God Mode state
+chrome.storage.local.get(["godModeEnabled"], async (result) => {
+  if (result.godModeEnabled) {
+    godModeObserver = setupGodModeObserver();
+    const historyPanel = document.getElementById(
+      "__ai_context_godmode_history__"
+    );
+
+    if (historyPanel) {
+      historyPanel.style.display = "flex";
+    }
+  }
+});
