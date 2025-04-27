@@ -43,20 +43,33 @@ class GodModeStorage {
       }
 
       // Validate log content
-      if (!log || !log.content || typeof log.content !== "string") {
+      if (
+        !log ||
+        (!log.content && !log.metadata?.imageUrl) ||
+        (log.content && typeof log.content !== "string")
+      ) {
         console.warn("[AI Context Vault] Invalid log content:", log);
         return;
       }
 
       // Trim and validate content
       const trimmedContent = log.content.trim();
-      if (!trimmedContent || trimmedContent === "" || trimmedContent === " ") {
+      if (
+        (!log.content && !log.metadata?.imageUrl && !trimmedContent) ||
+        (!log.content && !log.metadata?.imageUrl && trimmedContent === "") ||
+        (!log.content && !log.metadata?.imageUrl && trimmedContent === " ")
+      ) {
         console.warn("[AI Context Vault] Empty or whitespace-only log content");
         return;
       }
 
       // Additional validation for AI responses
-      if (log.type === "output" && trimmedContent === "Generated image") {
+      if (
+        !log.content &&
+        !log.metadata?.imageUrl &&
+        log.type === "output" &&
+        trimmedContent === "Generated image"
+      ) {
         // Only allow "Generated image" if there's actual image data
         if (!log.metadata?.imageUrl && !log.metadata?.imageBlob) {
           console.warn(

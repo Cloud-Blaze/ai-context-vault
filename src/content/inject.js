@@ -788,91 +788,120 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
   const textContainer = document.createElement("div");
   textContainer.className = "ai-context-entry-text";
 
-  const text = document.createElement("div");
-  text.textContent = entry.text;
+  // Handle image entries
+  if (
+    entry.metadata?.imageUrl &&
+    entry.metadata?.imageSize &&
+    entry.metadata.imageSize > 0
+  ) {
+    const imageContainer = document.createElement("div");
+    imageContainer.style.marginBottom = "8px";
 
-  const editTextarea = document.createElement("textarea");
-  editTextarea.value = entry.text;
-  editTextarea.className = "ai-context-entry-textarea";
+    const image = document.createElement("img");
+    image.src = entry.metadata.imageUrl;
+    image.alt = "Generated image";
+    image.style.maxWidth = "100%";
+    image.style.borderRadius = "8px";
+    image.style.marginBottom = "4px";
 
-  textContainer.appendChild(text);
-  textContainer.appendChild(editTextarea);
+    const imageText = document.createElement("div");
+    imageText.textContent = "Generated image";
+    imageText.style.fontSize = "12px";
+    imageText.style.color = "#999";
 
-  const buttonContainer = document.createElement("div");
-  buttonContainer.className = "ai-context-entry-buttons";
+    imageContainer.appendChild(image);
+    imageContainer.appendChild(imageText);
+    textContainer.appendChild(imageContainer);
+  }
 
-  const deleteButton = document.createElement("button");
-  deleteButton.textContent = "×";
-  deleteButton.className = "ai-context-button delete";
+  // Only add text elements if there's actual content
+  if (entry.content && entry.content.trim() !== "") {
+    const text = document.createElement("div");
+    text.textContent = entry.content;
 
-  const editButton = document.createElement("button");
-  editButton.innerHTML = "✎";
-  editButton.className = "ai-context-button edit";
+    const editTextarea = document.createElement("textarea");
+    editTextarea.value = entry.content;
+    editTextarea.className = "ai-context-entry-textarea";
 
-  editButton.addEventListener("click", async function () {
-    const isEditing = editTextarea.style.display === "block";
+    textContainer.appendChild(text);
+    textContainer.appendChild(editTextarea);
 
-    if (!isEditing) {
-      text.style.display = "none";
-      editTextarea.style.display = "block";
-      editButton.innerHTML = "✓";
+    const buttonContainer = document.createElement("div");
+    buttonContainer.className = "ai-context-entry-buttons";
 
-      const allEntries =
-        entryItem.parentElement.querySelectorAll(".ai-context-entry");
-      allEntries.forEach((e) => {
-        if (e !== entryItem) {
-          e.style.display = "none";
-        }
-      });
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "×";
+    deleteButton.className = "ai-context-button delete";
 
-      editTextarea.focus();
-    } else {
-      const newText = editTextarea.value.trim();
-      if (newText && newText !== entry.text) {
-        try {
-          const storage = await import("../storage/contextStorage");
-          await storage.updateContext(domain, chatId, entry.text, newText);
-          entry.text = newText;
-          text.textContent = newText;
-          showConfirmationBubble("Context updated successfully", "success");
+    const editButton = document.createElement("button");
+    editButton.innerHTML = "✎";
+    editButton.className = "ai-context-button edit";
 
-          // Update the import/export textarea with latest data
-          const updatedContextData = await getContext(domain, chatId);
-          const importExportTextarea = document.querySelector(
-            ".ai-context-import-export-textarea"
-          );
-          if (importExportTextarea) {
-            importExportTextarea.value = JSON.stringify(
-              updatedContextData,
-              null,
-              2
-            );
+    editButton.addEventListener("click", async function () {
+      const isEditing = editTextarea.style.display === "block";
+
+      if (!isEditing) {
+        text.style.display = "none";
+        editTextarea.style.display = "block";
+        editButton.innerHTML = "✓";
+
+        const allEntries =
+          entryItem.parentElement.querySelectorAll(".ai-context-entry");
+        allEntries.forEach((e) => {
+          if (e !== entryItem) {
+            e.style.display = "none";
           }
-        } catch (error) {
-          console.error("[AI Context Vault] Error updating context:", error);
-          showConfirmationBubble("Failed to update context", "error");
+        });
+
+        editTextarea.focus();
+      } else {
+        const newText = editTextarea.value.trim();
+        if (newText && newText !== entry.content) {
+          try {
+            const storage = await import("../storage/contextStorage");
+            await storage.updateContext(domain, chatId, entry.content, newText);
+            entry.content = newText;
+            text.textContent = newText;
+            showConfirmationBubble("Context updated successfully", "success");
+
+            // Update the import/export textarea with latest data
+            const updatedContextData = await getContext(domain, chatId);
+            const importExportTextarea = document.querySelector(
+              ".ai-context-import-export-textarea"
+            );
+            if (importExportTextarea) {
+              importExportTextarea.value = JSON.stringify(
+                updatedContextData,
+                null,
+                2
+              );
+            }
+          } catch (error) {
+            console.error("[AI Context Vault] Error updating context:", error);
+            showConfirmationBubble("Failed to update context", "error");
+          }
         }
+
+        text.style.display = "block";
+        editTextarea.style.display = "none";
+        editButton.innerHTML = "✎";
+
+        const allEntries =
+          entryItem.parentElement.querySelectorAll(".ai-context-entry");
+        allEntries.forEach((e) => {
+          e.style.display = "flex";
+        });
       }
+    });
 
-      text.style.display = "block";
-      editTextarea.style.display = "none";
-      editButton.innerHTML = "✎";
+    deleteButton.addEventListener("click", () => onDelete(entry.content));
 
-      const allEntries =
-        entryItem.parentElement.querySelectorAll(".ai-context-entry");
-      allEntries.forEach((e) => {
-        e.style.display = "flex";
-      });
-    }
-  });
+    buttonContainer.appendChild(deleteButton);
+    buttonContainer.appendChild(editButton);
+    entryItem.appendChild(buttonContainer);
+  }
 
-  deleteButton.addEventListener("click", () => onDelete(entry.text));
-
-  buttonContainer.appendChild(deleteButton);
-  buttonContainer.appendChild(editButton);
   entryItem.appendChild(textContainer);
-  entryItem.appendChild(buttonContainer);
-
   return entryItem;
 }
 
