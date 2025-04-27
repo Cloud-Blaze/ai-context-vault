@@ -857,8 +857,9 @@ function setupKeyboardShortcuts() {
         document.dispatchEvent(event);
       }
 
-      // ALT+I to save selected text
-      if ((event.ctrlKey || event.metaKey) && event.key === "i") {
+      // CMD+I or CTRL+I to save selected text
+      const isI = event.key.toLowerCase() === "i";
+      if ((isMac && event.metaKey && isI) || (!isMac && event.ctrlKey && isI)) {
         console.log("[AI Context Vault] Modifier+I - save selected text");
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -902,6 +903,7 @@ function setupKeyboardShortcuts() {
     true // Capture phase
   );
 }
+
 /**
  * Toggle the context overlay visibility with a settings cog to open index.html.
  */
@@ -1277,8 +1279,69 @@ export function scrollToBookmark(entry) {
   }
 }
 
+// Provider adapters
+const chatgptConfig = {
+  name: "chatgpt",
+  selectors: {
+    userMessage: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
+    aiMessage: 'div[data-message-author-role="assistant"]',
+    aiText: ".markdown.prose p",
+    imageGen: ".group\\/imagegen-image",
+    imageUrl: "img",
+    messageId: "[data-message-id]",
+    modelSlug: "[data-message-model-slug]",
+  },
+  extractors: {
+    userText: (element) => element.textContent.trim(),
+    aiText: (element) =>
+      element.querySelector(chatgptConfig.selectors.aiText)?.textContent.trim(),
+    imageUrl: async (element) => {
+      const imgElement = element.querySelector(
+        chatgptConfig.selectors.imageUrl
+      );
+      if (!imgElement?.src) return null;
+
+      try {
+        const response = await fetch(imgElement.src);
+        const blob = await response.blob();
+        return {
+          url: imgElement.src,
+          blob: blob,
+          type: blob.type,
+          size: blob.size,
+        };
+      } catch (error) {
+        console.error("Error fetching image:", error);
+        return null;
+      }
+    },
+    messageId: (element) =>
+      element
+        .closest(chatgptConfig.selectors.messageId)
+        ?.getAttribute("data-message-id"),
+    modelSlug: (element) => element.getAttribute("data-message-model-slug"),
+  },
+};
+
+const providers = {
+  "chat.openai.com": chatgptConfig,
+  "chatgpt.com": chatgptConfig,
+  // Add more providers here as needed
+};
+
+function getProviderForDomain(domain) {
+  return providers[domain] || null;
+}
+
 function setupGodModeObserver() {
   const storage = GodModeStorage.getInstance();
+  const { domain } = parseUrlForIds(window.location.href);
+  const providerConfig = getProviderForDomain(domain);
+
+  if (!providerConfig) {
+    console.error(`No provider configuration found for domain: ${domain}`);
+    return null;
+  }
 
   const observer = new MutationObserver(async (mutations) => {
     const isGodModeEnabled = await storage.checkEnabledState();
@@ -1298,12 +1361,10 @@ function setupGodModeObserver() {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // Look for user messages
             const userMessages = node.querySelectorAll(
-              'div[data-message-author-role="user"]'
+              providerConfig.selectors.userMessage
             );
             for (const message of userMessages) {
-              const text = message
-                .querySelector(".whitespace-pre-wrap")
-                ?.textContent.trim();
+              const text = providerConfig.extractors.userText(message);
               if (text) {
                 await storage.addLog(chatId, {
                   type: "input",
@@ -1311,7 +1372,8 @@ function setupGodModeObserver() {
                   metadata: {
                     url: window.location.href,
                     timestamp: new Date().toISOString(),
-                    messageId: message.getAttribute("data-message-id"),
+                    messageId: providerConfig.extractors.messageId(message),
+                    provider: providerConfig.name,
                   },
                 });
               }
@@ -1319,12 +1381,17 @@ function setupGodModeObserver() {
 
             // Look for AI responses
             const aiMessages = node.querySelectorAll(
-              'div[data-message-author-role="assistant"]'
+              providerConfig.selectors.aiMessage
             );
             for (const message of aiMessages) {
-              const text = message
-                .querySelector(".markdown.prose p")
-                ?.textContent.trim();
+              // Check for regular text responses
+              const text = providerConfig.extractors.aiText(message);
+
+              // Check for image generations
+              const imageGen = message.querySelector(
+                providerConfig.selectors.imageGen
+              );
+
               if (text) {
                 await storage.addLog(chatId, {
                   type: "output",
@@ -1332,10 +1399,38 @@ function setupGodModeObserver() {
                   metadata: {
                     url: window.location.href,
                     timestamp: new Date().toISOString(),
-                    messageId: message.getAttribute("data-message-id"),
-                    model: message.getAttribute("data-message-model-slug"),
+                    messageId: providerConfig.extractors.messageId(message),
+                    model: providerConfig.extractors.modelSlug(message),
+                    provider: providerConfig.name,
                   },
                 });
+              } else if (imageGen) {
+                try {
+                  const imageData = await providerConfig.extractors.imageUrl(
+                    imageGen
+                  );
+                  if (imageData) {
+                    await storage.addLog(chatId, {
+                      type: "output",
+                      content: "Generated image",
+                      metadata: {
+                        url: window.location.href,
+                        timestamp: new Date().toISOString(),
+                        messageId: providerConfig.extractors.messageId(message),
+                        model: providerConfig.extractors.modelSlug(message),
+                        imageUrl: imageData.url,
+                        imageBlob: imageData.blob,
+                        imageType: imageData.type,
+                        imageSize: imageData.size,
+                        isImageGeneration: true,
+                        provider: providerConfig.name,
+                      },
+                    });
+                  }
+                } catch (error) {
+                  console.error("Error processing image:", error);
+                  // Continue with other messages even if image processing fails
+                }
               }
             }
 
@@ -1399,7 +1494,6 @@ chrome.storage.local.get(["godModeEnabled"], async (result) => {
     const historyPanel = document.getElementById(
       "__ai_context_godmode_history__"
     );
-
     if (historyPanel) {
       historyPanel.style.display = "flex";
     }

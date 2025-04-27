@@ -142,15 +142,17 @@ export async function saveBookmark(
 export async function addContext(domain, chatId, text) {
   const ctx = await getContext(domain, chatId);
   // Simple dedup check
-  if (!ctx.entries.some((e) => e.text === text)) {
-    ctx.entries.push({
-      id: `entry_${Date.now()}`,
-      text,
-      active: true,
-      created: Date.now(),
-      lastModified: Date.now(),
-    });
-  }
+  // alert(0);
+  // console.error(ctx);
+  // if (!ctx.entries.some((e) => e.text === text)) {
+  //   ctx.entries.push({
+  //     id: `entry_${Date.now()}`,
+  //     text,
+  //     active: true,
+  //     created: Date.now(),
+  //     lastModified: Date.now(),
+  //   });
+  // }
   await saveContext(domain, chatId, ctx);
   return ctx;
 }
