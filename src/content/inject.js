@@ -149,7 +149,6 @@ async function ensureOverlayExists() {
  * Refresh the content of the overlay with current context data.
  */
 async function refreshOverlayContent(overlayPanel) {
-  console.error("refreshing", "david");
   const contentContainer = document.getElementById("__ai_context_content__");
   const { domain, chatId } = parseUrlForIds(window.location.href);
 
@@ -449,7 +448,7 @@ async function refreshOverlayContent(overlayPanel) {
     });
 
     logs.entries.reverse().forEach((entry) => {
-      console.log("Rendering God Mode entry:", entry);
+      // console.log("Rendering God Mode entry:", entry);
       const logEntry = document.createElement("div");
       logEntry.className = "ai-context-godmode-entry";
       Object.assign(logEntry.style, {
@@ -487,13 +486,13 @@ async function refreshOverlayContent(overlayPanel) {
         entry.text && entry.text.trim() !== ""
           ? entry.text
           : entry.content || "";
-      console.debug(
-        "Text value to render:",
-        textValue,
-        "for entry:",
-        entry,
-        entry.content
-      );
+      // console.debug(
+      //   "Text value to render:",
+      //   textValue,
+      //   "for entry:",
+      //   entry,
+      //   entry.content
+      // );
       if (textValue && textValue.trim() !== "") {
         const textDiv = document.createElement("div");
         textDiv.style.fontSize = "13px";
@@ -1397,7 +1396,7 @@ const chatgptConfig = {
       const text = element
         .querySelector(chatgptConfig.selectors.aiText)
         ?.textContent.trim();
-      console.log("[AI Context Vault] Extracting AI text:", { text });
+      // console.log("[AI Context Vault] Extracting AI text:", { text });
       return text;
     },
     codeBlock: (element) => {
@@ -1590,7 +1589,7 @@ function setupGodModeObserver() {
             for (const message of userMessages) {
               const text = providerConfig.extractors.userText(message);
               if (text) {
-                console.log("[AI Context Vault] Found user message:", { text });
+                // console.log("[AI Context Vault] Found user message:", { text });
                 await storage.addLog(chatId, {
                   type: "input",
                   content: text,
@@ -1614,10 +1613,10 @@ function setupGodModeObserver() {
                 continue;
               }
 
-              console.debug(
-                "[AI Context Vault] Processing AI message:",
-                message
-              );
+              // console.debug(
+              //   "[AI Context Vault] Processing AI message:",
+              //   message
+              // );
 
               const messageId = providerConfig.extractors.messageId(message);
               const model = providerConfig.extractors.modelSlug(message);

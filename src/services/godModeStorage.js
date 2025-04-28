@@ -1,5 +1,6 @@
 // God Mode Storage Service
 import { decryptPAT } from "./patEncryption";
+import indexedDBStorage from "./indexedDBStorage";
 
 class GodModeStorage {
   constructor() {
@@ -7,6 +8,7 @@ class GodModeStorage {
     this.syncInterval = null;
     this.lastKnownSha = null;
     this.currentSync = null;
+    this.imageHashStore = new Map(); // Store image hashes to prevent duplicates
   }
 
   static getInstance() {
@@ -26,14 +28,40 @@ class GodModeStorage {
 
   async getLogs(chatId) {
     return new Promise((resolve) => {
-      chrome.storage.local.get([this.storageKey], (result) => {
+      if (!chatId) {
+        resolve({ entries: [] });
+        return;
+      }
+      chrome.storage.local.get([this.storageKey], async (result) => {
         const logs = result[this.storageKey] || { entries: [] };
         // Patch old entries to include chatId if missing
-        logs.entries = logs.entries.map((entry) => {
-          if (!entry.metadata) entry.metadata = {};
-          if (chatId && !entry.metadata.chatId) entry.metadata.chatId = chatId;
-          return entry;
-        });
+        logs.entries = await Promise.all(
+          logs.entries.map(async (entry) => {
+            if (!entry.metadata) entry.metadata = {};
+            if (chatId && !entry.metadata.chatId)
+              entry.metadata.chatId = chatId;
+
+            // If there's a binary data reference, fetch it from IndexedDB
+            if (entry.metadata?.binaryDataId) {
+              try {
+                const binaryData = await indexedDBStorage.getBinaryData(
+                  entry.metadata.binaryDataId
+                );
+                if (binaryData) {
+                  entry.metadata.imageBlob = binaryData;
+                }
+              } catch (error) {
+                console.error(
+                  "[AI Context Vault] Error fetching binary data:",
+                  error
+                );
+              }
+            }
+
+            return entry;
+          })
+        );
+
         let filteredEntries = logs.entries;
         if (chatId) {
           filteredEntries = logs.entries.filter(
@@ -55,6 +83,24 @@ class GodModeStorage {
     });
   }
 
+  async calculateImageHash(blob) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // Create a simple hash of the image data
+        const data = reader.result;
+        let hash = 0;
+        for (let i = 0; i < data.length; i++) {
+          const char = data.charCodeAt(i);
+          hash = (hash << 5) - hash + char;
+          hash = hash & hash; // Convert to 32bit integer
+        }
+        resolve(hash.toString(16));
+      };
+      reader.readAsDataURL(blob);
+    });
+  }
+
   async addLog(chatId, logEntry) {
     return new Promise(async (resolve) => {
       const logs = await this.getLogs(chatId);
@@ -68,25 +114,49 @@ class GodModeStorage {
           chatId,
         },
       };
-      // If there's an image blob, convert it to base64 for storage
+
+      // If there's an image blob, check for duplicates before storing
       if (
         normalizedEntry.metadata?.imageBlob &&
         normalizedEntry.metadata.imageBlob instanceof Blob
       ) {
         try {
-          const base64 = await this.blobToBase64(
+          // Calculate hash of the image
+          const imageHash = await this.calculateImageHash(
             normalizedEntry.metadata.imageBlob
           );
-          normalizedEntry.metadata.imageBlob = base64;
-          normalizedEntry.metadata.imageType =
-            normalizedEntry.metadata.imageBlob.type;
+
+          // Check if we've seen this image before
+          if (this.imageHashStore.has(imageHash)) {
+            // Use the existing binary data ID instead of storing a duplicate
+            normalizedEntry.metadata.binaryDataId =
+              this.imageHashStore.get(imageHash);
+            delete normalizedEntry.metadata.imageBlob;
+            console.log("[AI Context Vault] Skipping duplicate image");
+          } else {
+            // Generate a unique ID for the binary data
+            const binaryDataId = `binary_${Date.now()}_${Math.random()
+              .toString(36)
+              .substr(2, 9)}`;
+
+            // Store the binary data in IndexedDB
+            await indexedDBStorage.storeBinaryData(
+              binaryDataId,
+              normalizedEntry.metadata.imageBlob
+            );
+
+            // Store the hash and ID for future reference
+            this.imageHashStore.set(imageHash, binaryDataId);
+
+            // Replace the blob with a reference ID
+            normalizedEntry.metadata.binaryDataId = binaryDataId;
+            delete normalizedEntry.metadata.imageBlob;
+          }
         } catch (error) {
-          console.error(
-            "[AI Context Vault] Error converting blob to base64:",
-            error
-          );
+          console.error("[AI Context Vault] Error processing image:", error);
         }
       }
+
       logs.entries.push(normalizedEntry);
       chrome.storage.local.set({ [this.storageKey]: logs }, () => {
         resolve();
@@ -291,19 +361,47 @@ class GodModeStorage {
         return;
       }
 
-      const logs = localStorage.getItem(this.storageKey);
-      const allLogs = logs ? JSON.parse(logs) : {};
+      const logs = await this.getLogs(chatId);
 
+      // Clear binary data from IndexedDB
       if (chatId) {
-        delete allLogs[chatId];
+        // Clear binary data for specific chat
+        const chatEntries = logs.entries.filter(
+          (entry) => entry.metadata?.chatId === chatId
+        );
+        await Promise.all(
+          chatEntries.map(async (entry) => {
+            if (entry.metadata?.binaryDataId) {
+              await indexedDBStorage.deleteBinaryData(
+                entry.metadata.binaryDataId
+              );
+              // Remove from hash store if this was the last reference
+              const hashToRemove = Array.from(
+                this.imageHashStore.entries()
+              ).find(([_, id]) => id === entry.metadata.binaryDataId);
+              if (hashToRemove) {
+                this.imageHashStore.delete(hashToRemove[0]);
+              }
+            }
+          })
+        );
       } else {
-        // Clear all logs if no chatId provided
-        Object.keys(allLogs).forEach((key) => {
-          delete allLogs[key];
-        });
+        // Clear all binary data
+        await indexedDBStorage.clearAll();
+        this.imageHashStore.clear(); // Clear the hash store
       }
 
-      localStorage.setItem(this.storageKey, JSON.stringify(allLogs));
+      // Clear the logs from chrome.storage.local
+      if (chatId) {
+        const filteredEntries = logs.entries.filter(
+          (entry) => entry.metadata?.chatId !== chatId
+        );
+        chrome.storage.local.set({
+          [this.storageKey]: { entries: filteredEntries },
+        });
+      } else {
+        chrome.storage.local.set({ [this.storageKey]: { entries: [] } });
+      }
     } catch (error) {
       console.error("Error clearing logs:", error);
     }
