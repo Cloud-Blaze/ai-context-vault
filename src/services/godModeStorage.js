@@ -1,5 +1,5 @@
 // God Mode Storage Service
-import { decryptPAT } from "../services/patEncryption";
+import { decryptPAT } from "./patEncryption";
 
 class GodModeStorage {
   constructor() {

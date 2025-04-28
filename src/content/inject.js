@@ -10,7 +10,7 @@ import {
   updateBookmarkLabel,
   saveContext,
   getContextKey,
-} from "../storage/contextStorage";
+} from "../storage/contextStorage.js";
 import "./inject.css";
 import { GodModeStorage } from "../services/godModeStorage.js";
 
@@ -380,12 +380,12 @@ async function refreshOverlayContent(overlayPanel) {
           domain,
           chatId,
           async (text) => {
-            const storage = await import("../storage/contextStorage");
+            const storage = await import("../storage/contextStorage.js");
             await storage.deleteContext(domain, chatId, entry.id);
             await refreshOverlayContent(overlayPanel);
           },
           async (id, newLabel) => {
-            const storage = await import("../storage/contextStorage");
+            const storage = await import("../storage/contextStorage.js");
             await storage.updateContext(domain, chatId, entry.text, newLabel);
             await refreshOverlayContent(overlayPanel);
           }
@@ -747,7 +747,7 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
         const newText = editTextarea.value.trim();
         if (newText && newText !== entry.text) {
           try {
-            const storage = await import("../storage/contextStorage");
+            const storage = await import("../storage/contextStorage.js");
             await storage.updateContext(domain, chatId, entry.text, newText);
             entry.text = newText;
             text.textContent = newText;
@@ -1171,7 +1171,7 @@ function handleSaveSelectedContext() {
       selectedText.substring(0, 30) + "..."
     );
     const { domain, chatId } = parseUrlForIds(window.location.href);
-    import("../storage/contextStorage").then(async (storage) => {
+    import("../storage/contextStorage.js").then(async (storage) => {
       await storage.addContext(domain, chatId, selectedText);
       showConfirmationBubble(
         "Added to Context: " + selectedText.substring(0, 30) + "...",

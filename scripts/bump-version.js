@@ -3,7 +3,7 @@ const path = require("path");
 
 const manifestPath = path.join(__dirname, "../public/manifest.json");
 const pkgPath = path.join(__dirname, "../package.json");
-const optionsPath = path.join(__dirname, "..", "public", "index.html");
+const optionsPath = path.join(__dirname, "..", "public", "options.html");
 
 function bump(version) {
   const [major, minor, patch] = version.split(".").map(Number);
