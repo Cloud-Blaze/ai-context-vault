@@ -146,7 +146,7 @@ class GodModeStorage {
     const db = await this.getDB();
     return new Promise(async (resolve) => {
       const normalizedEntry = {
-        id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
         ...logEntry,
         text: logEntry.text || logEntry.content || "",
         type: logEntry.type || "output",
@@ -174,7 +174,7 @@ class GodModeStorage {
           } else {
             const binaryDataId = `binary_${Date.now()}_${Math.random()
               .toString(36)
-              .substr(2, 9)}`;
+              .substring(2, 11)}`;
 
             await indexedDBStorage.storeBinaryData(
               binaryDataId,

@@ -1475,6 +1475,101 @@ const chatgptConfig = {
 const providers = {
   "chat.openai.com": chatgptConfig,
   "chatgpt.com": chatgptConfig,
+  "claude.ai": {
+    name: "claude",
+    selectors: {
+      userMessage: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
+      aiMessage: "article",
+      aiText: ".markdown.prose p",
+      codeBlock: "pre",
+      codeContent: "code",
+      codeLanguage: "div.flex.items-center",
+      imageUrl: 'img[alt="Generated image"]',
+      messageId: "[data-message-id]",
+      modelSlug: "[data-message-model-slug]",
+    },
+    extractors: {
+      userText: (element) => element.textContent.trim(),
+      aiText: (element) => {
+        const text = element
+          .querySelector(chatgptConfig.selectors.aiText)
+          ?.textContent.trim();
+        // console.log("[AI Context Vault] Extracting AI text:", { text });
+        return text;
+      },
+      codeBlock: (element) => {
+        const preElement = element.querySelector(
+          chatgptConfig.selectors.codeBlock
+        );
+        if (!preElement) return null;
+
+        const codeElement = preElement.querySelector(
+          chatgptConfig.selectors.codeContent
+        );
+        const languageElement = preElement.querySelector(
+          chatgptConfig.selectors.codeLanguage
+        );
+
+        console.log("[AI Context Vault] Found code block:", {
+          hasPre: !!preElement,
+          hasCode: !!codeElement,
+          hasLanguage: !!languageElement,
+          language: languageElement?.textContent.trim(),
+          content: codeElement?.textContent.trim(),
+        });
+
+        if (!codeElement) return null;
+
+        return {
+          language: languageElement?.textContent.trim() || "text",
+          content: codeElement.textContent.trim(),
+          html: codeElement.innerHTML,
+        };
+      },
+      imageUrl: async (element) => {
+        // Find all images under main
+        const imgElements = document.querySelectorAll(
+          'img[alt="Generated image"]'
+        );
+
+        if (!imgElements.length) {
+          console.error("[AI Context Vault] No images found");
+          return null;
+        }
+
+        // Get the first visible image
+        const visibleImg = Array.from(imgElements).find((img) => {
+          const style = window.getComputedStyle(img);
+          return parseFloat(style.opacity) > 0;
+        });
+
+        if (!visibleImg?.src) {
+          console.error("[AI Context Vault] No visible image found");
+          return null;
+        }
+
+        try {
+          console.log(
+            "[AI Context Vault] Fetching image from URL:",
+            visibleImg.src
+          );
+          const response = await fetch(visibleImg.src);
+          const blob = await response.blob();
+          return {
+            url: visibleImg.src,
+            blob: blob,
+            type: blob.type,
+            size: blob.size,
+          };
+        } catch (error) {
+          console.error("[AI Context Vault] Error fetching image:", error);
+          return null;
+        }
+      },
+      messageId: (element) => element.getAttribute("data-message-id"),
+      modelSlug: (element) => element.getAttribute("data-message-model-slug"),
+    },
+  },
   // Add more providers here as needed
 };
 
@@ -1491,186 +1586,375 @@ function setupGodModeObserver() {
     console.error(`No provider configuration found for domain: ${domain}`);
     return null;
   }
+  let mutationFunc = async () => {};
+  if (domain === "chatgpt.com" || domain === "chat.openai.com") {
+    mutationFunc = async (mutations) => {
+      const isGodModeEnabled = await storage.checkEnabledState();
+      if (!isGodModeEnabled) return;
 
-  const observer = new MutationObserver(async (mutations) => {
-    const isGodModeEnabled = await storage.checkEnabledState();
-    if (!isGodModeEnabled) return;
+      const { chatId } = parseUrlForIds(window.location.href);
+      if (!chatId) return;
 
-    const { chatId } = parseUrlForIds(window.location.href);
-    if (!chatId) return;
+      for (const mutation of mutations) {
+        // console.log("[AI Context Vault] Mutation observed:", {
+        //   type: mutation.type,
+        //   target: mutation.target,
+        //   addedNodes: mutation.addedNodes.length,
+        //   removedNodes: mutation.removedNodes.length,
+        //   characterData: mutation.type === "characterData",
+        //   attributeName: mutation.attributeName,
+        // });
+        if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Check for images
+              const images = node.querySelectorAll("img");
+              for (const image of images) {
+                if (image.alt === "Generated image") {
+                  const parentMessage = image.closest(
+                    providerConfig.selectors.aiMessage
+                  );
+                  if (parentMessage) {
+                    const messageId =
+                      providerConfig.extractors.messageId(parentMessage);
+                    const model =
+                      providerConfig.extractors.modelSlug(parentMessage);
+                    const text =
+                      providerConfig.extractors.aiText(parentMessage);
+                    const codeBlocks = Array.from(
+                      parentMessage.querySelectorAll("pre")
+                    )
+                      .map((pre) => {
+                        const code = pre.querySelector("code");
+                        const languageElem = pre.querySelector(
+                          "div.flex.items-center"
+                        );
+                        return {
+                          language: languageElem?.textContent.trim() || "text",
+                          content:
+                            code?.textContent.trim() ||
+                            pre.textContent.trim() ||
+                            "",
+                        };
+                      })
+                      .filter((block) => block.content);
 
-    for (const mutation of mutations) {
-      // console.log("[AI Context Vault] Mutation observed:", {
-      //   type: mutation.type,
-      //   target: mutation.target,
-      //   addedNodes: mutation.addedNodes.length,
-      //   removedNodes: mutation.removedNodes.length,
-      //   characterData: mutation.type === "characterData",
-      //   attributeName: mutation.attributeName,
-      // });
-      if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            // Check for images
-            const images = node.querySelectorAll("img");
-            for (const image of images) {
-              if (image.alt === "Generated image") {
-                const parentMessage = image.closest(
-                  providerConfig.selectors.aiMessage
-                );
-                if (parentMessage) {
-                  const messageId =
-                    providerConfig.extractors.messageId(parentMessage);
-                  const model =
-                    providerConfig.extractors.modelSlug(parentMessage);
-                  const text = providerConfig.extractors.aiText(parentMessage);
-                  const codeBlocks = Array.from(
-                    parentMessage.querySelectorAll("pre")
-                  )
-                    .map((pre) => {
-                      const code = pre.querySelector("code");
-                      const languageElem = pre.querySelector(
-                        "div.flex.items-center"
-                      );
-                      return {
-                        language: languageElem?.textContent.trim() || "text",
-                        content:
-                          code?.textContent.trim() ||
-                          pre.textContent.trim() ||
-                          "",
-                      };
-                    })
-                    .filter((block) => block.content);
+                    try {
+                      const imageData =
+                        await providerConfig.extractors.imageUrl(parentMessage);
+                      console.debug(imageData, "imageData");
+                      if (imageData) {
+                        const logEntry = {
+                          type: "output",
+                          content: text || "",
+                          metadata: {
+                            timestamp: new Date().toISOString(),
+                            messageId,
+                            model,
+                            provider: providerConfig.name,
+                            imageUrl: imageData.url,
+                            imageBlob: imageData.blob,
+                            imageType: imageData.type,
+                            imageSize: imageData.size,
+                            isImageGeneration: true,
+                            chatId,
+                          },
+                        };
 
-                  try {
-                    const imageData = await providerConfig.extractors.imageUrl(
-                      parentMessage
-                    );
-                    console.debug(imageData, "imageData");
-                    if (imageData) {
-                      const logEntry = {
-                        type: "output",
-                        content: text || "",
-                        metadata: {
-                          timestamp: new Date().toISOString(),
-                          messageId,
-                          model,
-                          provider: providerConfig.name,
-                          imageUrl: imageData.url,
-                          imageBlob: imageData.blob,
-                          imageType: imageData.type,
-                          imageSize: imageData.size,
-                          isImageGeneration: true,
-                          chatId,
-                        },
-                      };
+                        if (codeBlocks.length > 0) {
+                          logEntry.metadata.codeBlocks = codeBlocks;
+                        }
 
-                      if (codeBlocks.length > 0) {
-                        logEntry.metadata.codeBlocks = codeBlocks;
+                        await storage.addLog(chatId, logEntry);
                       }
-
-                      await storage.addLog(chatId, logEntry);
+                    } catch (error) {
+                      console.error(
+                        "[AI Context Vault] Error processing image:",
+                        error
+                      );
                     }
-                  } catch (error) {
-                    console.error(
-                      "[AI Context Vault] Error processing image:",
-                      error
-                    );
                   }
                 }
               }
-            }
 
-            // Look for user messages
-            const userMessages = node.querySelectorAll(
-              providerConfig.selectors.userMessage
-            );
-            for (const message of userMessages) {
-              const text = providerConfig.extractors.userText(message);
-              if (text) {
-                // console.log("[AI Context Vault] Found user message:", { text });
-                await storage.addLog(chatId, {
-                  type: "input",
-                  content: text,
+              // Look for user messages
+              const userMessages = node.querySelectorAll(
+                providerConfig.selectors.userMessage
+              );
+              for (const message of userMessages) {
+                const text = providerConfig.extractors.userText(message);
+                if (text) {
+                  // console.log("[AI Context Vault] Found user message:", { text });
+                  await storage.addLog(chatId, {
+                    type: "input",
+                    content: text,
+                    metadata: {
+                      timestamp: new Date().toISOString(),
+                      messageId: providerConfig.extractors.messageId(message),
+                      provider: providerConfig.name,
+                      chatId,
+                    },
+                  });
+                }
+              }
+
+              // Look for AI responses that don't have images
+              const aiMessages = node.querySelectorAll(
+                providerConfig.selectors.aiMessage
+              );
+              for (const message of aiMessages) {
+                // Skip if this message has an image
+                if (message.querySelector('img[alt="Generated image"]')) {
+                  continue;
+                }
+
+                // console.debug(
+                //   "[AI Context Vault] Processing AI message:",
+                //   message
+                // );
+
+                const messageId = providerConfig.extractors.messageId(message);
+                const model = providerConfig.extractors.modelSlug(message);
+                const codeBlocks2 = Array.from(message.querySelectorAll("pre"))
+                  .map((pre) => {
+                    const code = pre.querySelector("code");
+                    const languageElem = pre.querySelector(
+                      "div.flex.items-center"
+                    );
+                    return {
+                      language: languageElem?.textContent.trim() || "text",
+                      content:
+                        code?.textContent.trim() ||
+                        pre.textContent.trim() ||
+                        "",
+                    };
+                  })
+                  .filter((block) => block.content);
+
+                const text = providerConfig.extractors.aiText(message);
+
+                const logEntry = {
+                  type: "output",
+                  content: text || "",
                   metadata: {
                     timestamp: new Date().toISOString(),
-                    messageId: providerConfig.extractors.messageId(message),
+                    messageId,
+                    model,
                     provider: providerConfig.name,
                     chatId,
                   },
-                });
+                };
+
+                if (codeBlocks2.length > 0) {
+                  logEntry.metadata.codeBlocks = codeBlocks2;
+                }
+
+                await storage.addLog(chatId, logEntry);
               }
-            }
-
-            // Look for AI responses that don't have images
-            const aiMessages = node.querySelectorAll(
-              providerConfig.selectors.aiMessage
-            );
-            for (const message of aiMessages) {
-              // Skip if this message has an image
-              if (message.querySelector('img[alt="Generated image"]')) {
-                continue;
-              }
-
-              // console.debug(
-              //   "[AI Context Vault] Processing AI message:",
-              //   message
-              // );
-
-              const messageId = providerConfig.extractors.messageId(message);
-              const model = providerConfig.extractors.modelSlug(message);
-              const codeBlocks2 = Array.from(message.querySelectorAll("pre"))
-                .map((pre) => {
-                  const code = pre.querySelector("code");
-                  const languageElem = pre.querySelector(
-                    "div.flex.items-center"
-                  );
-                  return {
-                    language: languageElem?.textContent.trim() || "text",
-                    content:
-                      code?.textContent.trim() || pre.textContent.trim() || "",
-                  };
-                })
-                .filter((block) => block.content);
-
-              const text = providerConfig.extractors.aiText(message);
-
-              const logEntry = {
-                type: "output",
-                content: text || "",
-                metadata: {
-                  timestamp: new Date().toISOString(),
-                  messageId,
-                  model,
-                  provider: providerConfig.name,
-                  chatId,
-                },
-              };
-
-              if (codeBlocks2.length > 0) {
-                logEntry.metadata.codeBlocks = codeBlocks2;
-              }
-
-              await storage.addLog(chatId, logEntry);
             }
           }
         }
       }
-    }
-  });
+    };
+  } else if (domain === "claude.ai") {
+    mutationFunc = async (mutations) => {
+      const isGodModeEnabled = await storage.checkEnabledState();
+      if (!isGodModeEnabled) return;
 
-  // Configure observer to watch for all relevant changes
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-    attributes: true,
-    attributeFilter: [
-      "data-message-id",
-      "data-message-model-slug",
-      "data-message-author-role",
-    ],
-  });
+      const { chatId } = parseUrlForIds(window.location.href);
+      if (!chatId) return;
+
+      for (const mutation of mutations) {
+        // console.log("[AI Context Vault] Mutation observed:", {
+        //   type: mutation.type,
+        //   target: mutation.target,
+        //   addedNodes: mutation.addedNodes.length,
+        //   removedNodes: mutation.removedNodes.length,
+        //   characterData: mutation.type === "characterData",
+        //   attributeName: mutation.attributeName,
+        // });
+        if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Check for images
+              const images = node.querySelectorAll("img");
+              for (const image of images) {
+                if (image.alt === "Generated image") {
+                  const parentMessage = image.closest(
+                    providerConfig.selectors.aiMessage
+                  );
+                  if (parentMessage) {
+                    const messageId =
+                      providerConfig.extractors.messageId(parentMessage);
+                    const model =
+                      providerConfig.extractors.modelSlug(parentMessage);
+                    const text =
+                      providerConfig.extractors.aiText(parentMessage);
+                    const codeBlocks = Array.from(
+                      parentMessage.querySelectorAll("pre")
+                    )
+                      .map((pre) => {
+                        const code = pre.querySelector("code");
+                        const languageElem = pre.querySelector(
+                          "div.flex.items-center"
+                        );
+                        return {
+                          language: languageElem?.textContent.trim() || "text",
+                          content:
+                            code?.textContent.trim() ||
+                            pre.textContent.trim() ||
+                            "",
+                        };
+                      })
+                      .filter((block) => block.content);
+
+                    try {
+                      const imageData =
+                        await providerConfig.extractors.imageUrl(parentMessage);
+                      console.debug(imageData, "imageData");
+                      if (imageData) {
+                        const logEntry = {
+                          type: "output",
+                          content: text || "",
+                          metadata: {
+                            timestamp: new Date().toISOString(),
+                            messageId,
+                            model,
+                            provider: providerConfig.name,
+                            imageUrl: imageData.url,
+                            imageBlob: imageData.blob,
+                            imageType: imageData.type,
+                            imageSize: imageData.size,
+                            isImageGeneration: true,
+                            chatId,
+                          },
+                        };
+
+                        if (codeBlocks.length > 0) {
+                          logEntry.metadata.codeBlocks = codeBlocks;
+                        }
+
+                        await storage.addLog(chatId, logEntry);
+                      }
+                    } catch (error) {
+                      console.error(
+                        "[AI Context Vault] Error processing image:",
+                        error
+                      );
+                    }
+                  }
+                }
+              }
+
+              // Look for user messages
+              const userMessages = node.querySelectorAll(
+                providerConfig.selectors.userMessage
+              );
+              for (const message of userMessages) {
+                const text = providerConfig.extractors.userText(message);
+                if (text) {
+                  // console.log("[AI Context Vault] Found user message:", { text });
+                  await storage.addLog(chatId, {
+                    type: "input",
+                    content: text,
+                    metadata: {
+                      timestamp: new Date().toISOString(),
+                      messageId: providerConfig.extractors.messageId(message),
+                      provider: providerConfig.name,
+                      chatId,
+                    },
+                  });
+                }
+              }
+
+              // Look for AI responses that don't have images
+              const aiMessages = node.querySelectorAll(
+                providerConfig.selectors.aiMessage
+              );
+              for (const message of aiMessages) {
+                // Skip if this message has an image
+                if (message.querySelector('img[alt="Generated image"]')) {
+                  continue;
+                }
+
+                // console.debug(
+                //   "[AI Context Vault] Processing AI message:",
+                //   message
+                // );
+
+                const messageId = providerConfig.extractors.messageId(message);
+                const model = providerConfig.extractors.modelSlug(message);
+                const codeBlocks2 = Array.from(message.querySelectorAll("pre"))
+                  .map((pre) => {
+                    const code = pre.querySelector("code");
+                    const languageElem = pre.querySelector(
+                      "div.flex.items-center"
+                    );
+                    return {
+                      language: languageElem?.textContent.trim() || "text",
+                      content:
+                        code?.textContent.trim() ||
+                        pre.textContent.trim() ||
+                        "",
+                    };
+                  })
+                  .filter((block) => block.content);
+
+                const text = providerConfig.extractors.aiText(message);
+
+                const logEntry = {
+                  type: "output",
+                  content: text || "",
+                  metadata: {
+                    timestamp: new Date().toISOString(),
+                    messageId,
+                    model,
+                    provider: providerConfig.name,
+                    chatId,
+                  },
+                };
+
+                if (codeBlocks2.length > 0) {
+                  logEntry.metadata.codeBlocks = codeBlocks2;
+                }
+
+                await storage.addLog(chatId, logEntry);
+              }
+            }
+          }
+        }
+      }
+    };
+  }
+
+  const observer = new MutationObserver(mutationFunc);
+
+  if (domain === "chatgpt.com" || domain === "chat.openai.com") {
+    // Configure observer to watch for all relevant changes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: [
+        "data-message-id",
+        "data-message-model-slug",
+        "data-message-author-role",
+      ],
+    });
+  } else if (domain === "claude.ai") {
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: [
+        "data-message-id",
+        "data-message-model-slug",
+        "data-message-author-role",
+      ],
+    });
+  }
 
   return observer;
 }

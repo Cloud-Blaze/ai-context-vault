@@ -96,7 +96,6 @@ export class GodModeObserver {
 
     const { domain, chatId } = this.parseUrlForIds(window.location.href);
     if (!chatId) return;
-    console.error("mutations!!!", mutations);
     for (const mutation of mutations) {
       const addedNodes = Array.from(mutation.addedNodes);
       for (const node of addedNodes) {
