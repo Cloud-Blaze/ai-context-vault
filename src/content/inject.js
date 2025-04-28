@@ -471,7 +471,7 @@ async function refreshOverlayContent(overlayPanel) {
         const imageContainer = document.createElement("div");
         imageContainer.style.marginBottom = "8px";
 
-        const image = document.createElement('img[alt="Generated image"]');
+        const image = document.createElement("img");
         image.src = entry.metadata.imageUrl;
         image.alt = "Generated image";
         image.style.maxWidth = "100%";
@@ -490,11 +490,11 @@ async function refreshOverlayContent(overlayPanel) {
         // Handle ChatGPT article structure and code blocks
         console.log("[AI Context Vault] Found structured content:", {
           type: entry.type,
-          hasArticle: entry.text.includes("<article"),
-          hasPre: entry.text.includes("<pre"),
-          hasCodeBlocks: entry.text.includes("```"),
-          textLength: entry.text.length,
-          textPreview: entry.text.substring(0, 200) + "...",
+          hasArticle: entry.text?.includes("<article") || false,
+          hasPre: entry.text?.includes("<pre") || false,
+          hasCodeBlocks: entry.text?.includes("```") || false,
+          textLength: entry.text?.length || 0,
+          textPreview: entry.text ? entry.text.substring(0, 200) + "..." : "",
         });
 
         // Create a container for the structured content
@@ -502,7 +502,7 @@ async function refreshOverlayContent(overlayPanel) {
         contentContainer.style.marginBottom = "8px";
 
         // Process the content
-        const lines = entry.text.split("\n");
+        const lines = entry.text ? entry.text.split("\n") : [];
         console.log("[AI Context Vault] Processing lines:", {
           lineCount: lines.length,
           firstFewLines: lines.slice(0, 3),
@@ -551,7 +551,7 @@ async function refreshOverlayContent(overlayPanel) {
 
         text.appendChild(contentContainer);
       } else {
-        text.textContent = entry.text;
+        text.textContent = entry.text || "";
       }
 
       // Check if text is already in context
@@ -1530,58 +1530,58 @@ function setupGodModeObserver() {
         for (const node of mutation.addedNodes) {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // Check for images
-            const images = document.querySelectorAll(
-              'img[alt="Generated image"]'
-            );
+            const images = node.querySelectorAll("img");
             for (const image of images) {
-              const parentMessage = image.closest(
-                providerConfig.selectors.aiMessage
-              );
-              if (parentMessage) {
-                const messageId =
-                  providerConfig.extractors.messageId(parentMessage);
-                const model =
-                  providerConfig.extractors.modelSlug(parentMessage);
-                const text = providerConfig.extractors.aiText(parentMessage);
-                const codeBlock =
-                  providerConfig.extractors.codeBlock(parentMessage);
+              if (image.alt === "Generated image") {
+                const parentMessage = image.closest(
+                  providerConfig.selectors.aiMessage
+                );
+                if (parentMessage) {
+                  const messageId =
+                    providerConfig.extractors.messageId(parentMessage);
+                  const model =
+                    providerConfig.extractors.modelSlug(parentMessage);
+                  const text = providerConfig.extractors.aiText(parentMessage);
+                  const codeBlock =
+                    providerConfig.extractors.codeBlock(parentMessage);
 
-                try {
-                  const imageData = await providerConfig.extractors.imageUrl(
-                    parentMessage
-                  );
-                  console.debug(imageData, "imageData");
-                  if (imageData) {
-                    const logEntry = {
-                      type: "output",
-                      content: text || "",
-                      metadata: {
-                        timestamp: new Date().toISOString(),
-                        messageId,
-                        model,
-                        provider: providerConfig.name,
-                        imageUrl: imageData.url,
-                        imageBlob: imageData.blob,
-                        imageType: imageData.type,
-                        imageSize: imageData.size,
-                        isImageGeneration: true,
-                      },
-                    };
-
-                    if (codeBlock) {
-                      logEntry.metadata.codeBlock = {
-                        language: codeBlock.language,
-                        content: codeBlock.content,
+                  try {
+                    const imageData = await providerConfig.extractors.imageUrl(
+                      parentMessage
+                    );
+                    console.debug(imageData, "imageData");
+                    if (imageData) {
+                      const logEntry = {
+                        type: "output",
+                        content: text || "",
+                        metadata: {
+                          timestamp: new Date().toISOString(),
+                          messageId,
+                          model,
+                          provider: providerConfig.name,
+                          imageUrl: imageData.url,
+                          imageBlob: imageData.blob,
+                          imageType: imageData.type,
+                          imageSize: imageData.size,
+                          isImageGeneration: true,
+                        },
                       };
-                    }
 
-                    await storage.addLog(chatId, logEntry);
+                      if (codeBlock) {
+                        logEntry.metadata.codeBlock = {
+                          language: codeBlock.language,
+                          content: codeBlock.content,
+                        };
+                      }
+
+                      await storage.addLog(chatId, logEntry);
+                    }
+                  } catch (error) {
+                    console.error(
+                      "[AI Context Vault] Error processing image:",
+                      error
+                    );
                   }
-                } catch (error) {
-                  console.error(
-                    "[AI Context Vault] Error processing image:",
-                    error
-                  );
                 }
               }
             }
