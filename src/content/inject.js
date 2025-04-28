@@ -429,7 +429,6 @@ async function refreshOverlayContent(overlayPanel) {
       bookmarksSection.appendChild(wrapper);
     });
   }
-  alert(0);
   // Get God Mode logs for current chat
   const logs = await storage.getLogs(chatId);
   console.debug("God Mode logs for chatId", chatId, logs);
@@ -519,7 +518,10 @@ async function refreshOverlayContent(overlayPanel) {
       }
 
       // Show image if present
-      if (entry.metadata?.imageBlob) {
+      if (
+        entry.metadata?.imageBlob &&
+        entry.metadata.imageBlob instanceof Blob
+      ) {
         const imgContainer = document.createElement("div");
         imgContainer.style.marginTop = "8px";
         imgContainer.style.maxWidth = "100%";
