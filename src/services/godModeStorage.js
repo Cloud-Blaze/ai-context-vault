@@ -9,6 +9,45 @@ class GodModeStorage {
     this.lastKnownSha = null;
     this.currentSync = null;
     this.imageHashStore = new Map(); // Store image hashes to prevent duplicates
+    this.dbName = "aiContextVault";
+    this.storeName = "godModeLogs";
+    this.db = null;
+    this.initPromise = this.initDB();
+  }
+
+  async initDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, 2);
+
+      request.onerror = () => {
+        console.error("[AI Context Vault] Failed to open IndexedDB");
+        reject(request.error);
+      };
+
+      request.onsuccess = () => {
+        this.db = request.result;
+        resolve();
+      };
+
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          const store = db.createObjectStore(this.storeName, { keyPath: "id" });
+          store.createIndex("chatId", "metadata.chatId", { unique: false });
+          store.createIndex("messageId", "metadata.messageId", {
+            unique: false,
+          });
+          store.createIndex("timestamp", "metadata.timestamp", {
+            unique: false,
+          });
+        }
+      };
+    });
+  }
+
+  async getDB() {
+    await this.initPromise;
+    return this.db;
   }
 
   static getInstance() {
@@ -19,29 +58,37 @@ class GodModeStorage {
   }
 
   async checkEnabledState() {
+    const db = await this.getDB();
     return new Promise((resolve) => {
-      chrome.storage.local.get(["godModeEnabled"], (result) => {
-        resolve(!!result.godModeEnabled);
-      });
+      const transaction = db.transaction([this.storeName], "readonly");
+      const store = transaction.objectStore(this.storeName);
+      const request = store.get("godModeEnabled");
+
+      request.onsuccess = () => {
+        resolve(!!request.result?.value);
+      };
     });
   }
 
   async getLogs(chatId) {
+    const db = await this.getDB();
     return new Promise((resolve) => {
       if (!chatId) {
         resolve({ entries: [] });
         return;
       }
-      chrome.storage.local.get([this.storageKey], async (result) => {
-        const logs = result[this.storageKey] || { entries: [] };
-        // Patch old entries to include chatId if missing
-        logs.entries = await Promise.all(
-          logs.entries.map(async (entry) => {
-            if (!entry.metadata) entry.metadata = {};
-            if (chatId && !entry.metadata.chatId)
-              entry.metadata.chatId = chatId;
 
-            // If there's a binary data reference, fetch it from IndexedDB
+      const transaction = db.transaction([this.storeName], "readonly");
+      const store = transaction.objectStore(this.storeName);
+      const index = store.index("chatId");
+      const request = index.getAll(chatId);
+
+      request.onsuccess = async () => {
+        const entries = request.result || [];
+
+        // Process entries to include binary data if needed
+        const processedEntries = await Promise.all(
+          entries.map(async (entry) => {
             if (entry.metadata?.binaryDataId) {
               try {
                 const binaryData = await indexedDBStorage.getBinaryData(
@@ -57,19 +104,12 @@ class GodModeStorage {
                 );
               }
             }
-
             return entry;
           })
         );
 
-        let filteredEntries = logs.entries;
-        if (chatId) {
-          filteredEntries = logs.entries.filter(
-            (entry) => entry.metadata?.chatId === chatId
-          );
-        }
-        // Only allow entries with text/content or with an image in metadata
-        filteredEntries = filteredEntries.filter((entry) => {
+        // Filter entries to ensure they have content
+        const filteredEntries = processedEntries.filter((entry) => {
           const hasText =
             (entry.text && entry.text.trim() !== "") ||
             (entry.content && entry.content.trim() !== "");
@@ -78,8 +118,9 @@ class GodModeStorage {
             (entry.metadata.imageBlob || entry.metadata.imageUrl);
           return hasText || hasImage;
         });
+
         resolve({ entries: filteredEntries });
-      });
+      };
     });
   }
 
@@ -102,53 +143,45 @@ class GodModeStorage {
   }
 
   async addLog(chatId, logEntry) {
+    const db = await this.getDB();
     return new Promise(async (resolve) => {
-      const logs = await this.getLogs(chatId);
-      // Always ensure chatId is present in metadata
       const normalizedEntry = {
+        id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ...logEntry,
         text: logEntry.text || logEntry.content || "",
         type: logEntry.type || "output",
         metadata: {
           ...(logEntry.metadata || {}),
           chatId,
+          timestamp: Date.now(),
         },
       };
 
-      // If there's an image blob, check for duplicates before storing
+      // Handle image blob if present
       if (
         normalizedEntry.metadata?.imageBlob &&
         normalizedEntry.metadata.imageBlob instanceof Blob
       ) {
         try {
-          // Calculate hash of the image
           const imageHash = await this.calculateImageHash(
             normalizedEntry.metadata.imageBlob
           );
 
-          // Check if we've seen this image before
           if (this.imageHashStore.has(imageHash)) {
-            // Use the existing binary data ID instead of storing a duplicate
             normalizedEntry.metadata.binaryDataId =
               this.imageHashStore.get(imageHash);
             delete normalizedEntry.metadata.imageBlob;
-            console.log("[AI Context Vault] Skipping duplicate image");
           } else {
-            // Generate a unique ID for the binary data
             const binaryDataId = `binary_${Date.now()}_${Math.random()
               .toString(36)
               .substr(2, 9)}`;
 
-            // Store the binary data in IndexedDB
             await indexedDBStorage.storeBinaryData(
               binaryDataId,
               normalizedEntry.metadata.imageBlob
             );
 
-            // Store the hash and ID for future reference
             this.imageHashStore.set(imageHash, binaryDataId);
-
-            // Replace the blob with a reference ID
             normalizedEntry.metadata.binaryDataId = binaryDataId;
             delete normalizedEntry.metadata.imageBlob;
           }
@@ -157,10 +190,15 @@ class GodModeStorage {
         }
       }
 
-      logs.entries.push(normalizedEntry);
-      chrome.storage.local.set({ [this.storageKey]: logs }, () => {
+      const transaction = db.transaction([this.storeName], "readwrite");
+      const store = transaction.objectStore(this.storeName);
+      const request = store.put(normalizedEntry);
+
+      request.onsuccess = () => resolve();
+      request.onerror = (error) => {
+        console.error("[AI Context Vault] Error adding log:", error);
         resolve();
-      });
+      };
     });
   }
 
@@ -277,10 +315,34 @@ class GodModeStorage {
     });
 
     const mergedData = { entries: mergedEntries };
-    //const mergedData = { entries: [] };
 
-    // Save merged data back to local storage
-    chrome.storage.local.set({ [this.storageKey]: mergedData });
+    // Save merged data to IndexedDB
+    const db = await this.getDB();
+    await new Promise((resolve) => {
+      const transaction = db.transaction([this.storeName], "readwrite");
+      const store = transaction.objectStore(this.storeName);
+
+      // Clear existing data
+      const clearRequest = store.clear();
+      clearRequest.onsuccess = () => {
+        // Add merged entries
+        const addPromises = mergedEntries.map((entry) => {
+          return new Promise((resolveAdd) => {
+            const addRequest = store.put(entry);
+            addRequest.onsuccess = () => resolveAdd();
+            addRequest.onerror = (error) => {
+              console.error(
+                "[AI Context Vault] Error adding merged entry:",
+                error
+              );
+              resolveAdd();
+            };
+          });
+        });
+
+        Promise.all(addPromises).then(() => resolve());
+      };
+    });
 
     // Update GitHub
     const body = {
@@ -355,56 +417,59 @@ class GodModeStorage {
   }
 
   async clearLogs(chatId) {
-    try {
-      const isGodModeEnabled = await this.checkEnabledState();
-      if (!isGodModeEnabled) {
-        return;
-      }
+    const db = await this.getDB();
+    return new Promise(async (resolve) => {
+      try {
+        const isGodModeEnabled = await this.checkEnabledState();
+        if (!isGodModeEnabled) {
+          resolve();
+          return;
+        }
 
-      const logs = await this.getLogs(chatId);
+        if (chatId) {
+          // Clear logs for specific chat
+          const transaction = db.transaction([this.storeName], "readwrite");
+          const store = transaction.objectStore(this.storeName);
+          const index = store.index("chatId");
+          const request = index.getAll(chatId);
 
-      // Clear binary data from IndexedDB
-      if (chatId) {
-        // Clear binary data for specific chat
-        const chatEntries = logs.entries.filter(
-          (entry) => entry.metadata?.chatId === chatId
-        );
-        await Promise.all(
-          chatEntries.map(async (entry) => {
-            if (entry.metadata?.binaryDataId) {
-              await indexedDBStorage.deleteBinaryData(
-                entry.metadata.binaryDataId
-              );
-              // Remove from hash store if this was the last reference
-              const hashToRemove = Array.from(
-                this.imageHashStore.entries()
-              ).find(([_, id]) => id === entry.metadata.binaryDataId);
-              if (hashToRemove) {
-                this.imageHashStore.delete(hashToRemove[0]);
-              }
-            }
-          })
-        );
-      } else {
-        // Clear all binary data
-        await indexedDBStorage.clearAll();
-        this.imageHashStore.clear(); // Clear the hash store
-      }
+          request.onsuccess = async () => {
+            const entries = request.result || [];
+            await Promise.all(
+              entries.map(async (entry) => {
+                if (entry.metadata?.binaryDataId) {
+                  await indexedDBStorage.deleteBinaryData(
+                    entry.metadata.binaryDataId
+                  );
+                  const hashToRemove = Array.from(
+                    this.imageHashStore.entries()
+                  ).find(([_, id]) => id === entry.metadata.binaryDataId);
+                  if (hashToRemove) {
+                    this.imageHashStore.delete(hashToRemove[0]);
+                  }
+                }
+                store.delete(entry.id);
+              })
+            );
+            resolve();
+          };
+        } else {
+          // Clear all logs
+          const transaction = db.transaction([this.storeName], "readwrite");
+          const store = transaction.objectStore(this.storeName);
+          const request = store.clear();
 
-      // Clear the logs from chrome.storage.local
-      if (chatId) {
-        const filteredEntries = logs.entries.filter(
-          (entry) => entry.metadata?.chatId !== chatId
-        );
-        chrome.storage.local.set({
-          [this.storageKey]: { entries: filteredEntries },
-        });
-      } else {
-        chrome.storage.local.set({ [this.storageKey]: { entries: [] } });
+          request.onsuccess = async () => {
+            await indexedDBStorage.clearAll();
+            this.imageHashStore.clear();
+            resolve();
+          };
+        }
+      } catch (error) {
+        console.error("[AI Context Vault] Error clearing logs:", error);
+        resolve();
       }
-    } catch (error) {
-      console.error("Error clearing logs:", error);
-    }
+    });
   }
 }
 
