@@ -28,7 +28,29 @@ class GodModeStorage {
     return new Promise((resolve) => {
       chrome.storage.local.get([this.storageKey], (result) => {
         const logs = result[this.storageKey] || { entries: [] };
-        resolve(logs);
+        // Patch old entries to include chatId if missing
+        logs.entries = logs.entries.map((entry) => {
+          if (!entry.metadata) entry.metadata = {};
+          if (chatId && !entry.metadata.chatId) entry.metadata.chatId = chatId;
+          return entry;
+        });
+        let filteredEntries = logs.entries;
+        if (chatId) {
+          filteredEntries = logs.entries.filter(
+            (entry) => entry.metadata?.chatId === chatId
+          );
+        }
+        // Only allow entries with text/content or with an image in metadata
+        filteredEntries = filteredEntries.filter((entry) => {
+          const hasText =
+            (entry.text && entry.text.trim() !== "") ||
+            (entry.content && entry.content.trim() !== "");
+          const hasImage =
+            entry.metadata &&
+            (entry.metadata.imageBlob || entry.metadata.imageUrl);
+          return hasText || hasImage;
+        });
+        resolve({ entries: filteredEntries });
       });
     });
   }
@@ -36,9 +58,37 @@ class GodModeStorage {
   async addLog(chatId, logEntry) {
     return new Promise(async (resolve) => {
       const logs = await this.getLogs(chatId);
-      logs.entries.push(logEntry);
-      chrome.storage.local.set({ [this.storageKey]: logs }, async () => {
-        await this.syncToGist();
+      // Always ensure chatId is present in metadata
+      const normalizedEntry = {
+        ...logEntry,
+        text: logEntry.text || logEntry.content || "",
+        type: logEntry.type || "output",
+        metadata: {
+          ...(logEntry.metadata || {}),
+          chatId,
+        },
+      };
+      // If there's an image blob, convert it to base64 for storage
+      if (
+        normalizedEntry.metadata?.imageBlob &&
+        normalizedEntry.metadata.imageBlob instanceof Blob
+      ) {
+        try {
+          const base64 = await this.blobToBase64(
+            normalizedEntry.metadata.imageBlob
+          );
+          normalizedEntry.metadata.imageBlob = base64;
+          normalizedEntry.metadata.imageType =
+            normalizedEntry.metadata.imageBlob.type;
+        } catch (error) {
+          console.error(
+            "[AI Context Vault] Error converting blob to base64:",
+            error
+          );
+        }
+      }
+      logs.entries.push(normalizedEntry);
+      chrome.storage.local.set({ [this.storageKey]: logs }, () => {
         resolve();
       });
     });
@@ -157,6 +207,7 @@ class GodModeStorage {
     });
 
     const mergedData = { entries: mergedEntries };
+    //const mergedData = { entries: [] };
 
     // Save merged data back to local storage
     chrome.storage.local.set({ [this.storageKey]: mergedData });
