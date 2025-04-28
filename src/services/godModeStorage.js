@@ -1,7 +1,12 @@
 // God Mode Storage Service
+import { decryptPAT } from "../services/patEncryption";
+
 class GodModeStorage {
   constructor() {
     this.storageKey = "godModeLogs";
+    this.syncInterval = null;
+    this.lastKnownSha = null;
+    this.currentSync = null;
   }
 
   static getInstance() {
@@ -20,91 +25,211 @@ class GodModeStorage {
   }
 
   async getLogs(chatId) {
-    try {
-      const isGodModeEnabled = await this.checkEnabledState();
-      if (!isGodModeEnabled) {
-        return { chatId, summary: "", entries: [] };
-      }
+    return new Promise((resolve) => {
+      chrome.storage.local.get([this.storageKey], (result) => {
+        const logs = result[this.storageKey] || { entries: [] };
+        resolve(logs);
+      });
+    });
+  }
 
-      const logs = localStorage.getItem(this.storageKey);
-      const allLogs = logs ? JSON.parse(logs) : {};
-      return allLogs[chatId] || { chatId, summary: "", entries: [] };
-    } catch (error) {
-      console.error("Error getting logs:", error);
-      return { chatId, summary: "", entries: [] };
+  async addLog(chatId, logEntry) {
+    return new Promise(async (resolve) => {
+      const logs = await this.getLogs(chatId);
+      logs.entries.push(logEntry);
+      chrome.storage.local.set({ [this.storageKey]: logs }, async () => {
+        await this.syncToGist();
+        resolve();
+      });
+    });
+  }
+
+  async syncToGist() {
+    // Abort any in-flight request
+    if (this.currentSync && this.currentSync.abort) {
+      console.log("[AI Context Vault] Aborting previous God Mode sync");
+      this.currentSync.abort();
+    }
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+    this.currentSync = controller;
+
+    // Set up a 20-second timeout
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => {
+        controller.abort();
+        reject(new Error("God Mode sync timed out"));
+      }, 20000)
+    );
+
+    try {
+      const result = await Promise.race([
+        this.performGodModeSync(signal),
+        timeout,
+      ]);
+      return result;
+    } catch (err) {
+      console.error("[AI Context Vault] God Mode sync failed:", err);
+    } finally {
+      this.currentSync = null;
     }
   }
 
-  async addLog(chatId, log) {
+  async performGodModeSync(signal) {
+    const { godModeEncryptedPAT, godModeGistURL } = await new Promise(
+      (resolve) => {
+        chrome.storage.local.get(
+          ["godModeEncryptedPAT", "godModeGistURL"],
+          (res) => {
+            resolve({
+              godModeEncryptedPAT: res.godModeEncryptedPAT || "",
+              godModeGistURL: res.godModeGistURL || "",
+            });
+          }
+        );
+      }
+    );
+
+    if (!godModeEncryptedPAT || !godModeGistURL.includes("/")) {
+      console.warn("[AI Context Vault] Missing God Mode Gist configuration");
+      return;
+    }
+
+    const pat = await decryptPAT(godModeEncryptedPAT);
+    const gistId = godModeGistURL.split("/").pop();
+    const headers = {
+      Authorization: `token ${pat}`,
+      "Content-Type": "application/json",
+    };
+
+    // Get local data
+    const localData = await this.getLogs();
+    console.debug("[AI Context Vault] Local God Mode data:", localData);
+
+    // Get remote data
+    let remoteData = { entries: [] };
     try {
-      const isGodModeEnabled = await this.checkEnabledState();
-      if (!isGodModeEnabled) {
-        return;
-      }
+      const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+        method: "GET",
+        headers,
+        signal,
+      });
 
-      // Validate log content
-      if (
-        !log ||
-        (!log.content && !log.metadata?.imageUrl) ||
-        (log.content && typeof log.content !== "string")
-      ) {
-        console.warn("[AI Context Vault] Invalid log content:", log);
-        return;
-      }
-
-      // Trim and validate content
-      const trimmedContent = log.content.trim();
-      if (
-        (!log.content && !log.metadata?.imageUrl && !trimmedContent) ||
-        (!log.content && !log.metadata?.imageUrl && trimmedContent === "") ||
-        (!log.content && !log.metadata?.imageUrl && trimmedContent === " ")
-      ) {
-        console.warn("[AI Context Vault] Empty or whitespace-only log content");
-        return;
-      }
-
-      // Additional validation for AI responses
-      if (
-        !log.content &&
-        !log.metadata?.imageUrl &&
-        log.type === "output" &&
-        trimmedContent === "Generated image"
-      ) {
-        // Only allow "Generated image" if there's actual image data
-        if (!log.metadata?.imageUrl && !log.metadata?.imageBlob) {
-          console.warn(
-            "[AI Context Vault] Image generation log without image data"
-          );
-          return;
+      if (response.ok) {
+        const gist = await response.json();
+        const file = gist.files["ai_context_vault_god_mode_data.json"];
+        if (file && file.content) {
+          try {
+            remoteData = JSON.parse(file.content);
+            if (!remoteData.entries) {
+              remoteData.entries = [];
+            }
+          } catch (e) {
+            console.error("[AI Context Vault] Error parsing remote data:", e);
+            remoteData = { entries: [] };
+          }
         }
       }
+    } catch (e) {
+      console.error("[AI Context Vault] Error fetching remote data:", e);
+      remoteData = { entries: [] };
+    }
 
-      const logs = localStorage.getItem(this.storageKey);
-      const allLogs = logs ? JSON.parse(logs) : {};
-      const chatLogs = allLogs[chatId] || { chatId, summary: "", entries: [] };
+    // Ensure local data has entries array
+    if (!localData.entries) {
+      localData.entries = [];
+    }
 
-      // Check if this exact content already exists in recent logs (last 10)
-      const recentLogs = chatLogs.entries;
-      const isDuplicate = recentLogs.some(
-        (existingLog) =>
-          existingLog.text === trimmedContent && existingLog.type === log.type
+    // Merge the data
+    const mergedEntries = [...(remoteData.entries || [])];
+
+    // Add new local entries that don't exist in remote
+    localData.entries.forEach((localEntry) => {
+      const exists = mergedEntries.some(
+        (remoteEntry) =>
+          remoteEntry.metadata?.messageId === localEntry.metadata?.messageId &&
+          remoteEntry.metadata?.timestamp === localEntry.metadata?.timestamp
       );
-
-      if (!isDuplicate) {
-        chatLogs.entries.push({
-          id: `entry_${Date.now()}`,
-          text: trimmedContent,
-          type: log.type,
-          metadata: log.metadata || {},
-          created: Date.now(),
-          lastModified: Date.now(),
-        });
-
-        allLogs[chatId] = chatLogs;
-        localStorage.setItem(this.storageKey, JSON.stringify(allLogs));
+      if (!exists) {
+        mergedEntries.push(localEntry);
       }
-    } catch (error) {
-      console.error("Error adding log:", error);
+    });
+
+    const mergedData = { entries: mergedEntries };
+
+    // Save merged data back to local storage
+    chrome.storage.local.set({ [this.storageKey]: mergedData });
+
+    // Update GitHub
+    const body = {
+      description: "AI Context Vault God Mode Sync",
+      files: {
+        "ai_context_vault_god_mode_data.json": {
+          content: JSON.stringify(mergedData, null, 2),
+        },
+      },
+    };
+
+    const patch = await fetch(`https://api.github.com/gists/${gistId}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(body),
+      signal,
+    });
+
+    if (patch.ok) {
+      const gist = await patch.json();
+      this.lastKnownSha = gist.history[0].version;
+      console.log("[AI Context Vault] God Mode sync successful");
+    }
+  }
+
+  async startPeriodicSync() {
+    if (this.syncInterval) return;
+
+    // Check if Gist configuration exists
+    const { godModeEncryptedPAT, godModeGistURL } = await new Promise(
+      (resolve) => {
+        chrome.storage.local.get(
+          ["godModeEncryptedPAT", "godModeGistURL"],
+          (res) => {
+            resolve({
+              godModeEncryptedPAT: res.godModeEncryptedPAT || "",
+              godModeGistURL: res.godModeGistURL || "",
+            });
+          }
+        );
+      }
+    );
+
+    if (!godModeEncryptedPAT || !godModeGistURL.includes("/")) {
+      console.debug(
+        "[AI Context Vault] Missing God Mode Gist configuration, skipping periodic sync"
+      );
+      return;
+    }
+
+    // Sync every 60 seconds
+    this.syncInterval = setInterval(() => this.syncToGist(), 60000);
+
+    // Sync when tab becomes visible
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        this.syncToGist();
+      }
+    });
+
+    // Sync when window gets focus
+    window.addEventListener("focus", () => {
+      this.syncToGist();
+    });
+  }
+
+  stopPeriodicSync() {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
     }
   }
 

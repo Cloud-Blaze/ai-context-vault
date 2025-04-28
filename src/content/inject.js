@@ -1524,14 +1524,14 @@ function setupGodModeObserver() {
     if (!chatId) return;
 
     for (const mutation of mutations) {
-      console.log("[AI Context Vault] Mutation observed:", {
-        type: mutation.type,
-        target: mutation.target,
-        addedNodes: mutation.addedNodes.length,
-        removedNodes: mutation.removedNodes.length,
-        characterData: mutation.type === "characterData",
-        attributeName: mutation.attributeName,
-      });
+      // console.log("[AI Context Vault] Mutation observed:", {
+      //   type: mutation.type,
+      //   target: mutation.target,
+      //   addedNodes: mutation.addedNodes.length,
+      //   removedNodes: mutation.removedNodes.length,
+      //   characterData: mutation.type === "characterData",
+      //   attributeName: mutation.attributeName,
+      // });
       if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
         for (const node of mutation.addedNodes) {
           if (node.nodeType === Node.ELEMENT_NODE) {
@@ -1677,33 +1677,6 @@ function setupGodModeObserver() {
 // Initialize God Mode
 let godModeObserver = null;
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "GOD_MODE_STATE_CHANGED") {
-    if (message.enabled) {
-      if (!godModeObserver) {
-        godModeObserver = setupGodModeObserver();
-      }
-      const historyPanel = document.getElementById(
-        "__ai_context_godmode_history__"
-      );
-      if (historyPanel) {
-        historyPanel.style.display = "flex";
-      }
-    } else {
-      if (godModeObserver) {
-        godModeObserver.disconnect();
-        godModeObserver = null;
-      }
-      const historyPanel = document.getElementById(
-        "__ai_context_godmode_history__"
-      );
-      if (historyPanel) {
-        historyPanel.style.display = "none";
-      }
-    }
-  }
-});
-
 // Check initial God Mode state
 chrome.storage.local.get(["godModeEnabled"], async (result) => {
   if (result.godModeEnabled) {
@@ -1713,6 +1686,27 @@ chrome.storage.local.get(["godModeEnabled"], async (result) => {
     );
     if (historyPanel) {
       historyPanel.style.display = "flex";
+    }
+
+    // Start periodic sync
+    const storage = GodModeStorage.getInstance();
+    await storage.startPeriodicSync();
+  }
+});
+
+// Listen for God Mode state changes
+chrome.storage.onChanged.addListener(async (changes) => {
+  if (changes.godModeEnabled) {
+    const storage = GodModeStorage.getInstance();
+    if (changes.godModeEnabled.newValue) {
+      godModeObserver = setupGodModeObserver();
+      await storage.startPeriodicSync();
+    } else {
+      if (godModeObserver) {
+        godModeObserver.disconnect();
+        godModeObserver = null;
+      }
+      storage.stopPeriodicSync();
     }
   }
 });
