@@ -504,7 +504,23 @@ async function refreshOverlayContent(overlayPanel) {
       }
 
       // Show code block if present
-      if (entry.metadata?.codeBlock && entry.metadata.codeBlock.content) {
+      if (Array.isArray(entry.metadata?.codeBlocks)) {
+        entry.metadata.codeBlocks.forEach((block) => {
+          const codeContainer = document.createElement("div");
+          codeContainer.style.marginTop = "8px";
+          codeContainer.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
+          codeContainer.style.padding = "8px";
+          codeContainer.style.borderRadius = "4px";
+          codeContainer.style.fontFamily = "monospace";
+          codeContainer.style.whiteSpace = "pre-wrap";
+          codeContainer.style.overflowX = "auto";
+          codeContainer.textContent = block.content;
+          logEntry.appendChild(codeContainer);
+        });
+      } else if (
+        entry.metadata?.codeBlock &&
+        entry.metadata.codeBlock.content
+      ) {
         const codeContainer = document.createElement("div");
         codeContainer.style.marginTop = "8px";
         codeContainer.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
@@ -535,6 +551,84 @@ async function refreshOverlayContent(overlayPanel) {
 
         imgContainer.appendChild(img);
         logEntry.appendChild(imgContainer);
+      }
+
+      // Add to Context button logic
+      const isInContext = contextData?.entries?.some(
+        (ctxEntry) => (ctxEntry.text || ctxEntry.content) === textValue
+      );
+      if (!isInContext && textValue && textValue.trim() !== "") {
+        const addToContextButton = document.createElement("button");
+        addToContextButton.textContent = "Add to Context";
+        Object.assign(addToContextButton.style, {
+          marginTop: "8px",
+          padding: "4px 8px",
+          backgroundColor: "#10b981",
+          color: "#fff",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "12px",
+          fontWeight: "500",
+          transition: "background-color 0.2s",
+        });
+
+        addToContextButton.addEventListener("mouseover", () => {
+          addToContextButton.style.backgroundColor = "#059669";
+        });
+
+        addToContextButton.addEventListener("mouseout", () => {
+          addToContextButton.style.backgroundColor = "#10b981";
+        });
+
+        addToContextButton.addEventListener("click", async () => {
+          try {
+            const { domain, chatId } = parseUrlForIds(window.location.href);
+            // Get the full content including all code blocks
+            let textToAdd = textValue;
+            if (Array.isArray(entry.metadata?.codeBlocks)) {
+              textToAdd +=
+                "\n\n" +
+                entry.metadata.codeBlocks.map((cb) => cb.content).join("\n\n");
+            } else if (entry.metadata?.codeBlock) {
+              textToAdd += "\n\n" + entry.metadata.codeBlock.content;
+            }
+            if (!textToAdd || textToAdd.trim() === "") {
+              console.warn(
+                "[AI Context Vault] No text content to add to context"
+              );
+              return;
+            }
+            const storage = await import("../storage/contextStorage");
+            await storage.addContext(domain, chatId, textToAdd);
+            const bubble = document.createElement("div");
+            bubble.textContent = "Added to context!";
+            Object.assign(bubble.style, {
+              position: "fixed",
+              bottom: "20px",
+              right: "20px",
+              padding: "8px 16px",
+              backgroundColor: "#10b981",
+              color: "#fff",
+              borderRadius: "4px",
+              zIndex: "2147483647",
+              fontSize: "14px",
+              fontWeight: "500",
+            });
+            document.body.appendChild(bubble);
+            setTimeout(() => bubble.remove(), 2000);
+            const overlayPanel = document.getElementById(
+              "__ai_context_overlay__"
+            );
+            if (overlayPanel) {
+              await refreshOverlayContent(overlayPanel);
+            }
+          } catch (error) {
+            console.error("Error adding to context:", error);
+            showConfirmationBubble("Failed to add to context", "error");
+          }
+        });
+        logEntry.appendChild(addToContextButton);
       }
 
       logsContainer.appendChild(logEntry);
@@ -1432,8 +1526,23 @@ function setupGodModeObserver() {
                   const model =
                     providerConfig.extractors.modelSlug(parentMessage);
                   const text = providerConfig.extractors.aiText(parentMessage);
-                  const codeBlock =
-                    providerConfig.extractors.codeBlock(parentMessage);
+                  const codeBlocks = Array.from(
+                    parentMessage.querySelectorAll("pre")
+                  )
+                    .map((pre) => {
+                      const code = pre.querySelector("code");
+                      const languageElem = pre.querySelector(
+                        "div.flex.items-center"
+                      );
+                      return {
+                        language: languageElem?.textContent.trim() || "text",
+                        content:
+                          code?.textContent.trim() ||
+                          pre.textContent.trim() ||
+                          "",
+                      };
+                    })
+                    .filter((block) => block.content);
 
                   try {
                     const imageData = await providerConfig.extractors.imageUrl(
@@ -1458,11 +1567,8 @@ function setupGodModeObserver() {
                         },
                       };
 
-                      if (codeBlock) {
-                        logEntry.metadata.codeBlock = {
-                          language: codeBlock.language,
-                          content: codeBlock.content,
-                        };
+                      if (codeBlocks.length > 0) {
+                        logEntry.metadata.codeBlocks = codeBlocks;
                       }
 
                       await storage.addLog(chatId, logEntry);
@@ -1515,7 +1621,20 @@ function setupGodModeObserver() {
 
               const messageId = providerConfig.extractors.messageId(message);
               const model = providerConfig.extractors.modelSlug(message);
-              const codeBlock = providerConfig.extractors.codeBlock(message);
+              const codeBlocks2 = Array.from(message.querySelectorAll("pre"))
+                .map((pre) => {
+                  const code = pre.querySelector("code");
+                  const languageElem = pre.querySelector(
+                    "div.flex.items-center"
+                  );
+                  return {
+                    language: languageElem?.textContent.trim() || "text",
+                    content:
+                      code?.textContent.trim() || pre.textContent.trim() || "",
+                  };
+                })
+                .filter((block) => block.content);
+
               const text = providerConfig.extractors.aiText(message);
 
               const logEntry = {
@@ -1530,11 +1649,8 @@ function setupGodModeObserver() {
                 },
               };
 
-              if (codeBlock) {
-                logEntry.metadata.codeBlock = {
-                  language: codeBlock.language,
-                  content: codeBlock.content,
-                };
+              if (codeBlocks2.length > 0) {
+                logEntry.metadata.codeBlocks = codeBlocks2;
               }
 
               await storage.addLog(chatId, logEntry);
