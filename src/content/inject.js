@@ -788,6 +788,8 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
   const textContainer = document.createElement("div");
   textContainer.className = "ai-context-entry-text";
 
+  let text, editTextarea;
+
   // Handle image entries
   if (
     entry.metadata?.imageUrl &&
@@ -815,17 +817,22 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
   }
 
   // Only add text elements if there's actual content
-  if (entry.content && entry.content.trim() !== "") {
-    const text = document.createElement("div");
-    text.textContent = entry.content;
+  if (entry.text && entry.text.trim() !== "") {
+    text = document.createElement("div");
+    text.textContent = entry.text;
 
-    const editTextarea = document.createElement("textarea");
-    editTextarea.value = entry.content;
+    editTextarea = document.createElement("textarea");
+    editTextarea.value = entry.text;
     editTextarea.className = "ai-context-entry-textarea";
 
     textContainer.appendChild(text);
     textContainer.appendChild(editTextarea);
+  }
 
+  entryItem.appendChild(textContainer);
+
+  // Add buttons at the end
+  if (entry.text && entry.text.trim() !== "") {
     const buttonContainer = document.createElement("div");
     buttonContainer.className = "ai-context-entry-buttons";
 
@@ -856,11 +863,11 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
         editTextarea.focus();
       } else {
         const newText = editTextarea.value.trim();
-        if (newText && newText !== entry.content) {
+        if (newText && newText !== entry.text) {
           try {
             const storage = await import("../storage/contextStorage");
-            await storage.updateContext(domain, chatId, entry.content, newText);
-            entry.content = newText;
+            await storage.updateContext(domain, chatId, entry.text, newText);
+            entry.text = newText;
             text.textContent = newText;
             showConfirmationBubble("Context updated successfully", "success");
 
@@ -894,14 +901,13 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
       }
     });
 
-    deleteButton.addEventListener("click", () => onDelete(entry.content));
+    deleteButton.addEventListener("click", () => onDelete(entry.text));
 
     buttonContainer.appendChild(deleteButton);
     buttonContainer.appendChild(editButton);
     entryItem.appendChild(buttonContainer);
   }
 
-  entryItem.appendChild(textContainer);
   return entryItem;
 }
 
