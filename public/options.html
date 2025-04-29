@@ -82,6 +82,23 @@
     .button:hover {
       background-color: #3c64a8;
     }
+
+    input[type="checkbox"] {
+      transform: scale(1.5);
+      margin-right: 10px;
+      cursor: pointer;
+      animation: rainbow 2s linear infinite;
+    }
+
+    @keyframes rainbow {
+      0% {
+        filter: hue-rotate(0deg);
+      }
+
+      100% {
+        filter: hue-rotate(360deg);
+      }
+    }
   </style>
 </head>
 
@@ -140,7 +157,7 @@
         <li>Edit or delete profiles anytime from the overlay or options page</li>
       </ul>
       <p>
-        Use profiles to keep your AI conversations aligned with your goals, tone, and work environment — whether you’re
+        Use profiles to keep your AI conversations aligned with your goals, tone, and work environment — whether you're
         coding, selling, or just exploring ideas.
       </p>
     </section>
@@ -240,8 +257,8 @@
         its CRM products (now part of Salesforce AI Cloud as the Einstein Copilot). It can draft emails, answer customer
         questions, and generate code by blending real-time company data with OpenAI's models or Salesforce's own LLMs.
       </li>
-      <li><strong>Wysa</strong> (www.wysa.com) - An AI mental health chatbot that serves as an “AI-powered personal
-        coach” for managing stress, sleep, and difficult emotions. Wysa provides anonymous, 24/7 empathetic listening
+      <li><strong>Wysa</strong> (www.wysa.com) - An AI mental health chatbot that serves as an "AI-powered personal
+        coach" for managing stress, sleep, and difficult emotions. Wysa provides anonymous, 24/7 empathetic listening
         and clinically validated self-help techniques in a chat format</li>
       <li><strong>Baidu ERNIE Bot</strong> (yiyan.baidu.com) - A Chinese conversational AI service by Baidu (released
         2023) designed to rival ChatGPT. ERNIE Bot is built on Baidu's ERNIE large model and has quickly amassed
@@ -249,7 +266,7 @@
     </ul>
 
     <footer>
-      Version v1.0.23 | AI Context Vault
+      Version v1.0.24 | AI Context Vault
     </footer>
   </div>
 

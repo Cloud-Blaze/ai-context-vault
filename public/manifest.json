@@ -1,14 +1,13 @@
 {
   "name": "AI Context Vault",
   "description": "Injects saved memory into AI chats 🧠. Bookmarks, context snippets, encrypted Gist sync. More tools coming soon 🚀",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "manifest_version": 3,
-  "permissions": [
-    "storage",
-    "activeTab",
-    "background"
-  ],
-  "options_page": "options.html",
+  "permissions": ["storage", "activeTab", "background"],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://claude.ai/*",
@@ -40,7 +39,6 @@
   ],
   "action": {
     "default_title": "AI Context Vault",
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon-grey-16.png",
       "48": "icons/icon-grey-48.png",
@@ -81,12 +79,8 @@
         "https://chat.together.ai/*",
         "https://dust.tt/*"
       ],
-      "js": [
-        "inject.bundle.js"
-      ],
-      "css": [
-        "inject.css"
-      ]
+      "js": ["inject.bundle.js"],
+      "css": ["inject.css"]
     }
   ],
   "commands": {

@@ -13,7 +13,7 @@ module.exports = {
     filename: "[name].bundle.js",
     clean: true,
   },
-  devtool: "cheap-module-source-map",
+  devtool: "source-map",
   module: {
     rules: [
       {
@@ -48,11 +48,9 @@ module.exports = {
   resolve: {
     extensions: [".js", ".jsx"],
   },
-  devServer: {
-    static: {
-      directory: path.join(__dirname, "public"),
-    },
-    compress: true,
-    port: 3000,
-  },
 };
+
+// To develop/debug your extension:
+// 1. Run `npm run dev` (webpack --watch --mode development)
+// 2. Load the 'dist/' directory as an unpacked extension in chrome://extensions/
+// 3. After edits, let webpack rebuild, then refresh the extension and your page

@@ -1,6 +1,38 @@
 // background.js
 // Handles extension-level events, hotkeys, and messages to content scripts
 
+// Initialize God Mode state
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.storage.local.get(["godModeEnabled"], (result) => {
+    // Initialize God Mode as disabled by default
+    if (result.godModeEnabled === undefined) {
+      chrome.storage.local.set({ godModeEnabled: false });
+    }
+  });
+});
+
+// Listen for changes to God Mode state
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.godModeEnabled) {
+    console.log(
+      "[AI Context Vault] God Mode state changed:",
+      changes.godModeEnabled.newValue
+    );
+
+    // Notify all tabs about God Mode state change
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        if (tab.id) {
+          chrome.tabs.sendMessage(tab.id, {
+            type: "GOD_MODE_STATE_CHANGED",
+            enabled: changes.godModeEnabled.newValue,
+          });
+        }
+      });
+    });
+  }
+});
+
 chrome.commands.onCommand.addListener(async (command) => {
   console.log("[AI Context Vault] Command received:", command);
 
@@ -45,10 +77,7 @@ chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });
 });
 
-////////////////////////////////////////////////////////////////////////////////
-// GITHUB SYNC & FIRST INSTALL SUPPORT - ADDED AT BOTTOM
-////////////////////////////////////////////////////////////////////////////////
-
+// First install support
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
     console.log("[AI Context Vault] First install - opening options page...");

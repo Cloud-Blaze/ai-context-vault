@@ -10,8 +10,9 @@ import {
   updateBookmarkLabel,
   saveContext,
   getContextKey,
-} from "../storage/contextStorage";
+} from "../storage/contextStorage.js";
 import "./inject.css";
+import { GodModeStorage } from "../services/godModeStorage.js";
 
 // Function to format timestamp in DD/MM HH:mm format
 function formatTimestamp(timestamp) {
@@ -122,6 +123,25 @@ async function ensureOverlayExists() {
     console.log("[AI Context Vault] Overlay already exists in DOM");
   }
 
+  // Update the overlay panel width
+  // Object.assign(overlayPanel.style, {
+  //   position: "fixed",
+  //   top: "20px",
+  //   right: "20px",
+  //   width: "600px !important", // Increased from 400px to 500px
+  //   maxHeight: "80vh",
+  //   backgroundColor: "#1a1a1a",
+  //   border: "1px solid #333",
+  //   borderRadius: "8px",
+  //   boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
+  //   zIndex: "2147483647",
+  //   display: "none",
+  //   flexDirection: "column",
+  //   overflow: "hidden",
+  //   color: "#fff",
+  //   fontFamily: "system-ui, -apple-system, sans-serif",
+  // });
+
   return overlayPanel;
 }
 
@@ -130,12 +150,12 @@ async function ensureOverlayExists() {
  */
 async function refreshOverlayContent(overlayPanel) {
   const contentContainer = document.getElementById("__ai_context_content__");
+  const { domain, chatId } = parseUrlForIds(window.location.href);
+
   if (!contentContainer) {
     console.error("[AI Context Vault] Content container not found in overlay");
     return;
   }
-
-  const { domain, chatId } = parseUrlForIds(window.location.href);
 
   contentContainer.innerHTML = "";
 
@@ -144,13 +164,22 @@ async function refreshOverlayContent(overlayPanel) {
 
   const contextTab = document.createElement("button");
   const bookmarksTab = document.createElement("button");
-
   contextTab.textContent = "Context";
   bookmarksTab.textContent = "Bookmarks";
 
-  // Create sections first
   const contextSection = document.createElement("div");
   const bookmarksSection = document.createElement("div");
+
+  // Check God Mode enabled state
+  const storage = GodModeStorage.getInstance();
+  const isGodModeEnabled = await storage.checkEnabledState();
+  let godModeTab = null,
+    godModeSection = null;
+  if (isGodModeEnabled) {
+    godModeTab = document.createElement("button");
+    godModeTab.textContent = "God Mode";
+    godModeSection = document.createElement("div");
+  }
 
   // Get the last active tab from storage
   chrome.storage.local.get(["lastActiveTab"], (result) => {
@@ -160,25 +189,31 @@ async function refreshOverlayContent(overlayPanel) {
       bookmarksTab.className = "ai-context-tab active";
       contextSection.style.display = "none";
       bookmarksSection.style.display = "block";
+      if (isGodModeEnabled && godModeTab && godModeSection) {
+        godModeTab.className = "ai-context-tab inactive";
+        godModeSection.style.display = "none";
+      }
+    } else if (
+      lastActiveTab === "godmode" &&
+      isGodModeEnabled &&
+      godModeTab &&
+      godModeSection
+    ) {
+      contextTab.className = "ai-context-tab inactive";
+      bookmarksTab.className = "ai-context-tab inactive";
+      godModeTab.className = "ai-context-tab active";
+      contextSection.style.display = "none";
+      bookmarksSection.style.display = "none";
+      godModeSection.style.display = "block";
     } else {
       contextTab.className = "ai-context-tab active";
       bookmarksTab.className = "ai-context-tab inactive";
       contextSection.style.display = "block";
       bookmarksSection.style.display = "none";
-      // Show no context message if we're in context tab and there's no data
-      getContext(domain, chatId).then((contextData) => {
-        if (
-          !contextData ||
-          !contextData.entries ||
-          contextData.entries.length === 0
-        ) {
-          const noContext = document.createElement("p");
-          noContext.textContent =
-            "No context available for this chat. Highlight text and press CMD+I/CTRL+I to add context.";
-          noContext.style.color = "#999";
-          contextSection.appendChild(noContext);
-        }
-      });
+      if (isGodModeEnabled && godModeTab && godModeSection) {
+        godModeTab.className = "ai-context-tab inactive";
+        godModeSection.style.display = "none";
+      }
     }
   });
 
@@ -187,23 +222,46 @@ async function refreshOverlayContent(overlayPanel) {
     bookmarksTab.className = "ai-context-tab inactive";
     contextSection.style.display = "block";
     bookmarksSection.style.display = "none";
-    // Save the active tab state
+    if (isGodModeEnabled && godModeTab && godModeSection) {
+      godModeTab.className = "ai-context-tab inactive";
+      godModeSection.style.display = "none";
+    }
     chrome.storage.local.set({ lastActiveTab: "context" });
   };
+
   bookmarksTab.onclick = () => {
     bookmarksTab.className = "ai-context-tab active";
     contextTab.className = "ai-context-tab inactive";
     bookmarksSection.style.display = "block";
     contextSection.style.display = "none";
-    // Save the active tab state
+    if (isGodModeEnabled && godModeTab && godModeSection) {
+      godModeTab.className = "ai-context-tab inactive";
+      godModeSection.style.display = "none";
+    }
     chrome.storage.local.set({ lastActiveTab: "bookmarks" });
   };
 
+  if (isGodModeEnabled && godModeTab && godModeSection) {
+    godModeTab.onclick = () => {
+      godModeTab.className = "ai-context-tab active";
+      contextTab.className = "ai-context-tab inactive";
+      bookmarksTab.className = "ai-context-tab inactive";
+      godModeSection.style.display = "block";
+      contextSection.style.display = "none";
+      bookmarksSection.style.display = "none";
+      chrome.storage.local.set({ lastActiveTab: "godmode" });
+    };
+  }
+
   tabsContainer.appendChild(contextTab);
   tabsContainer.appendChild(bookmarksTab);
+  if (isGodModeEnabled && godModeTab) tabsContainer.appendChild(godModeTab);
+
   contentContainer.appendChild(tabsContainer);
   contentContainer.appendChild(contextSection);
   contentContainer.appendChild(bookmarksSection);
+  if (isGodModeEnabled && godModeSection)
+    contentContainer.appendChild(godModeSection);
 
   // Add Import/Export section to context section
   const importExportSection = document.createElement("div");
@@ -321,12 +379,12 @@ async function refreshOverlayContent(overlayPanel) {
           domain,
           chatId,
           async (text) => {
-            const storage = await import("../storage/contextStorage");
+            const storage = await import("../storage/contextStorage.js");
             await storage.deleteContext(domain, chatId, entry.id);
             await refreshOverlayContent(overlayPanel);
           },
           async (id, newLabel) => {
-            const storage = await import("../storage/contextStorage");
+            const storage = await import("../storage/contextStorage.js");
             await storage.updateContext(domain, chatId, entry.text, newLabel);
             await refreshOverlayContent(overlayPanel);
           }
@@ -369,6 +427,212 @@ async function refreshOverlayContent(overlayPanel) {
       );
       bookmarksSection.appendChild(wrapper);
     });
+  }
+  // Get God Mode logs for current chat
+  const logs = await storage.getLogs(chatId);
+
+  godModeSection.innerHTML = ""; // Clear previous logs
+  if (logs.entries.length === 0) {
+    const noLogs = document.createElement("p");
+    noLogs.textContent = "No God Mode logs available yet.";
+    noLogs.style.color = "#999";
+    godModeSection.appendChild(noLogs);
+  } else {
+    const logsContainer = document.createElement("div");
+    logsContainer.className = "ai-context-godmode-logs";
+    Object.assign(logsContainer.style, {
+      maxHeight: "400px",
+      overflowY: "auto",
+      padding: "8px",
+    });
+
+    logs.entries.reverse().forEach((entry) => {
+      // console.log("Rendering God Mode entry:", entry);
+      const logEntry = document.createElement("div");
+      logEntry.className = "ai-context-godmode-entry";
+      Object.assign(logEntry.style, {
+        padding: "8px",
+        marginBottom: "8px",
+        borderRadius: "4px",
+        backgroundColor:
+          entry.type === "input" ? "rgba(50, 50, 50, 0.85)" : "#000",
+        border: "1px solid #666",
+        color: "#fff",
+      });
+
+      const header = document.createElement("div");
+      header.style.display = "flex";
+      header.style.justifyContent = "space-between";
+      header.style.marginBottom = "4px";
+      header.style.fontSize = "12px";
+      header.style.color = "#999";
+
+      const type = document.createElement("span");
+      type.textContent = entry.type === "input" ? "User Input" : "AI Output";
+      type.style.fontWeight = "600";
+
+      const time = document.createElement("span");
+      time.textContent = new Date(
+        entry.metadata.timestamp
+      ).toLocaleTimeString();
+
+      header.appendChild(type);
+      header.appendChild(time);
+      logEntry.appendChild(header);
+
+      // Always show text if present
+      const textValue =
+        entry.text && entry.text.trim() !== ""
+          ? entry.text
+          : entry.content || "";
+      // console.debug(
+      //   "Text value to render:",
+      //   textValue,
+      //   "for entry:",
+      //   entry,
+      //   entry.content
+      // );
+      if (textValue && textValue.trim() !== "") {
+        const textDiv = document.createElement("div");
+        textDiv.style.fontSize = "13px";
+        textDiv.style.whiteSpace = "pre-wrap";
+        textDiv.style.color = "#fff";
+        textDiv.textContent = textValue;
+        logEntry.appendChild(textDiv);
+      }
+
+      // Show code block if present
+      if (Array.isArray(entry.metadata?.codeBlocks)) {
+        entry.metadata.codeBlocks.forEach((block) => {
+          const codeContainer = document.createElement("div");
+          codeContainer.style.marginTop = "8px";
+          codeContainer.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
+          codeContainer.style.padding = "8px";
+          codeContainer.style.borderRadius = "4px";
+          codeContainer.style.fontFamily = "monospace";
+          codeContainer.style.whiteSpace = "pre-wrap";
+          codeContainer.style.overflowX = "auto";
+          codeContainer.textContent = block.content;
+          logEntry.appendChild(codeContainer);
+        });
+      } else if (
+        entry.metadata?.codeBlock &&
+        entry.metadata.codeBlock.content
+      ) {
+        const codeContainer = document.createElement("div");
+        codeContainer.style.marginTop = "8px";
+        codeContainer.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
+        codeContainer.style.padding = "8px";
+        codeContainer.style.borderRadius = "4px";
+        codeContainer.style.fontFamily = "monospace";
+        codeContainer.style.whiteSpace = "pre-wrap";
+        codeContainer.style.overflowX = "auto";
+        codeContainer.textContent = entry.metadata.codeBlock.content;
+        logEntry.appendChild(codeContainer);
+      }
+
+      // Show image if present
+      if (
+        entry.metadata?.imageBlob &&
+        entry.metadata.imageBlob instanceof Blob
+      ) {
+        const imgContainer = document.createElement("div");
+        imgContainer.style.marginTop = "8px";
+        imgContainer.style.maxWidth = "100%";
+        imgContainer.style.overflow = "hidden";
+
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(entry.metadata.imageBlob);
+        img.style.maxWidth = "100%";
+        img.style.height = "auto";
+        img.style.borderRadius = "4px";
+
+        imgContainer.appendChild(img);
+        logEntry.appendChild(imgContainer);
+      }
+
+      // Add to Context button logic
+      const isInContext = contextData?.entries?.some(
+        (ctxEntry) => (ctxEntry.text || ctxEntry.content) === textValue
+      );
+      if (!isInContext && textValue && textValue.trim() !== "") {
+        const addToContextButton = document.createElement("button");
+        addToContextButton.textContent = "Add to Context";
+        Object.assign(addToContextButton.style, {
+          marginTop: "8px",
+          padding: "4px 8px",
+          backgroundColor: "#10b981",
+          color: "#fff",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "12px",
+          fontWeight: "500",
+          transition: "background-color 0.2s",
+        });
+
+        addToContextButton.addEventListener("mouseover", () => {
+          addToContextButton.style.backgroundColor = "#059669";
+        });
+
+        addToContextButton.addEventListener("mouseout", () => {
+          addToContextButton.style.backgroundColor = "#10b981";
+        });
+
+        addToContextButton.addEventListener("click", async () => {
+          try {
+            const { domain, chatId } = parseUrlForIds(window.location.href);
+            // Get the full content including all code blocks
+            let textToAdd = textValue;
+            if (Array.isArray(entry.metadata?.codeBlocks)) {
+              textToAdd +=
+                "\n\n" +
+                entry.metadata.codeBlocks.map((cb) => cb.content).join("\n\n");
+            } else if (entry.metadata?.codeBlock) {
+              textToAdd += "\n\n" + entry.metadata.codeBlock.content;
+            }
+            if (!textToAdd || textToAdd.trim() === "") {
+              console.warn(
+                "[AI Context Vault] No text content to add to context"
+              );
+              return;
+            }
+            const storage = await import("../storage/contextStorage");
+            await storage.addContext(domain, chatId, textToAdd);
+            const bubble = document.createElement("div");
+            bubble.textContent = "Added to context!";
+            Object.assign(bubble.style, {
+              position: "fixed",
+              bottom: "20px",
+              right: "20px",
+              padding: "8px 16px",
+              backgroundColor: "#10b981",
+              color: "#fff",
+              borderRadius: "4px",
+              zIndex: "2147483647",
+              fontSize: "14px",
+              fontWeight: "500",
+            });
+            document.body.appendChild(bubble);
+            setTimeout(() => bubble.remove(), 2000);
+            const overlayPanel = document.getElementById(
+              "__ai_context_overlay__"
+            );
+            if (overlayPanel) {
+              await refreshOverlayContent(overlayPanel);
+            }
+          } catch (error) {
+            console.error("Error adding to context:", error);
+            showConfirmationBubble("Failed to add to context", "error");
+          }
+        });
+        logEntry.appendChild(addToContextButton);
+      }
+
+      logsContainer.appendChild(logEntry);
+    });
+
+    godModeSection.appendChild(logsContainer);
   }
 
   console.log("[AI Context Vault] Refreshed overlay content with tabs");
@@ -500,90 +764,125 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
   const textContainer = document.createElement("div");
   textContainer.className = "ai-context-entry-text";
 
-  const text = document.createElement("div");
-  text.textContent = entry.text;
+  let text, editTextarea;
 
-  const editTextarea = document.createElement("textarea");
-  editTextarea.value = entry.text;
-  editTextarea.className = "ai-context-entry-textarea";
+  // Handle image entries
+  if (
+    entry.metadata?.imageUrl &&
+    entry.metadata?.imageSize &&
+    entry.metadata.imageSize > 0
+  ) {
+    const imageContainer = document.createElement("div");
+    imageContainer.style.marginBottom = "8px";
 
-  textContainer.appendChild(text);
-  textContainer.appendChild(editTextarea);
+    const image = document.createElement("img");
+    image.src = entry.metadata.imageUrl;
+    image.alt = "Generated image";
+    image.style.maxWidth = "100%";
+    image.style.borderRadius = "8px";
+    image.style.marginBottom = "4px";
 
-  const buttonContainer = document.createElement("div");
-  buttonContainer.className = "ai-context-entry-buttons";
+    const imageText = document.createElement("div");
+    imageText.textContent = "Generated image";
+    imageText.style.fontSize = "12px";
+    imageText.style.color = "#999";
 
-  const deleteButton = document.createElement("button");
-  deleteButton.textContent = "×";
-  deleteButton.className = "ai-context-button delete";
+    imageContainer.appendChild(image);
+    imageContainer.appendChild(imageText);
+    textContainer.appendChild(imageContainer);
+  }
 
-  const editButton = document.createElement("button");
-  editButton.innerHTML = "✎";
-  editButton.className = "ai-context-button edit";
+  // Only add text elements if there's actual content
+  if (entry.text && entry.text.trim() !== "") {
+    text = document.createElement("div");
+    text.textContent = entry.text;
 
-  editButton.addEventListener("click", async function () {
-    const isEditing = editTextarea.style.display === "block";
+    editTextarea = document.createElement("textarea");
+    editTextarea.value = entry.text;
+    editTextarea.className = "ai-context-entry-textarea";
 
-    if (!isEditing) {
-      text.style.display = "none";
-      editTextarea.style.display = "block";
-      editButton.innerHTML = "✓";
+    textContainer.appendChild(text);
+    textContainer.appendChild(editTextarea);
+  }
 
-      const allEntries =
-        entryItem.parentElement.querySelectorAll(".ai-context-entry");
-      allEntries.forEach((e) => {
-        if (e !== entryItem) {
-          e.style.display = "none";
-        }
-      });
-
-      editTextarea.focus();
-    } else {
-      const newText = editTextarea.value.trim();
-      if (newText && newText !== entry.text) {
-        try {
-          const storage = await import("../storage/contextStorage");
-          await storage.updateContext(domain, chatId, entry.text, newText);
-          entry.text = newText;
-          text.textContent = newText;
-          showConfirmationBubble("Context updated successfully", "success");
-
-          // Update the import/export textarea with latest data
-          const updatedContextData = await getContext(domain, chatId);
-          const importExportTextarea = document.querySelector(
-            ".ai-context-import-export-textarea"
-          );
-          if (importExportTextarea) {
-            importExportTextarea.value = JSON.stringify(
-              updatedContextData,
-              null,
-              2
-            );
-          }
-        } catch (error) {
-          console.error("[AI Context Vault] Error updating context:", error);
-          showConfirmationBubble("Failed to update context", "error");
-        }
-      }
-
-      text.style.display = "block";
-      editTextarea.style.display = "none";
-      editButton.innerHTML = "✎";
-
-      const allEntries =
-        entryItem.parentElement.querySelectorAll(".ai-context-entry");
-      allEntries.forEach((e) => {
-        e.style.display = "flex";
-      });
-    }
-  });
-
-  deleteButton.addEventListener("click", () => onDelete(entry.text));
-
-  buttonContainer.appendChild(deleteButton);
-  buttonContainer.appendChild(editButton);
   entryItem.appendChild(textContainer);
-  entryItem.appendChild(buttonContainer);
+
+  // Add buttons at the end
+  if (entry.text && entry.text.trim() !== "") {
+    const buttonContainer = document.createElement("div");
+    buttonContainer.className = "ai-context-entry-buttons";
+
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "×";
+    deleteButton.className = "ai-context-button delete";
+
+    const editButton = document.createElement("button");
+    editButton.innerHTML = "✎";
+    editButton.className = "ai-context-button edit";
+
+    editButton.addEventListener("click", async function () {
+      const isEditing = editTextarea.style.display === "block";
+
+      if (!isEditing) {
+        text.style.display = "none";
+        editTextarea.style.display = "block";
+        editButton.innerHTML = "✓";
+
+        const allEntries =
+          entryItem.parentElement.querySelectorAll(".ai-context-entry");
+        allEntries.forEach((e) => {
+          if (e !== entryItem) {
+            e.style.display = "none";
+          }
+        });
+
+        editTextarea.focus();
+      } else {
+        const newText = editTextarea.value.trim();
+        if (newText && newText !== entry.text) {
+          try {
+            const storage = await import("../storage/contextStorage.js");
+            await storage.updateContext(domain, chatId, entry.text, newText);
+            entry.text = newText;
+            text.textContent = newText;
+            showConfirmationBubble("Context updated successfully", "success");
+
+            // Update the import/export textarea with latest data
+            const updatedContextData = await getContext(domain, chatId);
+            const importExportTextarea = document.querySelector(
+              ".ai-context-import-export-textarea"
+            );
+            if (importExportTextarea) {
+              importExportTextarea.value = JSON.stringify(
+                updatedContextData,
+                null,
+                2
+              );
+            }
+          } catch (error) {
+            console.error("[AI Context Vault] Error updating context:", error);
+            showConfirmationBubble("Failed to update context", "error");
+          }
+        }
+
+        text.style.display = "block";
+        editTextarea.style.display = "none";
+        editButton.innerHTML = "✎";
+
+        const allEntries =
+          entryItem.parentElement.querySelectorAll(".ai-context-entry");
+        allEntries.forEach((e) => {
+          e.style.display = "flex";
+        });
+      }
+    });
+
+    deleteButton.addEventListener("click", () => onDelete(entry.text));
+
+    buttonContainer.appendChild(deleteButton);
+    buttonContainer.appendChild(editButton);
+    entryItem.appendChild(buttonContainer);
+  }
 
   return entryItem;
 }
@@ -654,8 +953,9 @@ function setupKeyboardShortcuts() {
         document.dispatchEvent(event);
       }
 
-      // ALT+I to save selected text
-      if ((event.ctrlKey || event.metaKey) && event.key === "i") {
+      // CMD+I or CTRL+I to save selected text
+      const isI = event.key.toLowerCase() === "i";
+      if ((isMac && event.metaKey && isI) || (!isMac && event.ctrlKey && isI)) {
         console.log("[AI Context Vault] Modifier+I - save selected text");
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -699,8 +999,9 @@ function setupKeyboardShortcuts() {
     true // Capture phase
   );
 }
+
 /**
- * Toggle the context overlay visibility with a settings cog to open options.html.
+ * Toggle the context overlay visibility with a settings cog to open index.html.
  */
 async function toggleOverlay() {
   const panel = await ensureOverlayExists();
@@ -898,7 +1199,7 @@ async function injectContextIntoTextarea(shouldSendAfterInjection = false) {
 }
 
 // Listen for background messages (from popup, etc.)
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   console.log("[AI Context Vault] Message received:", message);
 
   if (message.type === "SAVE_SELECTED_CONTEXT") {
@@ -912,7 +1213,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("[AI Context Vault] Refreshing overlay content");
     const overlayPanel = document.getElementById("__ai_context_overlay__");
     if (overlayPanel) {
-      refreshOverlayContent(overlayPanel);
+      await refreshOverlayContent(overlayPanel);
     }
   }
   sendResponse && sendResponse({ status: "ok" });
@@ -964,7 +1265,7 @@ function handleSaveSelectedContext() {
       selectedText.substring(0, 30) + "..."
     );
     const { domain, chatId } = parseUrlForIds(window.location.href);
-    import("../storage/contextStorage").then(async (storage) => {
+    import("../storage/contextStorage.js").then(async (storage) => {
       await storage.addContext(domain, chatId, selectedText);
       showConfirmationBubble(
         "Added to Context: " + selectedText.substring(0, 30) + "...",
@@ -1073,3 +1374,640 @@ export function scrollToBookmark(entry) {
     alert("Error resolving bookmark.");
   }
 }
+
+// Provider adapters
+const chatgptConfig = {
+  name: "chatgpt",
+  selectors: {
+    userMessage: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
+    aiMessage: "article",
+    aiText: ".markdown.prose p",
+    codeBlock: "pre",
+    codeContent: "code",
+    codeLanguage: "div.flex.items-center",
+    imageUrl: 'img[alt="Generated image"]',
+    messageId: "[data-message-id]",
+    modelSlug: "[data-message-model-slug]",
+  },
+  extractors: {
+    userText: (element) => element.textContent.trim(),
+    aiText: (element) => {
+      const text = element
+        .querySelector(chatgptConfig.selectors.aiText)
+        ?.textContent.trim();
+      // console.log("[AI Context Vault] Extracting AI text:", { text });
+      return text;
+    },
+    codeBlock: (element) => {
+      const preElement = element.querySelector(
+        chatgptConfig.selectors.codeBlock
+      );
+      if (!preElement) return null;
+
+      const codeElement = preElement.querySelector(
+        chatgptConfig.selectors.codeContent
+      );
+      const languageElement = preElement.querySelector(
+        chatgptConfig.selectors.codeLanguage
+      );
+
+      console.log("[AI Context Vault] Found code block:", {
+        hasPre: !!preElement,
+        hasCode: !!codeElement,
+        hasLanguage: !!languageElement,
+        language: languageElement?.textContent.trim(),
+        content: codeElement?.textContent.trim(),
+      });
+
+      if (!codeElement) return null;
+
+      return {
+        language: languageElement?.textContent.trim() || "text",
+        content: codeElement.textContent.trim(),
+        html: codeElement.innerHTML,
+      };
+    },
+    imageUrl: async (element) => {
+      // Find all images under main
+      const imgElements = document.querySelectorAll(
+        'img[alt="Generated image"]'
+      );
+
+      if (!imgElements.length) {
+        console.error("[AI Context Vault] No images found");
+        return null;
+      }
+
+      // Get the first visible image
+      const visibleImg = Array.from(imgElements).find((img) => {
+        const style = window.getComputedStyle(img);
+        return parseFloat(style.opacity) > 0;
+      });
+
+      if (!visibleImg?.src) {
+        console.error("[AI Context Vault] No visible image found");
+        return null;
+      }
+
+      try {
+        console.log(
+          "[AI Context Vault] Fetching image from URL:",
+          visibleImg.src
+        );
+        const response = await fetch(visibleImg.src);
+        const blob = await response.blob();
+        return {
+          url: visibleImg.src,
+          blob: blob,
+          type: blob.type,
+          size: blob.size,
+        };
+      } catch (error) {
+        console.error("[AI Context Vault] Error fetching image:", error);
+        return null;
+      }
+    },
+    messageId: (element) => element.getAttribute("data-message-id"),
+    modelSlug: (element) => element.getAttribute("data-message-model-slug"),
+  },
+};
+
+const providers = {
+  "chat.openai.com": chatgptConfig,
+  "chatgpt.com": chatgptConfig,
+  "claude.ai": {
+    name: "claude",
+    selectors: {
+      userMessage: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
+      aiMessage: "article",
+      aiText: ".markdown.prose p",
+      codeBlock: "pre",
+      codeContent: "code",
+      codeLanguage: "div.flex.items-center",
+      imageUrl: 'img[alt="Generated image"]',
+      messageId: "[data-message-id]",
+      modelSlug: "[data-message-model-slug]",
+    },
+    extractors: {
+      userText: (element) => element.textContent.trim(),
+      aiText: (element) => {
+        const text = element
+          .querySelector(chatgptConfig.selectors.aiText)
+          ?.textContent.trim();
+        // console.log("[AI Context Vault] Extracting AI text:", { text });
+        return text;
+      },
+      codeBlock: (element) => {
+        const preElement = element.querySelector(
+          chatgptConfig.selectors.codeBlock
+        );
+        if (!preElement) return null;
+
+        const codeElement = preElement.querySelector(
+          chatgptConfig.selectors.codeContent
+        );
+        const languageElement = preElement.querySelector(
+          chatgptConfig.selectors.codeLanguage
+        );
+
+        console.log("[AI Context Vault] Found code block:", {
+          hasPre: !!preElement,
+          hasCode: !!codeElement,
+          hasLanguage: !!languageElement,
+          language: languageElement?.textContent.trim(),
+          content: codeElement?.textContent.trim(),
+        });
+
+        if (!codeElement) return null;
+
+        return {
+          language: languageElement?.textContent.trim() || "text",
+          content: codeElement.textContent.trim(),
+          html: codeElement.innerHTML,
+        };
+      },
+      imageUrl: async (element) => {
+        // Find all images under main
+        const imgElements = document.querySelectorAll(
+          'img[alt="Generated image"]'
+        );
+
+        if (!imgElements.length) {
+          console.error("[AI Context Vault] No images found");
+          return null;
+        }
+
+        // Get the first visible image
+        const visibleImg = Array.from(imgElements).find((img) => {
+          const style = window.getComputedStyle(img);
+          return parseFloat(style.opacity) > 0;
+        });
+
+        if (!visibleImg?.src) {
+          console.error("[AI Context Vault] No visible image found");
+          return null;
+        }
+
+        try {
+          console.log(
+            "[AI Context Vault] Fetching image from URL:",
+            visibleImg.src
+          );
+          const response = await fetch(visibleImg.src);
+          const blob = await response.blob();
+          return {
+            url: visibleImg.src,
+            blob: blob,
+            type: blob.type,
+            size: blob.size,
+          };
+        } catch (error) {
+          console.error("[AI Context Vault] Error fetching image:", error);
+          return null;
+        }
+      },
+      messageId: (element) => element.getAttribute("data-message-id"),
+      modelSlug: (element) => element.getAttribute("data-message-model-slug"),
+    },
+  },
+  // Add more providers here as needed
+};
+
+function getProviderForDomain(domain) {
+  return providers[domain] || null;
+}
+
+function setupGodModeObserver() {
+  const storage = GodModeStorage.getInstance();
+  const { domain } = parseUrlForIds(window.location.href);
+  const providerConfig = getProviderForDomain(domain);
+
+  if (!providerConfig) {
+    console.error(`No provider configuration found for domain: ${domain}`);
+    return null;
+  }
+  let mutationFunc = async () => {};
+  if (domain === "chatgpt.com" || domain === "chat.openai.com") {
+    mutationFunc = async (mutations) => {
+      const isGodModeEnabled = await storage.checkEnabledState();
+      if (!isGodModeEnabled) return;
+
+      const { chatId } = parseUrlForIds(window.location.href);
+      if (!chatId) return;
+
+      for (const mutation of mutations) {
+        // console.log("[AI Context Vault] Mutation observed:", {
+        //   type: mutation.type,
+        //   target: mutation.target,
+        //   addedNodes: mutation.addedNodes.length,
+        //   removedNodes: mutation.removedNodes.length,
+        //   characterData: mutation.type === "characterData",
+        //   attributeName: mutation.attributeName,
+        // });
+        if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Check for images
+              const images = node.querySelectorAll("img");
+              for (const image of images) {
+                if (image.alt === "Generated image") {
+                  const parentMessage = image.closest(
+                    providerConfig.selectors.aiMessage
+                  );
+                  if (parentMessage) {
+                    const messageId =
+                      providerConfig.extractors.messageId(parentMessage);
+                    const model =
+                      providerConfig.extractors.modelSlug(parentMessage);
+                    const text =
+                      providerConfig.extractors.aiText(parentMessage);
+                    const codeBlocks = Array.from(
+                      parentMessage.querySelectorAll("pre")
+                    )
+                      .map((pre) => {
+                        const code = pre.querySelector("code");
+                        const languageElem = pre.querySelector(
+                          "div.flex.items-center"
+                        );
+                        return {
+                          language: languageElem?.textContent.trim() || "text",
+                          content:
+                            code?.textContent.trim() ||
+                            pre.textContent.trim() ||
+                            "",
+                        };
+                      })
+                      .filter((block) => block.content);
+
+                    try {
+                      const imageData =
+                        await providerConfig.extractors.imageUrl(parentMessage);
+                      console.debug(imageData, "imageData");
+                      if (imageData) {
+                        const logEntry = {
+                          type: "output",
+                          content: text || "",
+                          metadata: {
+                            timestamp: new Date().toISOString(),
+                            messageId,
+                            model,
+                            provider: providerConfig.name,
+                            imageUrl: imageData.url,
+                            imageBlob: imageData.blob,
+                            imageType: imageData.type,
+                            imageSize: imageData.size,
+                            isImageGeneration: true,
+                            chatId,
+                          },
+                        };
+
+                        if (codeBlocks.length > 0) {
+                          logEntry.metadata.codeBlocks = codeBlocks;
+                        }
+
+                        await storage.addLog(chatId, logEntry);
+                      }
+                    } catch (error) {
+                      console.error(
+                        "[AI Context Vault] Error processing image:",
+                        error
+                      );
+                    }
+                  }
+                }
+              }
+
+              // Look for user messages
+              const userMessages = node.querySelectorAll(
+                providerConfig.selectors.userMessage
+              );
+              for (const message of userMessages) {
+                const text = providerConfig.extractors.userText(message);
+                if (text) {
+                  // console.log("[AI Context Vault] Found user message:", { text });
+                  await storage.addLog(chatId, {
+                    type: "input",
+                    content: text,
+                    metadata: {
+                      timestamp: new Date().toISOString(),
+                      messageId: providerConfig.extractors.messageId(message),
+                      provider: providerConfig.name,
+                      chatId,
+                    },
+                  });
+                }
+              }
+
+              // Look for AI responses that don't have images
+              const aiMessages = node.querySelectorAll(
+                providerConfig.selectors.aiMessage
+              );
+              for (const message of aiMessages) {
+                // Skip if this message has an image
+                if (message.querySelector('img[alt="Generated image"]')) {
+                  continue;
+                }
+
+                // console.debug(
+                //   "[AI Context Vault] Processing AI message:",
+                //   message
+                // );
+
+                const messageId = providerConfig.extractors.messageId(message);
+                const model = providerConfig.extractors.modelSlug(message);
+                const codeBlocks2 = Array.from(message.querySelectorAll("pre"))
+                  .map((pre) => {
+                    const code = pre.querySelector("code");
+                    const languageElem = pre.querySelector(
+                      "div.flex.items-center"
+                    );
+                    return {
+                      language: languageElem?.textContent.trim() || "text",
+                      content:
+                        code?.textContent.trim() ||
+                        pre.textContent.trim() ||
+                        "",
+                    };
+                  })
+                  .filter((block) => block.content);
+
+                const text = providerConfig.extractors.aiText(message);
+
+                const logEntry = {
+                  type: "output",
+                  content: text || "",
+                  metadata: {
+                    timestamp: new Date().toISOString(),
+                    messageId,
+                    model,
+                    provider: providerConfig.name,
+                    chatId,
+                  },
+                };
+
+                if (codeBlocks2.length > 0) {
+                  logEntry.metadata.codeBlocks = codeBlocks2;
+                }
+
+                await storage.addLog(chatId, logEntry);
+              }
+            }
+          }
+        }
+      }
+    };
+  } else if (domain === "claude.ai") {
+    mutationFunc = async (mutations) => {
+      const isGodModeEnabled = await storage.checkEnabledState();
+      if (!isGodModeEnabled) return;
+
+      const { chatId } = parseUrlForIds(window.location.href);
+      if (!chatId) return;
+
+      for (const mutation of mutations) {
+        // console.log("[AI Context Vault] Mutation observed:", {
+        //   type: mutation.type,
+        //   target: mutation.target,
+        //   addedNodes: mutation.addedNodes.length,
+        //   removedNodes: mutation.removedNodes.length,
+        //   characterData: mutation.type === "characterData",
+        //   attributeName: mutation.attributeName,
+        // });
+        if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Check for images
+              const images = node.querySelectorAll("img");
+              for (const image of images) {
+                if (image.alt === "Generated image") {
+                  const parentMessage = image.closest(
+                    providerConfig.selectors.aiMessage
+                  );
+                  if (parentMessage) {
+                    const messageId =
+                      providerConfig.extractors.messageId(parentMessage);
+                    const model =
+                      providerConfig.extractors.modelSlug(parentMessage);
+                    const text =
+                      providerConfig.extractors.aiText(parentMessage);
+                    const codeBlocks = Array.from(
+                      parentMessage.querySelectorAll("pre")
+                    )
+                      .map((pre) => {
+                        const code = pre.querySelector("code");
+                        const languageElem = pre.querySelector(
+                          "div.flex.items-center"
+                        );
+                        return {
+                          language: languageElem?.textContent.trim() || "text",
+                          content:
+                            code?.textContent.trim() ||
+                            pre.textContent.trim() ||
+                            "",
+                        };
+                      })
+                      .filter((block) => block.content);
+
+                    try {
+                      const imageData =
+                        await providerConfig.extractors.imageUrl(parentMessage);
+                      console.debug(imageData, "imageData");
+                      if (imageData) {
+                        const logEntry = {
+                          type: "output",
+                          content: text || "",
+                          metadata: {
+                            timestamp: new Date().toISOString(),
+                            messageId,
+                            model,
+                            provider: providerConfig.name,
+                            imageUrl: imageData.url,
+                            imageBlob: imageData.blob,
+                            imageType: imageData.type,
+                            imageSize: imageData.size,
+                            isImageGeneration: true,
+                            chatId,
+                          },
+                        };
+
+                        if (codeBlocks.length > 0) {
+                          logEntry.metadata.codeBlocks = codeBlocks;
+                        }
+
+                        await storage.addLog(chatId, logEntry);
+                      }
+                    } catch (error) {
+                      console.error(
+                        "[AI Context Vault] Error processing image:",
+                        error
+                      );
+                    }
+                  }
+                }
+              }
+
+              // Look for user messages
+              const userMessages = node.querySelectorAll(
+                providerConfig.selectors.userMessage
+              );
+              for (const message of userMessages) {
+                const text = providerConfig.extractors.userText(message);
+                if (text) {
+                  // console.log("[AI Context Vault] Found user message:", { text });
+                  await storage.addLog(chatId, {
+                    type: "input",
+                    content: text,
+                    metadata: {
+                      timestamp: new Date().toISOString(),
+                      messageId: providerConfig.extractors.messageId(message),
+                      provider: providerConfig.name,
+                      chatId,
+                    },
+                  });
+                }
+              }
+
+              // Look for AI responses that don't have images
+              const aiMessages = node.querySelectorAll(
+                providerConfig.selectors.aiMessage
+              );
+              for (const message of aiMessages) {
+                // Skip if this message has an image
+                if (message.querySelector('img[alt="Generated image"]')) {
+                  continue;
+                }
+
+                // console.debug(
+                //   "[AI Context Vault] Processing AI message:",
+                //   message
+                // );
+
+                const messageId = providerConfig.extractors.messageId(message);
+                const model = providerConfig.extractors.modelSlug(message);
+                const codeBlocks2 = Array.from(message.querySelectorAll("pre"))
+                  .map((pre) => {
+                    const code = pre.querySelector("code");
+                    const languageElem = pre.querySelector(
+                      "div.flex.items-center"
+                    );
+                    return {
+                      language: languageElem?.textContent.trim() || "text",
+                      content:
+                        code?.textContent.trim() ||
+                        pre.textContent.trim() ||
+                        "",
+                    };
+                  })
+                  .filter((block) => block.content);
+
+                const text = providerConfig.extractors.aiText(message);
+
+                const logEntry = {
+                  type: "output",
+                  content: text || "",
+                  metadata: {
+                    timestamp: new Date().toISOString(),
+                    messageId,
+                    model,
+                    provider: providerConfig.name,
+                    chatId,
+                  },
+                };
+
+                if (codeBlocks2.length > 0) {
+                  logEntry.metadata.codeBlocks = codeBlocks2;
+                }
+
+                await storage.addLog(chatId, logEntry);
+              }
+            }
+          }
+        }
+      }
+    };
+  }
+
+  const observer = new MutationObserver(mutationFunc);
+
+  if (domain === "chatgpt.com" || domain === "chat.openai.com") {
+    // Configure observer to watch for all relevant changes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: [
+        "data-message-id",
+        "data-message-model-slug",
+        "data-message-author-role",
+      ],
+    });
+  } else if (domain === "claude.ai") {
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: [
+        "data-message-id",
+        "data-message-model-slug",
+        "data-message-author-role",
+      ],
+    });
+  }
+
+  return observer;
+}
+
+// Initialize God Mode
+let godModeObserver = null;
+
+// Check initial God Mode state
+chrome.storage.local.get(["godModeEnabled"], async (result) => {
+  if (result.godModeEnabled) {
+    godModeObserver = setupGodModeObserver();
+    const historyPanel = document.getElementById(
+      "__ai_context_godmode_history__"
+    );
+    if (historyPanel) {
+      historyPanel.style.display = "flex";
+    }
+
+    // Start periodic sync
+    const storage = GodModeStorage.getInstance();
+    await storage.startPeriodicSync();
+  }
+});
+
+// Listen for God Mode state changes
+chrome.storage.onChanged.addListener(async (changes) => {
+  if (changes.godModeEnabled) {
+    const storage = GodModeStorage.getInstance();
+    if (changes.godModeEnabled.newValue) {
+      godModeObserver = setupGodModeObserver();
+      await storage.startPeriodicSync();
+    } else {
+      if (godModeObserver) {
+        godModeObserver.disconnect();
+        godModeObserver = null;
+      }
+      storage.stopPeriodicSync();
+    }
+  }
+});
+
+// Add watcher for chatId changes to refresh overlay
+let lastChatId = null;
+function watchChatIdChange() {
+  setInterval(async () => {
+    const { chatId } = parseUrlForIds(window.location.href);
+    if (chatId !== lastChatId) {
+      lastChatId = chatId;
+      const overlayPanel = document.getElementById("__ai_context_overlay__");
+      if (overlayPanel && overlayPanel.style.display !== "none") {
+        await refreshOverlayContent(overlayPanel);
+      }
+    }
+  }, 1000);
+}
+watchChatIdChange();

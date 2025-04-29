@@ -70,14 +70,14 @@ Each section includes:
 
 ---
 
-## 🔹 5. **Monk Mode Gist Sync**
+## 🔹 5. ** Gist Sync**
 
-| ✅  | Step | What to Do                                    | What to Look For                          |
-| --- | ---- | --------------------------------------------- | ----------------------------------------- |
-| ⬜  | 5.1  | Enable encrypted Gist config in local storage | Ensure `encryptedPAT` and `gistURL` exist |
-| ⬜  | 5.2  | Call `MonkModeSync.syncNow()` manually        | Syncs encrypted data to Gist              |
-| ⬜  | 5.3  | Check Gist file `monkmode_context.json`       | Payload is encrypted, not raw JSON        |
-| ⬜  | 5.4  | Unplug connection (offline), trigger sync     | Graceful fail + warning in console        |
+| ✅  | Step | What to Do                                    | What to Look For                                      |
+| --- | ---- | --------------------------------------------- | ----------------------------------------------------- |
+| ⬜  | 5.1  | Enable encrypted Gist config in local storage | Ensure `encryptedPATOracle` and `gistURLOracle` exist |
+| ⬜  | 5.2  | Call `Oracle.syncNow()` manually              | Syncs encrypted data to Gist                          |
+| ⬜  | 5.3  | Check Gist file `Oracle.Context.json`         | Payload is encrypted, not raw JSON                    |
+| ⬜  | 5.4  | Unplug connection (offline), trigger sync     | Graceful fail + warning in console                    |
 
 ---
 
@@ -91,27 +91,6 @@ Each section includes:
 | ⬜  | 6.4  | Check stored context                | Preserved `.originalContent` exists for deleted entry |
 
 ---
-
-## 🔹 7. **Replay Engine (`BFGReplayEngine`)**
-
-| ✅  | Step | What to Do                                            | What to Look For                    |
-| --- | ---- | ----------------------------------------------------- | ----------------------------------- |
-| ⬜  | 7.1  | Load stored context                                   | Call `loadContext()`                |
-| ⬜  | 7.2  | Call `.next()` repeatedly                             | Logs show each message sequentially |
-| ⬜  | 7.3  | Confirm order of entries matches `created` timestamps | No jumps or duplicates              |
-| ⬜  | 7.4  | Call `.reset()`                                       | Index returns to 0                  |
-
----
-
-## 🔹 8. **Oracle Viewer UI Components**
-
-### Log Viewer
-
-| ✅  | Step | What to Do                            | What to Look For                             |
-| --- | ---- | ------------------------------------- | -------------------------------------------- |
-| ⬜  | 8.1  | Run `mountOracleViewer()`             | Full UI overlay appears                      |
-| ⬜  | 8.2  | Check if logs show from local context | Scrollable, formatted blocks                 |
-| ⬜  | 8.3  | Load Markdown-style responses         | Headers, code blocks, lists appear formatted |
 
 ### Search
 

@@ -89,7 +89,14 @@ export async function getContext(domain, chatId) {
       if (!res[key]) {
         return resolve({ chatId, summary: "", entries: [] });
       }
-      resolve(res[key]);
+
+      // Ensure entries is an array
+      const context = res[key];
+      if (!Array.isArray(context.entries)) {
+        context.entries = [];
+      }
+
+      resolve(context);
     });
   });
 }
