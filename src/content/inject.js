@@ -13,6 +13,7 @@ import {
 } from "../storage/contextStorage.js";
 import "./inject.css";
 import { GodModeStorage } from "../services/godModeStorage.js";
+import { providers } from "../services/providers.js";
 
 // Function to format timestamp in DD/MM HH:mm format
 function formatTimestamp(timestamp) {
@@ -1374,109 +1375,6 @@ export function scrollToBookmark(entry) {
     alert("Error resolving bookmark.");
   }
 }
-
-// Provider adapters
-const chatgptConfig = {
-  name: "chatgpt",
-  selectors: {
-    userMessage: 'div[data-message-author-role="user"] .whitespace-pre-wrap',
-    aiMessage: "article",
-    aiText: ".markdown.prose p",
-    codeBlock: "pre",
-    codeContent: "code",
-    codeLanguage: "div.flex.items-center",
-    imageUrl: 'img[alt="Generated image"]',
-    messageId: "[data-message-id]",
-    modelSlug: "[data-message-model-slug]",
-  },
-  extractors: {
-    userText: (element) => element.textContent.trim(),
-    aiText: (element) => {
-      const text = element
-        .querySelector(chatgptConfig.selectors.aiText)
-        ?.textContent.trim();
-      // console.log("[AI Context Vault] Extracting AI text:", { text });
-      return text;
-    },
-    codeBlock: (element) => {
-      const preElement = element.querySelector(
-        chatgptConfig.selectors.codeBlock
-      );
-      if (!preElement) return null;
-
-      const codeElement = preElement.querySelector(
-        chatgptConfig.selectors.codeContent
-      );
-      const languageElement = preElement.querySelector(
-        chatgptConfig.selectors.codeLanguage
-      );
-
-      console.log("[AI Context Vault] Found code block:", {
-        hasPre: !!preElement,
-        hasCode: !!codeElement,
-        hasLanguage: !!languageElement,
-        language: languageElement?.textContent.trim(),
-        content: codeElement?.textContent.trim(),
-      });
-
-      if (!codeElement) return null;
-
-      return {
-        language: languageElement?.textContent.trim() || "text",
-        content: codeElement.textContent.trim(),
-        html: codeElement.innerHTML,
-      };
-    },
-    imageUrl: async (element) => {
-      // Find all images under main
-      const imgElements = document.querySelectorAll(
-        'img[alt="Generated image"]'
-      );
-
-      if (!imgElements.length) {
-        console.error("[AI Context Vault] No images found");
-        return null;
-      }
-
-      // Get the first visible image
-      const visibleImg = Array.from(imgElements).find((img) => {
-        const style = window.getComputedStyle(img);
-        return parseFloat(style.opacity) > 0;
-      });
-
-      if (!visibleImg?.src) {
-        console.error("[AI Context Vault] No visible image found");
-        return null;
-      }
-
-      try {
-        console.log(
-          "[AI Context Vault] Fetching image from URL:",
-          visibleImg.src
-        );
-        const response = await fetch(visibleImg.src);
-        const blob = await response.blob();
-        return {
-          url: visibleImg.src,
-          blob: blob,
-          type: blob.type,
-          size: blob.size,
-        };
-      } catch (error) {
-        console.error("[AI Context Vault] Error fetching image:", error);
-        return null;
-      }
-    },
-    messageId: (element) => element.getAttribute("data-message-id"),
-    modelSlug: (element) => element.getAttribute("data-message-model-slug"),
-  },
-};
-
-const providers = {
-  "chat.openai.com": chatgptConfig,
-  "chatgpt.com": chatgptConfig,
-  // Add more providers here as needed
-};
 
 function getProviderForDomain(domain) {
   return providers[domain] || null;
