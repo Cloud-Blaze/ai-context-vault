@@ -1,5 +1,14 @@
 # AI Context Vault - Profile Manager Documentation
 
+https://github.com/PatrickJS/awesome-cursorrules
+
+https://cursor.directory/rules/react
+
+https://github.com/alphatrait/100000-ai-prompts-by-contentifyai
+
+https://github.com/f/awesome-chatgpt-prompts
+https://prompts.chat/
+
 ## Overview
 
 The Profile Manager feature in AI Context Vault allows users to create and manage global, AI-agnostic profiles. These profiles can be injected into any AI chat interface, ensuring consistent context for various scenarios (e.g., developer or business contexts).
