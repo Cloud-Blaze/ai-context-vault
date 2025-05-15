@@ -430,6 +430,7 @@ async function refreshOverlayContent(overlayPanel) {
   }
   // Get God Mode logs for current chat
   const logs = await storage.getLogs(chatId);
+  console.debug("God Mode logs for chatId", chatId, logs);
 
   godModeSection.innerHTML = ""; // Clear previous logs
   if (logs.entries.length === 0) {
