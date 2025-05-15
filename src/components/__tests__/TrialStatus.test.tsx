@@ -1,6 +1,13 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { TrialStatus } from "../TrialStatus";
+import { checkTrialStatus } from "../../utils/trialCheck";
+import { PaymentManager } from "../../utils/PaymentManager";
+import { AdConsentManager } from "../../utils/AdConsentManager";
+
+jest.mock("../../utils/trialCheck");
+jest.mock("../../utils/PaymentManager");
+jest.mock("../../utils/AdConsentManager");
 
 describe("TrialStatus", () => {
   beforeEach(() => {
@@ -8,45 +15,48 @@ describe("TrialStatus", () => {
   });
 
   it("should show active trial status", async () => {
-    const now = Date.now();
-    const installDate = now - 1000 * 60 * 60 * 24 * 15; // 15 days ago
-
-    // @ts-ignore
-    global.chrome.storage.local.get.mockImplementation((keys, callback) => {
-      callback({ installDate });
+    (checkTrialStatus as jest.Mock).mockResolvedValue({
+      isExpired: false,
+      daysRemaining: 15,
     });
+    (PaymentManager.checkPaymentStatus as jest.Mock).mockResolvedValue(false);
+    (AdConsentManager.checkConsentStatus as jest.Mock).mockResolvedValue(false);
 
     render(<TrialStatus />);
 
     expect(await screen.findByText("Free Trial Active")).toBeInTheDocument();
     expect(
-      await screen.findByText("15 days remaining in your trial")
+      await screen.findByText(
+        "15 days remaining in your trial. Upgrade to continue using premium features."
+      )
     ).toBeInTheDocument();
   });
 
   it("should show expired trial status", async () => {
-    const now = Date.now();
-    const installDate = now - 1000 * 60 * 60 * 24 * 31; // 31 days ago
-
-    // @ts-ignore
-    global.chrome.storage.local.get.mockImplementation((keys, callback) => {
-      callback({ installDate });
+    (checkTrialStatus as jest.Mock).mockResolvedValue({
+      isExpired: true,
+      daysRemaining: 0,
     });
+    (PaymentManager.checkPaymentStatus as jest.Mock).mockResolvedValue(false);
+    (AdConsentManager.checkConsentStatus as jest.Mock).mockResolvedValue(false);
 
     render(<TrialStatus />);
 
     expect(await screen.findByText("Trial Expired")).toBeInTheDocument();
-    expect(await screen.findByText("Your trial has ended")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "Your trial has ended. Upgrade to continue using premium features."
+      )
+    ).toBeInTheDocument();
   });
 
-  it("should show premium access when hasPaid is true", async () => {
-    const now = Date.now();
-    const installDate = now - 1000 * 60 * 60 * 24 * 31; // 31 days ago
-
-    // @ts-ignore
-    global.chrome.storage.local.get.mockImplementation((keys, callback) => {
-      callback({ installDate, hasPaid: true });
+  it("should show premium access status", async () => {
+    (checkTrialStatus as jest.Mock).mockResolvedValue({
+      isExpired: true,
+      daysRemaining: 0,
     });
+    (PaymentManager.checkPaymentStatus as jest.Mock).mockResolvedValue(true);
+    (AdConsentManager.checkConsentStatus as jest.Mock).mockResolvedValue(false);
 
     render(<TrialStatus />);
 
@@ -54,46 +64,59 @@ describe("TrialStatus", () => {
       await screen.findByText("Premium Access Active")
     ).toBeInTheDocument();
     expect(
-      await screen.findByText("Thank you for supporting AI Context Vault!")
+      await screen.findByText("Thank you for your support!")
     ).toBeInTheDocument();
   });
 
-  it("should show upgrade modal when clicking upgrade button", async () => {
-    const now = Date.now();
-    const installDate = now - 1000 * 60 * 60 * 24 * 31; // 31 days ago
-
-    // @ts-ignore
-    global.chrome.storage.local.get.mockImplementation((keys, callback) => {
-      callback({ installDate });
+  it("should show ad-based access status", async () => {
+    (checkTrialStatus as jest.Mock).mockResolvedValue({
+      isExpired: true,
+      daysRemaining: 0,
     });
+    (PaymentManager.checkPaymentStatus as jest.Mock).mockResolvedValue(false);
+    (AdConsentManager.checkConsentStatus as jest.Mock).mockResolvedValue(true);
 
     render(<TrialStatus />);
 
-    const upgradeButton = await screen.findByText("Upgrade Now");
-    fireEvent.click(upgradeButton);
-
-    expect(await screen.findByText("Upgrade to Premium")).toBeInTheDocument();
     expect(
-      await screen.findByText("Pay with Stripe ($9.99)")
+      await screen.findByText("Ad-Based Access Active")
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "Premium features enabled with ad-based matching."
+      )
     ).toBeInTheDocument();
   });
 
-  it("should enable features when opting into ad-based matching", async () => {
-    const now = Date.now();
-    const installDate = now - 1000 * 60 * 60 * 24 * 31; // 31 days ago
-
-    // @ts-ignore
-    global.chrome.storage.local.get.mockImplementation((keys, callback) => {
-      callback({ installDate });
+  it("should show upgrade buttons when trial expired", async () => {
+    (checkTrialStatus as jest.Mock).mockResolvedValue({
+      isExpired: true,
+      daysRemaining: 0,
     });
+    (PaymentManager.checkPaymentStatus as jest.Mock).mockResolvedValue(false);
+    (AdConsentManager.checkConsentStatus as jest.Mock).mockResolvedValue(false);
 
     render(<TrialStatus />);
 
-    const optInButton = await screen.findByText("Opt into Ad-Based Matching");
-    fireEvent.click(optInButton);
-
+    expect(await screen.findByText("Upgrade Now")).toBeInTheDocument();
     expect(
-      await screen.findByText("Premium Access Active")
+      await screen.findByText("Enable Ad-Based Access")
     ).toBeInTheDocument();
+  });
+
+  it("should not show upgrade buttons when premium access active", async () => {
+    (checkTrialStatus as jest.Mock).mockResolvedValue({
+      isExpired: true,
+      daysRemaining: 0,
+    });
+    (PaymentManager.checkPaymentStatus as jest.Mock).mockResolvedValue(true);
+    (AdConsentManager.checkConsentStatus as jest.Mock).mockResolvedValue(false);
+
+    render(<TrialStatus />);
+
+    expect(screen.queryByText("Upgrade Now")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Enable Ad-Based Access")
+    ).not.toBeInTheDocument();
   });
 });
