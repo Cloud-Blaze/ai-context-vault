@@ -242,7 +242,7 @@ function OptionsPage() {
 
       <hr />
 
-      <h2>God Mode Settings</h2>
+      <h2>God Mode Settings (Alpha)</h2>
       <div>
         <label>
           <input
