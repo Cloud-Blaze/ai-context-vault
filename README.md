@@ -4,6 +4,8 @@
 
 ---
 
+# [⚙️ Install via chrome store](https://chromewebstore.google.com/detail/ai-context-vault/balcaimgdkponcdafglemogmplcbflfn)
+
 ## Mission & Vision: Empower Your Mind, Safeguard Your Narrative
 
 **Our Vision:**  
