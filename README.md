@@ -6,6 +6,13 @@
 
 # [⚙️ Install via chrome store](https://chromewebstore.google.com/detail/ai-context-vault/balcaimgdkponcdafglemogmplcbflfn)
 
+---
+
+## 📹 Learn More By Watching
+
+[![Watch the Demo](https://img.youtube.com/vi/ZIPAgmuEVTU/0.jpg)](https://www.youtube.com/watch?v=ZIPAgmuEVTU)
+
+
 ## Mission & Vision: Empower Your Mind, Safeguard Your Narrative
 
 **Our Vision:**  
@@ -105,12 +112,6 @@ Designed for moments when emotional stress threatens your digital interactions:
   The system automatically notifies your pre-configured trusted support—ensuring help is within reach when you need it most.
 - **Calming Protocols:**  
   On detection of a challenging moment, the extension displays supportive messages and reminders to help you regain balance before proceeding.
-
----
-
-## 📹 Learn More By Watching
-
-[![Watch the Demo](https://img.youtube.com/vi/ZIPAgmuEVTU/0.jpg)](https://www.youtube.com/watch?v=ZIPAgmuEVTU)
 
 ---
 
