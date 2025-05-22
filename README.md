@@ -6,7 +6,8 @@
 
 # [⚙️ Install via chrome store](https://chromewebstore.google.com/detail/ai-context-vault/balcaimgdkponcdafglemogmplcbflfn)
 
-## 👷 A [CloudBlaze.AI](https://cloudblaze.ai) Creation
+>> ## 👷 A [CloudBlaze.AI](https://cloudblaze.ai) Creation
+>> ## 🌍 [https://aicontextvault.com](https://aicontextvault.com)
 
 ---
 
