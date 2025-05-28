@@ -1,6 +1,6 @@
 {
   "name": "ai-context-vault",
-  "version": "1.0.28",
+  "version": "1.0.29",
   "description": "Chrome extension to store and auto-inject user context into AI chat interfaces.",
   "scripts": {
     "generate-icons": "node scripts/generate-icons.js",
@@ -9,7 +9,7 @@
     "dev": "webpack serve --mode development --watch",
     "dev:clean": "npm run clean && npm run dev",
     "clean": "rimraf dist/*",
-    "build": "webpack --mode production",
+    "build": "webpack --mode development",
     "build:watch": "webpack --mode development --watch",
     "version:bump": "node scripts/bump-version.js",
     "zip": "node scripts/zip-build.js",
