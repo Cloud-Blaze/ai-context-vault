@@ -1160,7 +1160,7 @@ export async function injectTextIntoTextarea(
   // Update the textarea
   if (textarea.tagName.toLowerCase() === "div") {
     // contenteditable div
-    const htmlContent = newContent.replace(
+    const htmlContent = text.replace(
       /\n/g,
       '<p><br class="ProseMirror-trailingBreak"></p>'
     );
@@ -1168,7 +1168,7 @@ export async function injectTextIntoTextarea(
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
   } else {
     // standard textarea
-    textarea.value = newContent;
+    textarea.value = text;
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
