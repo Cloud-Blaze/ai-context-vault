@@ -157,15 +157,18 @@ const TopicNodeTree = ({ onClose }) => {
                 <div className="text-gray-400">Loading topics...</div>
               ) : topicData && topicData.length > 0 ? (
                 <div className="space-y-2">
-                  {topicData.map((topic) => (
-                    <button
-                      key={topic.id}
-                      onClick={() => handleTopicClick(topic)}
-                      className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors"
-                    >
-                      {topic.topic}
-                    </button>
-                  ))}
+                  {topicData
+                    .slice()
+                    .sort((a, b) => a.topic.localeCompare(b.topic))
+                    .map((topic) => (
+                      <button
+                        key={topic.id}
+                        onClick={() => handleTopicClick(topic)}
+                        className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors"
+                      >
+                        {topic.topic}
+                      </button>
+                    ))}
                 </div>
               ) : (
                 <div className="text-gray-400">Select a subcategory</div>
