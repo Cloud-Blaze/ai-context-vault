@@ -17,6 +17,8 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import TopicNodeTree from "./components/TopicNodeTree";
 
+var closeCategories = () => {};
+
 // Function to format timestamp in DD/MM HH:mm format
 function formatTimestamp(timestamp) {
   if (!timestamp) return "";
@@ -1011,12 +1013,15 @@ function setupKeyboardShortcuts() {
 
         // Create root and render TopicNodeTree
         const root = createRoot(container);
+        closeCategories = () => {
+          root.unmount();
+          container.remove();
+        };
         root.render(
           <TopicNodeTree
             onClose={() => {
               toggleOverlay();
-              root.unmount();
-              container.remove();
+              closeCategories();
             }}
           />
         );
@@ -1076,6 +1081,7 @@ async function toggleOverlay() {
   if (panel.style.display === "none" || currentDisplayStyle === "none") {
     panel.style.display = "block";
   } else {
+    closeCategories();
     panel.style.display = "none";
   }
 }

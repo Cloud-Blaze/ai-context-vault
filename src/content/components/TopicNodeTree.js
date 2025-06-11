@@ -77,7 +77,10 @@ const TopicNodeTree = ({ onClose }) => {
         <div className="flex h-[600px]">
           {/* Categories Panel */}
           <div className={`w-1/3 border-r ${VAULT_BORDER} p-0 overflow-y-auto`}>
-            <div className="sticky top-0 z-10 bg-[#23272f]/90 p-4">
+            <div
+              className="sticky top-0 z-10 p-4"
+              style={{ backgroundColor: "rgb(30, 30, 30)" }}
+            >
               <h2 className="text-lg font-semibold text-gray-200">
                 Categories
               </h2>
@@ -107,7 +110,10 @@ const TopicNodeTree = ({ onClose }) => {
 
           {/* Subcategories Panel */}
           <div className={`w-1/3 border-r ${VAULT_BORDER} p-0 overflow-y-auto`}>
-            <div className="sticky top-0 z-10 bg-[#23272f]/90 p-4">
+            <div
+              className="sticky top-0 z-10 p-4"
+              style={{ backgroundColor: "rgb(30, 30, 30)" }}
+            >
               <h2 className="text-lg font-semibold text-gray-200">
                 Subcategories
               </h2>
@@ -138,8 +144,13 @@ const TopicNodeTree = ({ onClose }) => {
 
           {/* Topics Panel */}
           <div className="w-1/3 p-0 overflow-y-auto">
-            <div className="sticky top-0 z-10 bg-[#23272f]/90 p-4">
-              <h2 className="text-lg font-semibold text-gray-200">Topics</h2>
+            <div
+              className="sticky top-0 z-10 p-4"
+              style={{ backgroundColor: "rgb(30, 30, 30)" }}
+            >
+              <h2 className="text-lg font-semibold text-gray-200">
+                Role Topics
+              </h2>
             </div>
             <div className="p-4 pt-0">
               {topicsLoading ? (
