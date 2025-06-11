@@ -13,6 +13,9 @@ import {
 } from "../storage/contextStorage.js";
 import "./inject.css";
 import { GodModeStorage } from "../services/godModeStorage.js";
+import React from "react";
+import { createRoot } from "react-dom/client";
+import TopicNodeTree from "./components/TopicNodeTree";
 
 // Function to format timestamp in DD/MM HH:mm format
 function formatTimestamp(timestamp) {
@@ -993,12 +996,30 @@ function setupKeyboardShortcuts() {
         return;
       }
 
-      // ALT+SHIFT+I: Toggle overlay
+      // CMD+J or CTRL+J to toggle overlay and show topic node tree
       if ((event.metaKey || event.ctrlKey) && event.key === "j") {
-        console.log("[AI Context Vault] Toggle overlay (CMD/CTRL+J)");
         event.preventDefault();
-        event.stopImmediatePropagation();
         toggleOverlay();
+
+        // Create container for topic node tree if it doesn't exist
+        let container = document.getElementById("topic-node-tree-container");
+        if (!container) {
+          container = document.createElement("div");
+          container.id = "topic-node-tree-container";
+          document.body.appendChild(container);
+        }
+
+        // Create root and render TopicNodeTree
+        const root = createRoot(container);
+        root.render(
+          <TopicNodeTree
+            onClose={() => {
+              toggleOverlay();
+              root.unmount();
+              container.remove();
+            }}
+          />
+        );
       }
     },
     true // Capture phase
@@ -1122,6 +1143,61 @@ function findActiveTextarea() {
 }
 
 /**
+ * Clean function to inject text into the active textarea
+ * @param {string} text - The text to inject
+ * @param {boolean} shouldSendAfterInjection - Whether to send the message after injection
+ */
+export async function injectTextIntoTextarea(
+  text,
+  shouldSendAfterInjection = false
+) {
+  const textarea = findActiveTextarea();
+  if (!textarea) {
+    console.log("[AI Context Vault] No active textarea found");
+    return;
+  }
+
+  // Update the textarea
+  if (textarea.tagName.toLowerCase() === "div") {
+    // contenteditable div
+    const htmlContent = newContent.replace(
+      /\n/g,
+      '<p><br class="ProseMirror-trailingBreak"></p>'
+    );
+    textarea.innerHTML = htmlContent;
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  } else {
+    // standard textarea
+    textarea.value = newContent;
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  textarea.focus();
+
+  // Show confirmation bubble
+  showConfirmationBubble(
+    `Text injected${shouldSendAfterInjection ? " and will be sent" : ""}`,
+    "success"
+  );
+
+  // If shouldSendAfterInjection is true, send the message
+  if (shouldSendAfterInjection) {
+    setTimeout(() => {
+      // Simulate pressing Enter
+      const enterEvent = new KeyboardEvent("keydown", {
+        key: "Enter",
+        code: "Enter",
+        keyCode: 13,
+        which: 13,
+        bubbles: true,
+        cancelable: true,
+      });
+      textarea.dispatchEvent(enterEvent);
+    }, 100);
+  }
+}
+
+/**
  * Inject context into the active textarea. Optionally send the message.
  */
 async function injectContextIntoTextarea(shouldSendAfterInjection = false) {
@@ -1164,40 +1240,13 @@ async function injectContextIntoTextarea(shouldSendAfterInjection = false) {
     currentContent +
     '"';
 
-  // Update the textarea
-  if (textarea.tagName.toLowerCase() === "div") {
-    // contenteditable div
-    const htmlContent = newContent.replace(
-      /\n/g,
-      '<p><br class="ProseMirror-trailingBreak"></p>'
-    );
-    textarea.innerHTML = htmlContent;
-    textarea.dispatchEvent(new Event("input", { bubbles: true }));
-  } else {
-    // standard textarea
-    textarea.value = newContent;
-    textarea.dispatchEvent(new Event("input", { bubbles: true }));
-  }
-
-  textarea.focus();
+  await injectTextIntoTextarea(newContent, shouldSendAfterInjection);
 
   if (shouldSendAfterInjection) {
     showConfirmationBubble(
       "Injecting context and sending message...",
       "success"
     );
-    setTimeout(() => {
-      // Simulate pressing Enter
-      const enterEvent = new KeyboardEvent("keydown", {
-        key: "Enter",
-        code: "Enter",
-        keyCode: 13,
-        which: 13,
-        bubbles: true,
-        cancelable: true,
-      });
-      textarea.dispatchEvent(enterEvent);
-    }, 100);
   } else {
     showConfirmationBubble("Context injected! Press ENTER to send", "success");
   }
@@ -1292,7 +1341,7 @@ function handleSaveSelectedContext() {
 /**
  * Show a temporary bubble message (e.g., success, warning, error).
  */
-function showConfirmationBubble(text, type = "success") {
+export function showConfirmationBubble(text, type = "success") {
   const bubble = document.createElement("div");
   bubble.innerText = text;
   bubble.className = `ai-context-bubble ${type}`;
