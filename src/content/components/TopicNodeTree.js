@@ -9,6 +9,7 @@ import {
   getVisitedCategories,
   addVisitedSubcategory,
   getVisitedSubcategories,
+  getTemplate,
 } from "../../storage/contextStorage";
 
 const VAULT_BORDER = "border-[#23272f]";
@@ -23,6 +24,9 @@ const TopicNodeTree = ({ onClose }) => {
   const [visitedTopics, setVisitedTopics] = useState([]);
   const [visitedCategories, setVisitedCategories] = useState([]);
   const [visitedSubcategories, setVisitedSubcategories] = useState([]);
+  const [businessQuestionsTemplate, setBusinessQuestionsTemplate] =
+    useState("");
+  const [roleLearningTemplate, setRoleLearningTemplate] = useState("");
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -85,6 +89,13 @@ const TopicNodeTree = ({ onClose }) => {
       setVisitedCategories(cats);
       const subs = await getVisitedSubcategories();
       setVisitedSubcategories(subs);
+      // Load templates
+      setBusinessQuestionsTemplate(
+        await getTemplate("ctx_business_questions_template", "")
+      );
+      setRoleLearningTemplate(
+        await getTemplate("ctx_role_learning_template", "")
+      );
       // If both category and subcategory exist, try to load cached topic data
       if (last.category && last.subcategory) {
         chrome.storage.local.get(["topic_data_cache"], async (res) => {
@@ -167,13 +178,18 @@ const TopicNodeTree = ({ onClose }) => {
           topics[selectedCategory][selectedSubcategory].name +
           '\n"' +
           topic.Q +
-          "\"\nI am building or optimizing an online business and I want to explore this question in depth.\nPlease treat this as a focused topic within the broader world of digital entrepreneurship. Start by briefly summarizing the key concepts, related strategies, and potential use cases. Then guide me through a structured response—offering practical advice, common pitfalls, proven methods, and any tools or frameworks worth using.\nYour response should be clear, actionable, and helpful whether I'm just starting out or scaling up. Teach me what I need to know to apply this insight today, and if helpful, suggest what I should ask next."
+          '"' +
+          (businessQuestionsTemplate
+            ? businessQuestionsTemplate
+            : "\nI am building or optimizing an online business and I want to explore this question in depth.\nPlease treat this as a focused topic within the broader world of digital entrepreneurship. Start by briefly summarizing the key concepts, related strategies, and potential use cases. Then guide me through a structured response—offering practical advice, common pitfalls, proven methods, and any tools or frameworks worth using.\nYour response should be clear, actionable, and helpful whether I'm just starting out or scaling up. Teach me what I need to know to apply this insight today, and if helpful, suggest what I should ask next.")
       );
       setVisitedTopics([]);
     } else {
       injectTextIntoTextarea(
         topic.system_message +
-          "\nLearning path: I want you to first summarize the key ideas and subtopics within this domain, then guide me through a structured exploration of its most important concepts, frameworks, terminology, controversies, and real-world applications.\nAsk me clarifying questions if needed, then help me master this subject as if you're my personal mentor—starting from the fundamentals but willing to go into advanced territory.\nPrioritize clarity, mental models, real-world analogies, and interactive back-and-forth.\nWhen relevant, break things into layers of depth (e.g., Level 1: Core Concepts → Level 2: Technical Methods → Level 3: Current Research Challenges).\nYour goal: make this knowledge stick. Engage me like I'm an ambitious but curious peer—not a passive student."
+          (roleLearningTemplate
+            ? roleLearningTemplate
+            : "\nLearning path: I want you to first summarize the key ideas and subtopics within this domain, then guide me through a structured exploration of its most important concepts, frameworks, terminology, controversies, and real-world applications.\nAsk me clarifying questions if needed, then help me master this subject as if you're my personal mentor—starting from the fundamentals but willing to go into advanced territory.\nPrioritize clarity, mental models, real-world analogies, and interactive back-and-forth.\nWhen relevant, break things into layers of depth (e.g., Level 1: Core Concepts → Level 2: Technical Methods → Level 3: Current Research Challenges).\nYour goal: make this knowledge stick. Engage me like I'm an ambitious but curious peer—not a passive student.")
       );
       await addVisitedTopic(topic.topic);
       setVisitedTopics((prev) =>

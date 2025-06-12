@@ -10,6 +10,7 @@ import {
   updateBookmarkLabel,
   saveContext,
   getContextKey,
+  getTemplate,
 } from "../storage/contextStorage.js";
 import "./inject.css";
 import { GodModeStorage } from "../services/godModeStorage.js";
@@ -1236,11 +1237,17 @@ async function injectContextIntoTextarea(shouldSendAfterInjection = false) {
   // Get current timestamp
   const currentTimestamp = formatTimestamp(Date.now());
 
+  // Get user-customized context injection template
+  const contextInjectionTemplate = await getTemplate(
+    "ctx_context_injection_template",
+    "\n\n📏EXECUTION PARAMETERS:\n- Full contextual compliance is a non-negotiable requirement\n\n- Deviation from established context is prohibited\n\n- Every response must be comprehensively informed by and aligned with this context\n\nCONTINUED INTERACTION:\n-Preserve and apply all previous contextual understanding\n-Integrate new input with existing knowledge\n-Respond comprehensively and contextually\n\n🆕NEW USER PROMPT ON "
+  );
+
   // Construct the new content
   const newContent =
     "‼️ CONTEXT PROTOCOL - HIGHEST PRIORITY:\n\n" +
     formattedContext +
-    "\n\n📏EXECUTION PARAMETERS:\n- Full contextual compliance is a non-negotiable requirement\n\n- Deviation from established context is prohibited\n\n- Every response must be comprehensively informed by and aligned with this context\n\nCONTINUED INTERACTION:\n-Preserve and apply all previous contextual understanding\n-Integrate new input with existing knowledge\n-Respond comprehensively and contextually\n\n🆕NEW USER PROMPT ON " +
+    contextInjectionTemplate +
     currentTimestamp +
     ': \n"' +
     currentContent +

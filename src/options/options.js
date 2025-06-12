@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import {
   gatherAllContextData,
   syncFullDataToGist,
+  getTemplate,
+  setTemplate,
 } from "../storage/contextStorage";
 import { encryptPAT, decryptPAT } from "../services/patEncryption";
 
@@ -13,6 +15,15 @@ function OptionsPage() {
   const [enableGodMode, setEnableGodMode] = useState(false);
   const [godModePat, setGodModePat] = useState("");
   const [godModeGistUrl, setGodModeGistUrl] = useState("");
+  const [businessQuestionsTemplate, setBusinessQuestionsTemplate] = useState(
+    "\nI am building or optimizing an online business and I want to explore this question in depth.\nPlease treat this as a focused topic within the broader world of digital entrepreneurship. Start by briefly summarizing the key concepts, related strategies, and potential use cases. Then guide me through a structured response—offering practical advice, common pitfalls, proven methods, and any tools or frameworks worth using.\nYour response should be clear, actionable, and helpful whether I'm just starting out or scaling up. Teach me what I need to know to apply this insight today, and if helpful, suggest what I should ask next."
+  );
+  const [roleLearningTemplate, setRoleLearningTemplate] = useState(
+    "\nLearning path: I want you to first summarize the key ideas and subtopics within this domain, then guide me through a structured exploration of its most important concepts, frameworks, terminology, controversies, and real-world applications.\nAsk me clarifying questions if needed, then help me master this subject as if you're my personal mentor—starting from the fundamentals but willing to go into advanced territory.\nPrioritize clarity, mental models, real-world analogies, and interactive back-and-forth.\nWhen relevant, break things into layers of depth (e.g., Level 1: Core Concepts → Level 2: Technical Methods → Level 3: Current Research Challenges).\nYour goal: make this knowledge stick. Engage me like I'm an ambitious but curious peer—not a passive student."
+  );
+  const [contextInjectionTemplate, setContextInjectionTemplate] = useState(
+    "\n\n📏EXECUTION PARAMETERS:\n- Full contextual compliance is a non-negotiable requirement\n\n- Deviation from established context is prohibited\n\n- Every response must be comprehensively informed by and aligned with this context\n\nCONTINUED INTERACTION:\n-Preserve and apply all previous contextual understanding\n-Integrate new input with existing knowledge\n-Respond comprehensively and contextually\n\n🆕NEW USER PROMPT ON "
+  );
 
   useEffect(() => {
     // Load both encrypted PAT and gistURL from chrome.storage.local
@@ -51,6 +62,26 @@ function OptionsPage() {
         if (res.godModeGistURL) setGodModeGistUrl(res.godModeGistURL);
       }
     );
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      setBusinessQuestionsTemplate(
+        await getTemplate(
+          "ctx_business_questions_template",
+          businessQuestionsTemplate
+        )
+      );
+      setRoleLearningTemplate(
+        await getTemplate("ctx_role_learning_template", roleLearningTemplate)
+      );
+      setContextInjectionTemplate(
+        await getTemplate(
+          "ctx_context_injection_template",
+          contextInjectionTemplate
+        )
+      );
+    })();
   }, []);
 
   const handleManualPAT = async (pat) => {
@@ -302,6 +333,61 @@ function OptionsPage() {
           </div>
         </div>
       )}
+
+      <div style={{ marginTop: 30 }}>
+        <h2>Business Questions Template Prompt</h2>
+        <textarea
+          value={businessQuestionsTemplate}
+          onChange={(e) => setBusinessQuestionsTemplate(e.target.value)}
+          rows={6}
+          style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
+        />
+        <button
+          onClick={() =>
+            setTemplate(
+              "ctx_business_questions_template",
+              businessQuestionsTemplate
+            )
+          }
+        >
+          Save
+        </button>
+      </div>
+      <div style={{ marginTop: 30 }}>
+        <h2>Role Learning Template</h2>
+        <textarea
+          value={roleLearningTemplate}
+          onChange={(e) => setRoleLearningTemplate(e.target.value)}
+          rows={6}
+          style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
+        />
+        <button
+          onClick={() =>
+            setTemplate("ctx_role_learning_template", roleLearningTemplate)
+          }
+        >
+          Save
+        </button>
+      </div>
+      <div style={{ marginTop: 30 }}>
+        <h2>Context Injection Template</h2>
+        <textarea
+          value={contextInjectionTemplate}
+          onChange={(e) => setContextInjectionTemplate(e.target.value)}
+          rows={6}
+          style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
+        />
+        <button
+          onClick={() =>
+            setTemplate(
+              "ctx_context_injection_template",
+              contextInjectionTemplate
+            )
+          }
+        >
+          Save
+        </button>
+      </div>
     </div>
   );
 }

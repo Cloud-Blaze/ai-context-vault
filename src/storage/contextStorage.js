@@ -751,3 +751,22 @@ export async function getVisitedSubcategories() {
     });
   });
 }
+
+// Generic template getter/setter for ctx_ keys
+export async function getTemplate(key, defaultValue) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([key], (res) => {
+      if (res[key] && typeof res[key] === "string") {
+        resolve(res[key]);
+      } else {
+        resolve(defaultValue);
+      }
+    });
+  });
+}
+
+export async function setTemplate(key, value) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [key]: value }, resolve);
+  });
+}
