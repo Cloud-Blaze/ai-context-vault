@@ -1,0 +1,831 @@
+{
+  "Business Questions - Design": [
+    {
+      "name": "Branding And Logo Design",
+      "slug": "branding_and_logo_design",
+      "categorySlug": "design"
+    },
+    {
+      "name": "Midjourney Prompts",
+      "slug": "midjourney_prompts",
+      "categorySlug": "design"
+    },
+    {
+      "name": "Web Design",
+      "slug": "web_design",
+      "categorySlug": "design"
+    },
+    {
+      "name": "Ui Ux",
+      "slug": "ui_ux",
+      "categorySlug": "design"
+    },
+    {
+      "name": "Landing Page General",
+      "slug": "landing_page_general",
+      "categorySlug": "design"
+    },
+    {
+      "name": "10000And Midjourney Prompts",
+      "slug": "10000+_midjourney_prompts",
+      "categorySlug": "design"
+    }
+  ],
+  "Business Questions - Social Media": [
+    {
+      "name": "Social Media Trends",
+      "slug": "social_media_trends",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Interactive Polls And Quizzes",
+      "slug": "interactive_polls_and_quizzes",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Airbnb 101",
+      "slug": "airbnb_101",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media By Channel",
+      "slug": "social_media_by_channel",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Marketing Roi",
+      "slug": "social_media_marketing_roi",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Advanced Youtube",
+      "slug": "advanced_youtube",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Tiktok",
+      "slug": "tiktok",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Influencer Marketing On Social ",
+      "slug": "influencer_marketing_on_social_",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Instagram",
+      "slug": "instagram",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Tiktok Marketing",
+      "slug": "tiktok_marketing",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media For Products",
+      "slug": "social_media_for_products",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Facebook Marketing",
+      "slug": "facebook_marketing",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Outreach",
+      "slug": "social_media_outreach",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Marketing",
+      "slug": "social_media_marketing",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Linkedin Sales Navigator",
+      "slug": "linkedin_sales_navigator",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Graphic Design",
+      "slug": "social_media_graphic_design",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Instagram Marketing",
+      "slug": "instagram_marketing",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Analytics & Metric",
+      "slug": "social_media_analytics_&_metric",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Youtube",
+      "slug": "youtube",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Marketing Management",
+      "slug": "social_media_marketing_management",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Facebook Strategies",
+      "slug": "facebook_strategies",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Affiliate Marketing On Sm",
+      "slug": "affiliate_marketing_on_sm",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Marketing Agency Owner",
+      "slug": "social_media_marketing_agency_owner",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Management & Scheduling",
+      "slug": "social_media_management_&_scheduling",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Employee Advocacy On Sm",
+      "slug": "employee_advocacy_on_sm",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Marketing More",
+      "slug": "social_media_marketing_more",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Microblogging Strategy",
+      "slug": "microblogging_strategy",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Reddit Marketing",
+      "slug": "reddit_marketing",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media For Services",
+      "slug": "social_media_for_services",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Twitter",
+      "slug": "twitter",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Listen & Monitor",
+      "slug": "social_media_listen_&_monitor",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "International Sm Marketing",
+      "slug": "international_sm_marketing",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Pinterest",
+      "slug": "pinterest",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Linkedin",
+      "slug": "linkedin",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Marketing Prompts",
+      "slug": "social_media_marketing_prompts",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Linkedin Marketing",
+      "slug": "linkedin_marketing",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Video Marketing On Social Media",
+      "slug": "video_marketing_on_social_media",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Social Media Stories",
+      "slug": "social_media_stories",
+      "categorySlug": "social_media"
+    },
+    {
+      "name": "Live Social Commerce",
+      "slug": "live_social_commerce",
+      "categorySlug": "social_media"
+    }
+  ],
+  "Business Questions - General": [
+    {
+      "name": "Print On Demand Pod",
+      "slug": "print_on_demand_pod",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Financial Mastery",
+      "slug": "financial_mastery",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Product Scaling",
+      "slug": "product_scaling",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Amazon Kindle Direct Publishing",
+      "slug": "amazon_kindle_direct_publishing",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Business Essentials",
+      "slug": "business_essentials",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Resume Writing",
+      "slug": "resume_writing",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Ebook Writing",
+      "slug": "ebook_writing",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Mindfulness Practices",
+      "slug": "mindfulness_practices",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Act As",
+      "slug": "act_as",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Amazon Success",
+      "slug": "amazon_success",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Small Business",
+      "slug": "small_business",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Virtual Events And Webinars",
+      "slug": "virtual_events_and_webinars",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Chatbot",
+      "slug": "chatbot",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Chatgpt Monetization",
+      "slug": "chatgpt_monetization",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Customer Relationship Management",
+      "slug": "customer_relationship_management",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Startup Business",
+      "slug": "startup_business",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Pricing Strategies",
+      "slug": "pricing_strategies",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Product Management",
+      "slug": "product_management",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Growth Hacking",
+      "slug": "growth_hacking",
+      "categorySlug": "business"
+    },
+    {
+      "name": "E Commerce",
+      "slug": "e_commerce",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Ebay Success",
+      "slug": "ebay_success",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Mastery Template",
+      "slug": "mastery_template",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Etsy",
+      "slug": "etsy",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Second Brain",
+      "slug": "second_brain",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Podcast Success",
+      "slug": "podcast_success",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Productivity Hacks",
+      "slug": "productivity_hacks",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Microsoft Excel",
+      "slug": "microsoft_excel",
+      "categorySlug": "business"
+    },
+    {
+      "name": "E Commerce More",
+      "slug": "e_commerce_more",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Objectives And Key Results",
+      "slug": "objectives_+_key_results",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Career",
+      "slug": "career",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Project Management",
+      "slug": "project_management",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Saas Success",
+      "slug": "saas_success",
+      "categorySlug": "business"
+    },
+    {
+      "name": "User Generated Content",
+      "slug": "user_generated_content",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Customer Service",
+      "slug": "customer_service",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Community Building And Engagement",
+      "slug": "community_building_and_engagement",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Account Management",
+      "slug": "account_management",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Trade Shows",
+      "slug": "trade_shows",
+      "categorySlug": "business"
+    },
+    {
+      "name": "B2B",
+      "slug": "b2b",
+      "categorySlug": "business"
+    },
+    {
+      "name": "B2C",
+      "slug": "b2c",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Passive Income",
+      "slug": "passive_income",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Software As A Service",
+      "slug": "software_as_a_service",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Saas Pricing Strategies",
+      "slug": "saas_pricing_strategies",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Google Sheets",
+      "slug": "google_sheets",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Monk Mode",
+      "slug": "monk_mode",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Etsy Success",
+      "slug": "etsy_success",
+      "categorySlug": "business"
+    },
+    {
+      "name": "Entrepreneur",
+      "slug": "entrepreneur",
+      "categorySlug": "business"
+    }
+  ],
+  "Business Questions - Miscellaneous": [
+    {
+      "name": "Gardening",
+      "slug": "gardening",
+      "categorySlug": "miscellaneous"
+    },
+    {
+      "name": "25000 Additional Prompts",
+      "slug": "25000_additional_prompts",
+      "categorySlug": "miscellaneous"
+    },
+    {
+      "name": "250 Favorite Prompts",
+      "slug": "250_favorite_prompts",
+      "categorySlug": "miscellaneous"
+    },
+    {
+      "name": "15000 Additional Categories",
+      "slug": "15000_additional_categories",
+      "categorySlug": "miscellaneous"
+    },
+    {
+      "name": "Dating Advice",
+      "slug": "dating_advice",
+      "categorySlug": "miscellaneous"
+    },
+    {
+      "name": "Psychology ",
+      "slug": "psychology_",
+      "categorySlug": "miscellaneous"
+    },
+    {
+      "name": "Better Sleep",
+      "slug": "better_sleep",
+      "categorySlug": "miscellaneous"
+    },
+    {
+      "name": "Time Management",
+      "slug": "time_management",
+      "categorySlug": "miscellaneous"
+    },
+    {
+      "name": "Life Coaching",
+      "slug": "life_coaching",
+      "categorySlug": "miscellaneous"
+    },
+    {
+      "name": "Stress Management",
+      "slug": "stress_management",
+      "categorySlug": "miscellaneous"
+    },
+    {
+      "name": "2000 Extra Prompts",
+      "slug": "2000_extra_prompts",
+      "categorySlug": "miscellaneous"
+    }
+  ],
+  "Business Questions - Marketing Sales": [
+    {
+      "name": "Sales Funnel",
+      "slug": "sales_funnel",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Sales Funnel More",
+      "slug": "sales_funnel_more",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Email Marketing",
+      "slug": "email_marketing",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Micro Influencer Partnerships",
+      "slug": "micro_influencer_partnerships",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Advanced Cold Calling",
+      "slug": "advanced_cold_calling",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Google Analytics",
+      "slug": "google_analytics",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Sales Engineering",
+      "slug": "sales_engineering",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Search Engine Marketing",
+      "slug": "search_engine_marketing",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Email Marketing Advanced",
+      "slug": "email_marketing_advanced",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Outside Sales",
+      "slug": "outside_sales",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Attracting High Ticket Clients",
+      "slug": "attracting_high_ticket_clients",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Search Engine Optimization",
+      "slug": "search_engine_optimization",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Affiliate Marketing More",
+      "slug": "affiliate_marketing_more",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Google Ads",
+      "slug": "google_ads",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Saas Marketing",
+      "slug": "saas_marketing",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "1 On Google",
+      "slug": "1_on_google",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Acquiring A New Business",
+      "slug": "acquiring_a_new_business",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Ads",
+      "slug": "ads",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Phone Lead Generation",
+      "slug": "phone_lead_generation",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Affiliate Marketing",
+      "slug": "affiliate_marketing",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Advertising",
+      "slug": "advertising",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Podcast Promotion",
+      "slug": "podcast_promotion",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Google Ads More",
+      "slug": "google_ads_more",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Organic Traffic",
+      "slug": "organic_traffic",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Email Marketing More",
+      "slug": "email_marketing_more",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Cause Related Marketing",
+      "slug": "cause_related_marketing",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Getting Consistent Sales",
+      "slug": "getting_consistent_sales",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Facebook Ads",
+      "slug": "facebook_ads",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Phone Lead Generation More",
+      "slug": "phone_lead_generation_more",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Google Ads Anylysis",
+      "slug": "google_ads_anylysis",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Conversion Rate Optimization",
+      "slug": "conversion_rate_optimization",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Overcoming Objections",
+      "slug": "overcoming_objections",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Inbound Marketing",
+      "slug": "inbound_marketing",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "High Value Selling",
+      "slug": "high_value_selling",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Geo Targeting",
+      "slug": "geo_targeting",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Call To Action",
+      "slug": "call_to_action",
+      "categorySlug": "marketing_sales"
+    },
+    {
+      "name": "Google Seo",
+      "slug": "google_seo",
+      "categorySlug": "marketing_sales"
+    }
+  ],
+  "Business Questions - Content Creation": [
+    {
+      "name": "Copywriting More",
+      "slug": "copywriting_more",
+      "categorySlug": "content_creation"
+    },
+    {
+      "name": "Copywriting",
+      "slug": "copywriting",
+      "categorySlug": "content_creation"
+    },
+    {
+      "name": "Social Media Copywriting",
+      "slug": "social_media_copywriting",
+      "categorySlug": "content_creation"
+    },
+    {
+      "name": "Advanced Copywriting",
+      "slug": "advanced_copywriting",
+      "categorySlug": "content_creation"
+    }
+  ],
+  "Business Questions - Tech": [
+    {
+      "name": "Llm Fine Tuning",
+      "slug": "llm_fine_tuning",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Llm Hugging Face",
+      "slug": "llm_hugging_face",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Api",
+      "slug": "api",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "No Coding",
+      "slug": "no_coding",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Crypto",
+      "slug": "crypto",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Chatbots And Ai Assistants",
+      "slug": "chatbots_and_ai_assistants",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Landing Page",
+      "slug": "landing_page",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Prompt Engineering",
+      "slug": "prompt_engineering",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Scrum",
+      "slug": "scrum",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Jailbreak",
+      "slug": "jailbreak",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Cybersecurity",
+      "slug": "cybersecurity",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Machine Learning",
+      "slug": "machine_learning",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "De Fi Trading",
+      "slug": "de_fi_trading",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Large Language Models",
+      "slug": "large_language_models",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Cloud Computing",
+      "slug": "cloud_computing",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Augmented Reality",
+      "slug": "augmented_reality",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Virtual And Augmented Reality",
+      "slug": "virtual_and_augmented_reality",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "No Code",
+      "slug": "no_code",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Digital Product",
+      "slug": "digital_product",
+      "categorySlug": "tech"
+    },
+    {
+      "name": "Nft Trading",
+      "slug": "nft_trading",
+      "categorySlug": "tech"
+    }
+  ]
+}
