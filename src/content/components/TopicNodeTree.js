@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { injectTextIntoTextarea, showConfirmationBubble } from "../inject";
+import {
+  saveLastTopicSelection,
+  getLastTopicSelection,
+  addVisitedTopic,
+  getVisitedTopics,
+  addVisitedCategory,
+  getVisitedCategories,
+  addVisitedSubcategory,
+  getVisitedSubcategories,
+} from "../../storage/contextStorage";
 
-// Define the green color used in the Bookmarks button
-const VAULT_GREEN = "bg-green-400 text-black"; // adjust if you use a different green
-const VAULT_BG = "bg-[#23272f]"; // match the AI Context Vault background
 const VAULT_BORDER = "border-[#23272f]";
 
 const TopicNodeTree = ({ onClose }) => {
@@ -13,6 +20,9 @@ const TopicNodeTree = ({ onClose }) => {
   const [topicData, setTopicData] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [topicsLoading, setTopicsLoading] = useState(false);
+  const [visitedTopics, setVisitedTopics] = useState([]);
+  const [visitedCategories, setVisitedCategories] = useState([]);
+  const [visitedSubcategories, setVisitedSubcategories] = useState([]);
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -35,15 +45,61 @@ const TopicNodeTree = ({ onClose }) => {
     fetchTopics();
   }, []);
 
+  useEffect(() => {
+    const loadPersisted = async () => {
+      const last = await getLastTopicSelection();
+      setSelectedCategory(last.category);
+      setSelectedSubcategory(last.subcategory);
+      const visited = await getVisitedTopics();
+      setVisitedTopics(visited);
+      const cats = await getVisitedCategories();
+      setVisitedCategories(cats);
+      const subs = await getVisitedSubcategories();
+      setVisitedSubcategories(subs);
+      // If both category and subcategory exist, try to load cached topic data
+      if (last.category && last.subcategory) {
+        chrome.storage.local.get(["topic_data_cache"], async (res) => {
+          if (res.topic_data_cache && Array.isArray(res.topic_data_cache)) {
+            setTopicData(res.topic_data_cache);
+          } else {
+            // fallback to fetch
+            setTopicsLoading(true);
+            try {
+              const response = await fetch(
+                `https://aicontextvault.com/topics_by_slug/${
+                  topics[last.category][last.subcategory].slug
+                }.json`
+              );
+              if (response.ok) {
+                const data = await response.json();
+                setTopicData(data);
+                chrome.storage.local.set({ topic_data_cache: data });
+              }
+            } catch (error) {
+              // ignore
+            } finally {
+              setTopicsLoading(false);
+            }
+          }
+        });
+      }
+    };
+    loadPersisted();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleCategoryClick = (category) => {
     setSelectedCategory(category);
     setSelectedSubcategory(null);
     setTopicData([]);
+    lastTopicData = [];
+    saveLastTopicSelection(category, null);
   };
 
   const handleSubcategoryClick = async (subcategory) => {
     setSelectedSubcategory(subcategory);
     setTopicsLoading(true);
+    saveLastTopicSelection(selectedCategory, subcategory);
     try {
       const response = await fetch(
         `https://aicontextvault.com/topics_by_slug/${topics[selectedCategory][subcategory].slug}.json`
@@ -51,6 +107,7 @@ const TopicNodeTree = ({ onClose }) => {
       if (!response.ok) throw new Error("Failed to fetch topic data");
       const data = await response.json();
       setTopicData(data);
+      chrome.storage.local.set({ topic_data_cache: data });
     } catch (error) {
       console.error("Error fetching topic data:", error);
       showConfirmationBubble("Failed to load topic data", "error");
@@ -59,10 +116,38 @@ const TopicNodeTree = ({ onClose }) => {
     }
   };
 
-  const handleTopicClick = (topic) => {
-    injectTextIntoTextarea(topic.system_message);
+  const handleTopicClick = async (topic) => {
+    injectTextIntoTextarea(
+      topic.system_message +
+        "\nLearning path: I want you to first summarize the key ideas and subtopics within this domain, then guide me through a structured exploration of its most important concepts, frameworks, terminology, controversies, and real-world applications.\nAsk me clarifying questions if needed, then help me master this subject as if you're my personal mentor—starting from the fundamentals but willing to go into advanced territory.\nPrioritize clarity, mental models, real-world analogies, and interactive back-and-forth.\nWhen relevant, break things into layers of depth (e.g., Level 1: Core Concepts → Level 2: Technical Methods → Level 3: Current Research Challenges).\nYour goal: make this knowledge stick. Engage me like I'm an ambitious but curious peer—not a passive student."
+    );
+    await addVisitedTopic(topic.topic);
+    setVisitedTopics((prev) =>
+      prev.includes(topic.topic) ? prev : [...prev, topic.topic]
+    );
+    // Mark subcategory and category as visited
+    if (selectedCategory && selectedSubcategory) {
+      await addVisitedCategory(selectedCategory);
+      setVisitedCategories((prev) =>
+        prev.includes(selectedCategory) ? prev : [...prev, selectedCategory]
+      );
+      await addVisitedSubcategory(selectedCategory, selectedSubcategory);
+      const subKey = `${selectedCategory}|${selectedSubcategory}`;
+      setVisitedSubcategories((prev) =>
+        prev.includes(subKey) ? prev : [...prev, subKey]
+      );
+    }
     onClose();
   };
+
+  // Helper to check if any topic in a subcategory is visited
+  const isSubcategoryVisited = (category, subcategory) => {
+    const subKey = `${category}|${subcategory}`;
+    return visitedSubcategories.includes(subKey);
+  };
+
+  // Helper to check if any subcategory in a category is visited
+  const isCategoryVisited = (category) => visitedCategories.includes(category);
 
   return (
     <div
@@ -94,12 +179,32 @@ const TopicNodeTree = ({ onClose }) => {
                     <button
                       key={category}
                       onClick={() => handleCategoryClick(category)}
-                      className={`w-full text-left px-3 py-2 rounded-md transition-colors font-semibold ${
+                      className={`w-full text-left px-3 py-2 rounded-md transition-colors font-semibold flex items-center${
                         selectedCategory === category
-                          ? "bg-green-400 text-black"
-                          : "text-gray-300 hover:bg-gray-700"
+                          ? " bg-green-400 text-black"
+                          : " text-gray-300 hover:bg-gray-700"
                       }`}
+                      style={{ minHeight: "50px" }}
                     >
+                      {isCategoryVisited(category) && (
+                        <svg
+                          className="mr-2 flex-shrink-0"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle cx="10" cy="10" r="10" fill="#22c55e" />
+                          <path
+                            d="M6 10.5L9 13.5L14 8.5"
+                            stroke="white"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
                       {category}
                     </button>
                   ))}
@@ -126,12 +231,35 @@ const TopicNodeTree = ({ onClose }) => {
                       <button
                         key={subcategory}
                         onClick={() => handleSubcategoryClick(subcategory)}
-                        className={`w-full text-left px-3 py-2 rounded-md transition-colors font-semibold ${
+                        className={`w-full text-left px-3 py-2 rounded-md transition-colors font-semibold flex items-center${
                           selectedSubcategory === subcategory
-                            ? "bg-green-400 text-black"
-                            : "text-gray-300 hover:bg-gray-700"
+                            ? " bg-green-400 text-black"
+                            : " text-gray-300 hover:bg-gray-700"
                         }`}
+                        style={{ minHeight: "50px" }}
                       >
+                        {isSubcategoryVisited(
+                          selectedCategory,
+                          subcategory
+                        ) && (
+                          <svg
+                            className="mr-2 flex-shrink-0"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <circle cx="10" cy="10" r="10" fill="#22c55e" />
+                            <path
+                              d="M6 10.5L9 13.5L14 8.5"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        )}
                         {topics[selectedCategory][subcategory].name}
                       </button>
                     ))}
@@ -164,8 +292,28 @@ const TopicNodeTree = ({ onClose }) => {
                       <button
                         key={topic.id}
                         onClick={() => handleTopicClick(topic)}
-                        className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors"
+                        className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center"
+                        style={{ minHeight: "50px" }}
                       >
+                        {visitedTopics.includes(topic.topic) && (
+                          <svg
+                            className="mr-2 flex-shrink-0"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <circle cx="10" cy="10" r="10" fill="#22c55e" />
+                            <path
+                              d="M6 10.5L9 13.5L14 8.5"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        )}
                         {topic.topic}
                       </button>
                     ))}

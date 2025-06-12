@@ -666,3 +666,88 @@ export async function gatherAllBookmarks() {
     });
   });
 }
+
+// Persist last selected category and subcategory
+export async function saveLastTopicSelection(category, subcategory) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set(
+      { ctx_topic_cats: { category, subcategory } },
+      resolve
+    );
+  });
+}
+
+export async function getLastTopicSelection() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["ctx_topic_cats"], (res) => {
+      resolve(res.ctx_topic_cats || { category: null, subcategory: null });
+    });
+  });
+}
+
+// Persist visited topic strings (topic.topic)
+export async function addVisitedTopic(topicString) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["ctx_topic_visited"], (res) => {
+      const visited = new Set(res.ctx_topic_visited || []);
+      visited.add(topicString);
+      chrome.storage.local.set(
+        { ctx_topic_visited: Array.from(visited) },
+        resolve
+      );
+    });
+  });
+}
+
+export async function getVisitedTopics() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["ctx_topic_visited"], (res) => {
+      resolve(res.ctx_topic_visited || []);
+    });
+  });
+}
+
+// Persist visited categories (category names)
+export async function addVisitedCategory(category) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["ctx_topic_visited_categories"], (res) => {
+      const visited = new Set(res.ctx_topic_visited_categories || []);
+      visited.add(category);
+      chrome.storage.local.set(
+        { ctx_topic_visited_categories: Array.from(visited) },
+        resolve
+      );
+    });
+  });
+}
+
+export async function getVisitedCategories() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["ctx_topic_visited_categories"], (res) => {
+      resolve(res.ctx_topic_visited_categories || []);
+    });
+  });
+}
+
+// Persist visited subcategories (category|subcategory key)
+export async function addVisitedSubcategory(category, subcategory) {
+  const key = `${category}|${subcategory}`;
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["ctx_topic_visited_subcategories"], (res) => {
+      const visited = new Set(res.ctx_topic_visited_subcategories || []);
+      visited.add(key);
+      chrome.storage.local.set(
+        { ctx_topic_visited_subcategories: Array.from(visited) },
+        resolve
+      );
+    });
+  });
+}
+
+export async function getVisitedSubcategories() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["ctx_topic_visited_subcategories"], (res) => {
+      resolve(res.ctx_topic_visited_subcategories || []);
+    });
+  });
+}
