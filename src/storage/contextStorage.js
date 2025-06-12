@@ -770,3 +770,50 @@ export async function setTemplate(key, value) {
     chrome.storage.local.set({ [key]: value }, resolve);
   });
 }
+
+// Custom prompts management
+export async function getCustomPrompts() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["ctx_custom_prompts"], (res) => {
+      resolve(res.ctx_custom_prompts || {});
+    });
+  });
+}
+
+export async function saveCustomPrompts(customPrompts) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ ctx_custom_prompts: customPrompts }, resolve);
+  });
+}
+
+export async function addCustomPrompt(category, subcategory, prompt) {
+  const customPrompts = await getCustomPrompts();
+  if (!customPrompts[category]) {
+    customPrompts[category] = [];
+  }
+  // Check if subcategory already exists, update if so
+  const existingIndex = customPrompts[category].findIndex(
+    (item) => item.name === subcategory
+  );
+  if (existingIndex !== -1) {
+    customPrompts[category][existingIndex].CustomQ = prompt;
+  } else {
+    customPrompts[category].push({ name: subcategory, CustomQ: prompt });
+  }
+  await saveCustomPrompts(customPrompts);
+  return customPrompts;
+}
+
+export async function deleteCustomPrompt(category, subcategory) {
+  const customPrompts = await getCustomPrompts();
+  if (customPrompts[category]) {
+    customPrompts[category] = customPrompts[category].filter(
+      (item) => item.name !== subcategory
+    );
+    if (customPrompts[category].length === 0) {
+      delete customPrompts[category];
+    }
+    await saveCustomPrompts(customPrompts);
+  }
+  return customPrompts;
+}
