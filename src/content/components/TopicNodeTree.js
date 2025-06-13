@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { injectTextIntoTextarea, showConfirmationBubble } from "../inject";
 import {
   saveLastTopicSelection,
@@ -37,6 +37,68 @@ const TopicNodeTree = ({ onClose }) => {
   const [newPromptText, setNewPromptText] = useState("");
   const [allCategories, setAllCategories] = useState([]);
   const [allSubcategories, setAllSubcategories] = useState([]);
+
+  // Add refs for the scrollable containers
+  const categoriesRef = useRef(null);
+  const subcategoriesRef = useRef(null);
+  const topicsRef = useRef(null);
+
+  // Add scroll position handlers
+  const handleCategoriesScroll = () => {
+    if (categoriesRef.current) {
+      chrome.storage.local.set({
+        ctx_categories_scroll: categoriesRef.current.scrollTop,
+      });
+    }
+  };
+
+  const handleSubcategoriesScroll = () => {
+    if (subcategoriesRef.current) {
+      chrome.storage.local.set({
+        ctx_subcategories_scroll: subcategoriesRef.current.scrollTop,
+      });
+    }
+  };
+
+  const handleTopicsScroll = () => {
+    if (topicsRef.current) {
+      chrome.storage.local.set({
+        ctx_topics_scroll: topicsRef.current.scrollTop,
+      });
+    }
+  };
+
+  // Add useEffect for scroll restoration
+  useEffect(() => {
+    const restoreScrollPositions = async () => {
+      const {
+        ctx_categories_scroll,
+        ctx_subcategories_scroll,
+        ctx_topics_scroll,
+      } = await chrome.storage.local.get([
+        "ctx_categories_scroll",
+        "ctx_subcategories_scroll",
+        "ctx_topics_scroll",
+      ]);
+
+      // Use setTimeout to ensure the DOM is ready
+      setTimeout(() => {
+        if (categoriesRef.current && ctx_categories_scroll) {
+          categoriesRef.current.scrollTop = ctx_categories_scroll;
+        }
+        if (subcategoriesRef.current && ctx_subcategories_scroll) {
+          subcategoriesRef.current.scrollTop = ctx_subcategories_scroll;
+        }
+      }, 100);
+      setTimeout(() => {
+        if (topicsRef.current && ctx_topics_scroll) {
+          topicsRef.current.scrollTop = ctx_topics_scroll;
+        }
+      }, 3700);
+    };
+
+    restoreScrollPositions();
+  }, []);
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -178,6 +240,10 @@ const TopicNodeTree = ({ onClose }) => {
     saveLastTopicSelection(category, null);
   };
 
+  const subcatArr = mergedTopics[selectedCategory] || [];
+  isCustomPrompt =
+    subcatArr.length > 0 && subcatArr[0].hasOwnProperty("CustomQ");
+
   const handleSubcategoryClick = async (subcategory) => {
     setSelectedSubcategory(subcategory);
     setTopicsLoading(true);
@@ -235,7 +301,7 @@ const TopicNodeTree = ({ onClose }) => {
           topic.Q +
           (businessQuestionsTemplate
             ? businessQuestionsTemplate
-            : "\nI am building or optimizing an online business and I want to explore this question in depth.\nPlease treat this as a focused topic within the broader world of digital entrepreneurship. Start by briefly summarizing the key concepts, related strategies, and potential use cases. Then guide me through a structured response—offering practical advice, common pitfalls, proven methods, and any tools or frameworks worth using.\nYour response should be clear, actionable, and helpful whether I'm just starting out or scaling up. Teach me what I need to know to apply this insight today, and if helpful, suggest what I should ask next.")
+            : "\"\nI am building or optimizing an online business and I want to explore this question in depth.\nPlease treat this as a focused topic within the broader world of digital entrepreneurship. Start by briefly summarizing the key concepts, related strategies, and potential use cases. Then guide me through a structured response—offering practical advice, common pitfalls, proven methods, and any tools or frameworks worth using.\nYour response should be clear, actionable, and helpful whether I'm just starting out or scaling up. Teach me what I need to know to apply this insight today, and if helpful, suggest what I should ask next.")
       );
       setVisitedTopics([]);
     } else if (topic.hasOwnProperty("CustomQ")) {
@@ -339,7 +405,11 @@ const TopicNodeTree = ({ onClose }) => {
       >
         <div className="flex h-[600px]">
           {/* Categories Panel */}
-          <div className={`w-1/3 border-r ${VAULT_BORDER} p-0 overflow-y-auto`}>
+          <div
+            ref={categoriesRef}
+            onScroll={handleCategoriesScroll}
+            className={`w-1/3 border-r ${VAULT_BORDER} p-0 overflow-y-auto`}
+          >
             <div
               className="sticky top-0 z-10 p-4 flex justify-between items-center"
               style={{ backgroundColor: "rgb(30, 30, 30)" }}
@@ -398,13 +468,17 @@ const TopicNodeTree = ({ onClose }) => {
           </div>
 
           {/* Subcategories Panel */}
-          <div className={`w-1/3 border-r ${VAULT_BORDER} p-0 overflow-y-auto`}>
+          <div
+            ref={subcategoriesRef}
+            onScroll={handleSubcategoriesScroll}
+            className={`w-1/3 border-r ${VAULT_BORDER} p-0 overflow-y-auto`}
+          >
             <div
               className="sticky top-0 z-10 p-4"
               style={{ backgroundColor: "rgb(30, 30, 30)" }}
             >
               <h2 className="text-lg font-semibold text-gray-200">
-                Subcategories
+                {isCustomPrompt ? "Prompt Alias" : "Subcategories"}
               </h2>
             </div>
             <div className="p-4 pt-0">
@@ -458,7 +532,11 @@ const TopicNodeTree = ({ onClose }) => {
           </div>
 
           {/* Topics Panel */}
-          <div className="w-1/3 p-0 overflow-y-auto">
+          <div
+            ref={topicsRef}
+            onScroll={handleTopicsScroll}
+            className="w-1/3 p-0 overflow-y-auto"
+          >
             <div
               className="sticky top-0 z-10 p-4"
               style={{ backgroundColor: "rgb(30, 30, 30)" }}
@@ -599,7 +677,7 @@ const TopicNodeTree = ({ onClose }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Prompt Short Name / Persona
+                  Prompt Alias
                 </label>
                 <input
                   type="text"
