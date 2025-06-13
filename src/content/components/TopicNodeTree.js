@@ -241,7 +241,7 @@ const TopicNodeTree = ({ onClose }) => {
   };
 
   const subcatArr = mergedTopics[selectedCategory] || [];
-  isCustomPrompt =
+  const isCustomPrompt =
     subcatArr.length > 0 && subcatArr[0].hasOwnProperty("CustomQ");
 
   const handleSubcategoryClick = async (subcategory) => {
@@ -376,13 +376,6 @@ const TopicNodeTree = ({ onClose }) => {
     }
   };
 
-  const isCustomPrompt = (category, subcategory) => {
-    return (
-      customPrompts[category] &&
-      customPrompts[category].some((item) => item.name === subcategory)
-    );
-  };
-
   const getCustomPromptText = (category, subcategory) => {
     if (customPrompts[category]) {
       const item = customPrompts[category].find(
@@ -391,6 +384,22 @@ const TopicNodeTree = ({ onClose }) => {
       return item ? item.CustomQ : "";
     }
     return "";
+  };
+
+  const handleDeletePrompt = async (category, subcategory) => {
+    // Get the actual subcategory name from the item
+    const subcatItem = mergedTopics[category][subcategory];
+    const subcategoryName = subcatItem.name || subcategory;
+
+    await deleteCustomPrompt(category, subcategoryName);
+    const updated = await getCustomPrompts();
+    setCustomPrompts(updated);
+
+    // Reset selection if we deleted the currently selected item
+    if (selectedCategory === category && selectedSubcategory === subcategory) {
+      setSelectedSubcategory(null);
+      setTopicData([]);
+    }
   };
 
   return (
@@ -487,41 +496,74 @@ const TopicNodeTree = ({ onClose }) => {
                   {mergedTopics[selectedCategory] &&
                     Object.keys(mergedTopics[selectedCategory]).map(
                       (subcategory) => (
-                        <button
+                        <div
                           key={subcategory}
-                          onClick={() => handleSubcategoryClick(subcategory)}
-                          className={`w-full text-left px-3 py-2 rounded-md transition-colors font-semibold flex items-center${
-                            selectedSubcategory === subcategory
-                              ? " bg-green-400 text-black"
-                              : " text-gray-300 hover:bg-gray-700"
-                          }`}
-                          style={{ minHeight: "50px" }}
+                          className="flex items-center justify-between gap-2"
                         >
-                          {isSubcategoryVisited(
-                            selectedCategory,
-                            subcategory
-                          ) && (
-                            <svg
-                              className="mr-2 flex-shrink-0"
-                              width="20"
-                              height="20"
-                              viewBox="0 0 20 20"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
+                          <button
+                            onClick={() => handleSubcategoryClick(subcategory)}
+                            className={`flex-1 text-left px-3 py-2 rounded-md transition-colors font-semibold flex items-center${
+                              selectedSubcategory === subcategory
+                                ? " bg-green-400 text-black"
+                                : " text-gray-300 hover:bg-gray-700"
+                            }`}
+                            style={{ minHeight: "50px" }}
+                          >
+                            {isSubcategoryVisited(
+                              selectedCategory,
+                              subcategory
+                            ) && (
+                              <svg
+                                className="mr-2 flex-shrink-0"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 20 20"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <circle cx="10" cy="10" r="10" fill="#22c55e" />
+                                <path
+                                  d="M6 10.5L9 13.5L14 8.5"
+                                  stroke="white"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                            {mergedTopics[selectedCategory][subcategory].name ||
+                              subcategory}
+                          </button>
+                          {isCustomPrompt && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePrompt(
+                                  selectedCategory,
+                                  subcategory
+                                );
+                              }}
+                              className="flex-shrink-0 p-2 text-red-500 hover:text-red-600"
+                              title="Delete prompt"
                             >
-                              <circle cx="10" cy="10" r="10" fill="#22c55e" />
-                              <path
-                                d="M6 10.5L9 13.5L14 8.5"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
+                              <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 20 20"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M15 5L5 15M5 5L15 15"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
                           )}
-                          {mergedTopics[selectedCategory][subcategory].name ||
-                            subcategory}
-                        </button>
+                        </div>
                       )
                     )}
                 </div>
