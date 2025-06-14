@@ -470,7 +470,8 @@ async function performGistSync(signal, deleteKey, syncOnlyServer = false) {
       if (Array.isArray(remoteData[key])) {
         // Handle bookmark arrays
         remoteData[key] = remoteData[key].filter(
-          (entry) => entry.id !== deleteKey
+          (entry) =>
+            entry.id && entry.hasOwnProperty("id") && entry.id !== deleteKey
         );
       } else if (
         remoteData[key]?.entries &&
@@ -478,7 +479,8 @@ async function performGistSync(signal, deleteKey, syncOnlyServer = false) {
       ) {
         // Handle context objects with entries array
         remoteData[key].entries = remoteData[key].entries.filter(
-          (entry) => entry.id !== deleteKey
+          (entry) =>
+            entry.id && entry.hasOwnProperty("id") && entry.id !== deleteKey
         );
       }
       merged[key] = remoteData[key];

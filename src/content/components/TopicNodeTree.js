@@ -13,6 +13,7 @@ import {
   getCustomPrompts,
   addCustomPrompt,
   deleteCustomPrompt,
+  saveCustomPrompts,
 } from "../../storage/contextStorage";
 
 const VAULT_BORDER = "border-[#23272f]";
@@ -37,6 +38,8 @@ const TopicNodeTree = ({ onClose }) => {
   const [newPromptText, setNewPromptText] = useState("");
   const [allCategories, setAllCategories] = useState([]);
   const [allSubcategories, setAllSubcategories] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingPromptId, setEditingPromptId] = useState(null);
 
   // Add refs for the scrollable containers
   const categoriesRef = useRef(null);
@@ -354,22 +357,72 @@ const TopicNodeTree = ({ onClose }) => {
     setShowAddPromptPopup(true);
   };
 
+  const handleEditPrompt = (category, subcategory) => {
+    console.log("Editing prompt:", { category, subcategory });
+    const subcatItem = mergedTopics[category][subcategory];
+    console.log("Subcat item:", subcatItem);
+
+    setNewPromptCategory(category);
+    setNewPromptSubcategory(subcatItem.name || subcategory);
+    setNewPromptText(subcatItem.CustomQ || "");
+    setIsEditing(true);
+    setEditingPromptId(subcatItem.name || subcategory);
+    setShowAddPromptPopup(true);
+  };
+
   const handleSaveCustomPrompt = async () => {
     if (!newPromptCategory || !newPromptSubcategory || !newPromptText) {
       alert("Please fill in all fields");
       return;
     }
 
-    await addCustomPrompt(
+    console.log("Saving prompt:", {
+      isEditing,
+      editingPromptId,
       newPromptCategory,
       newPromptSubcategory,
-      newPromptText
-    );
+      newPromptText,
+    });
+
+    const customPrompts = await getCustomPrompts();
+    console.log("Current custom prompts:", customPrompts);
+
+    if (isEditing) {
+      // Find and update the existing prompt
+      if (customPrompts[newPromptCategory]) {
+        const index = customPrompts[newPromptCategory].findIndex(
+          (item) => item.name === editingPromptId
+        );
+        console.log("Found index:", index);
+        if (index !== -1) {
+          customPrompts[newPromptCategory][index] = {
+            name: newPromptSubcategory,
+            CustomQ: newPromptText,
+          };
+        }
+      }
+    } else {
+      // Add new prompt
+      if (!customPrompts[newPromptCategory]) {
+        customPrompts[newPromptCategory] = [];
+      }
+      customPrompts[newPromptCategory].push({
+        name: newPromptSubcategory,
+        CustomQ: newPromptText,
+      });
+    }
+
+    console.log("Updated custom prompts:", customPrompts);
+    await saveCustomPrompts(customPrompts);
     const updated = await getCustomPrompts();
+    console.log("Verified updated prompts:", updated);
+
     setCustomPrompts(updated);
     setShowAddPromptPopup(false);
+    setIsEditing(false);
+    setEditingPromptId(null);
 
-    // If we just added to the currently selected category, refresh the topic data
+    // If we just modified the currently selected category, refresh the topic data
     if (selectedCategory === newPromptCategory) {
       setTopicData([]);
       chrome.storage.local.set({ topic_data_cache: [] });
@@ -535,33 +588,50 @@ const TopicNodeTree = ({ onClose }) => {
                               subcategory}
                           </button>
                           {isCustomPrompt && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeletePrompt(
-                                  selectedCategory,
-                                  subcategory
-                                );
-                              }}
-                              className="flex-shrink-0 p-2 text-red-500 hover:text-red-600"
-                              title="Delete prompt"
-                            >
-                              <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 20 20"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditPrompt(
+                                    selectedCategory,
+                                    subcategory
+                                  );
+                                }}
+                                className="flex-shrink-0 p-2 text-blue-500 hover:text-blue-600"
+                                title="Edit prompt"
                               >
-                                <path
-                                  d="M15 5L5 15M5 5L15 15"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </button>
+                                <button className="ai-context-button edit">
+                                  ✎
+                                </button>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeletePrompt(
+                                    selectedCategory,
+                                    subcategory
+                                  );
+                                }}
+                                className="flex-shrink-0 p-2 text-red-500 hover:text-red-600"
+                                title="Delete prompt"
+                              >
+                                <svg
+                                  width="20"
+                                  height="20"
+                                  viewBox="0 0 20 20"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    d="M15 5L5 15M5 5L15 15"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                            </>
                           )}
                         </div>
                       )
@@ -709,14 +779,18 @@ const TopicNodeTree = ({ onClose }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="fixed inset-0 bg-black/50"
-            onClick={() => setShowAddPromptPopup(false)}
+            onClick={() => {
+              setShowAddPromptPopup(false);
+              setIsEditing(false);
+              setEditingPromptId(null);
+            }}
           />
           <div
             className="relative bg-[#23272f] rounded-lg shadow-xl border border-gray-700 p-6 w-full max-w-2xl"
-            style={{ backgroundColor: "rgba(30, 30, 30)" }}
+            style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
           >
             <h3 className="text-lg font-semibold text-gray-200 mb-4">
-              Add Custom Prompt
+              {isEditing ? "Edit Custom Prompt" : "Add Custom Prompt"}
             </h3>
 
             <div className="space-y-4">
@@ -769,7 +843,11 @@ const TopicNodeTree = ({ onClose }) => {
 
             <div className="flex justify-end space-x-3 mt-6">
               <button
-                onClick={() => setShowAddPromptPopup(false)}
+                onClick={() => {
+                  setShowAddPromptPopup(false);
+                  setIsEditing(false);
+                  setEditingPromptId(null);
+                }}
                 className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
               >
                 Cancel
@@ -778,7 +856,7 @@ const TopicNodeTree = ({ onClose }) => {
                 onClick={handleSaveCustomPrompt}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >
-                Save
+                {isEditing ? "Save Changes" : "Save"}
               </button>
             </div>
           </div>
