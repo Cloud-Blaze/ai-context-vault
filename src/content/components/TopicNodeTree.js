@@ -388,18 +388,40 @@ const TopicNodeTree = ({ onClose }) => {
     console.log("Current custom prompts:", customPrompts);
 
     if (isEditing) {
-      // Find and update the existing prompt
-      if (customPrompts[newPromptCategory]) {
+      // If category changed, remove from old category first
+      const oldCategory = selectedCategory;
+      if (oldCategory !== newPromptCategory && customPrompts[oldCategory]) {
+        customPrompts[oldCategory] = customPrompts[oldCategory].filter(
+          (item) => item.name !== editingPromptId
+        );
+        // Remove empty category
+        if (customPrompts[oldCategory].length === 0) {
+          delete customPrompts[oldCategory];
+        }
+      }
+
+      // Add to new category
+      if (!customPrompts[newPromptCategory]) {
+        customPrompts[newPromptCategory] = [];
+      }
+
+      // If same category, update existing
+      if (oldCategory === newPromptCategory) {
         const index = customPrompts[newPromptCategory].findIndex(
           (item) => item.name === editingPromptId
         );
-        console.log("Found index:", index);
         if (index !== -1) {
           customPrompts[newPromptCategory][index] = {
             name: newPromptSubcategory,
             CustomQ: newPromptText,
           };
         }
+      } else {
+        // Add to new category
+        customPrompts[newPromptCategory].push({
+          name: newPromptSubcategory,
+          CustomQ: newPromptText,
+        });
       }
     } else {
       // Add new prompt
@@ -423,7 +445,10 @@ const TopicNodeTree = ({ onClose }) => {
     setEditingPromptId(null);
 
     // If we just modified the currently selected category, refresh the topic data
-    if (selectedCategory === newPromptCategory) {
+    if (
+      selectedCategory === newPromptCategory ||
+      selectedCategory === oldCategory
+    ) {
       setTopicData([]);
       chrome.storage.local.set({ topic_data_cache: [] });
     }
@@ -856,7 +881,7 @@ const TopicNodeTree = ({ onClose }) => {
                 onClick={handleSaveCustomPrompt}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >
-                {isEditing ? "Save Changes" : "Save"}
+                {isEditing ? "Edit Changes" : "Save"}
               </button>
             </div>
           </div>
