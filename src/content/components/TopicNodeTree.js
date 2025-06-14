@@ -181,7 +181,7 @@ const TopicNodeTree = ({ onClose }) => {
             setTopicsLoading(true);
             try {
               const response = await fetch(
-                `https://aicontextvault.com/topics_by_slug/${
+                `https://storage.googleapis.com/ai-context-vault/topics_by_slug/${
                   topics[last.category][last.subcategory].slug
                 }.json`
               );
@@ -266,7 +266,7 @@ const TopicNodeTree = ({ onClose }) => {
         )
       ) {
         const response = await fetch(
-          `https://aicontextvault.com/questions_by_slug/${mergedTopics[selectedCategory][subcategory].categorySlug}/${mergedTopics[selectedCategory][subcategory].slug}.json`
+          `https://storage.googleapis.com/ai-context-vault/questions_by_slug/${mergedTopics[selectedCategory][subcategory].categorySlug}/${mergedTopics[selectedCategory][subcategory].slug}.json`
         );
         if (!response.ok) throw new Error("Failed to fetch topic data");
         const data = await response.json();
@@ -274,7 +274,7 @@ const TopicNodeTree = ({ onClose }) => {
         chrome.storage.local.set({ topic_data_cache: data });
       } else {
         const response = await fetch(
-          `https://aicontextvault.com/topics_by_slug/${mergedTopics[selectedCategory][subcategory].slug}.json`
+          `https://storage.googleapis.com/ai-context-vault/topics_by_slug/${mergedTopics[selectedCategory][subcategory].slug}.json`
         );
         if (!response.ok) throw new Error("Failed to fetch topic data");
         const data = await response.json();
@@ -602,7 +602,7 @@ const TopicNodeTree = ({ onClose }) => {
                           <hr className="border-gray-700 my-1" />
                           <div
                             className="w-full text-left px-3 py-2 rounded-md bg-gray-800 text-gray-400 flex items-center cursor-default select-none"
-                            style={{ minHeight: "50px" }}
+                            style={{ minHeight: "150px" }}
                           >
                             {topic.Q}
                           </div>
@@ -614,50 +614,63 @@ const TopicNodeTree = ({ onClose }) => {
                       <button
                         key={topic.Q}
                         onClick={() => handleTopicClick(topic)}
-                        className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer"
-                        style={{ minHeight: "50px" }}
+                        className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                        style={{
+                          minHeight: "50px",
+                          border: "2px solid #ebebeb",
+                          borderWidth: "2px",
+                          borderStyle: "solid",
+                          borderColor: "#ebebeb",
+                        }}
                       >
                         {topic.Q}
                       </button>
                     );
                   })}
                 </div>
-              ) : topicData &&
-                topicData.length > 0 &&
-                topicData[0].hasOwnProperty("topic") ? (
+              ) : topicData && topicData.length > 0 && topicData[0].topic ? (
                 <div className="space-y-2">
                   {topicData
                     .slice()
                     .sort((a, b) => a.topic.localeCompare(b.topic))
-                    .map((topic) => (
-                      <button
-                        key={topic.id}
-                        onClick={() => handleTopicClick(topic)}
-                        className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer"
-                        style={{ minHeight: "50px" }}
-                      >
-                        {visitedTopics.includes(topic.topic) && (
-                          <svg
-                            className="mr-2 flex-shrink-0"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 20 20"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <circle cx="10" cy="10" r="10" fill="#22c55e" />
-                            <path
-                              d="M6 10.5L9 13.5L14 8.5"
-                              stroke="white"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        )}
-                        {topic.topic}
-                      </button>
-                    ))}
+                    .map((topic) => {
+                      console.error("Topic:", topic.topic);
+                      return (
+                        <button
+                          key={topic.id}
+                          onClick={() => handleTopicClick(topic)}
+                          className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                          style={{
+                            minHeight: "90px",
+                            border: "2px solid #ebebeb",
+                            borderWidth: "2px",
+                            borderStyle: "solid",
+                            borderColor: "#ebebeb",
+                          }}
+                        >
+                          {visitedTopics.includes(topic.topic) && (
+                            <svg
+                              className="mr-2 flex-shrink-0"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 20 20"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <circle cx="10" cy="10" r="10" fill="#22c55e" />
+                              <path
+                                d="M6 10.5L9 13.5L14 8.5"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                          {topic.topic}
+                        </button>
+                      );
+                    })}
                 </div>
               ) : topicData && topicData.length > 0 ? (
                 <div className="space-y-2">
@@ -666,10 +679,19 @@ const TopicNodeTree = ({ onClose }) => {
                       <button
                         key={topic.CustomQ}
                         onClick={() => handleTopicClick(topic)}
-                        className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer"
-                        style={{ minHeight: "50px" }}
+                        className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                        style={{
+                          minHeight: "50px",
+                          border: "2px solid #ebebeb",
+                          borderWidth: "2px",
+                          borderStyle: "solid",
+                          borderColor: "#ebebeb",
+                        }}
                       >
-                        {topic.CustomQ}
+                        {topic.hasOwnProperty("CustomQ") &&
+                        topic.CustomQ.length > 0
+                          ? topic.CustomQ
+                          : "Inject Prompt"}
                       </button>
                     );
                   })}

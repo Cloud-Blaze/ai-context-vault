@@ -9,6 +9,7 @@
     "open_in_tab": true
   },
   "host_permissions": [
+    "http://localhost/*",
     "https://chat.openai.com/*",
     "https://claude.ai/*",
     "https://chatgpt.com/*",
@@ -52,6 +53,7 @@
   "content_scripts": [
     {
       "matches": [
+        "http://localhost/*",
         "https://chat.openai.com/*",
         "https://claude.ai/*",
         "https://chatgpt.com/*",
