@@ -679,7 +679,7 @@ const TopicNodeTree = ({ onClose }) => {
               style={{ backgroundColor: "rgb(30, 30, 30)" }}
             >
               <h2 className="text-lg font-semibold text-gray-200">
-                Role Topics
+                Inject Prompt
               </h2>
             </div>
             <div className="p-4 pt-0">
