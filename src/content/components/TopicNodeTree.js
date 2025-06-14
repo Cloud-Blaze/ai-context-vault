@@ -480,6 +480,13 @@ const TopicNodeTree = ({ onClose }) => {
     }
   };
 
+  const truncateMessage = (message, maxLength = 300) => {
+    if (!message) return "Inject Prompt";
+    return message.length > maxLength
+      ? message.substring(0, maxLength) + "..."
+      : message;
+  };
+
   return (
     <div
       className="fixed inset-0 flex items-start justify-center z-50"
@@ -786,7 +793,7 @@ const TopicNodeTree = ({ onClose }) => {
                         {topic.hasOwnProperty("CustomQ") &&
                         topic.CustomQ.length > 0
                           ? topic.CustomQ
-                          : "Inject Prompt"}
+                          : truncateMessage(topic.system_message)}
                       </button>
                     );
                   })}
