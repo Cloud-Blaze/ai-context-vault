@@ -792,7 +792,7 @@ const TopicNodeTree = ({ onClose }) => {
                       >
                         {topic.hasOwnProperty("CustomQ") &&
                         topic.CustomQ.length > 0
-                          ? topic.CustomQ
+                          ? truncateMessage(topic.CustomQ)
                           : truncateMessage(topic.system_message)}
                       </button>
                     );
