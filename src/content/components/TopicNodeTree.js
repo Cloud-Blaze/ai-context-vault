@@ -135,12 +135,24 @@ const TopicNodeTree = ({ onClose, onCloseCat }) => {
         let sorted = data;
         if (super_category_clicks) {
           setSuperCategoryClicks(super_category_clicks);
+          // 1. All always first
+          // 2. Then by click count (desc)
+          // 3. Then alphabetically
           sorted = [...data].sort((a, b) => {
+            if (a.name === "All") return -1;
+            if (b.name === "All") return 1;
             const clicksA = super_category_clicks[a.name] || 0;
             const clicksB = super_category_clicks[b.name] || 0;
-            return clicksB - clicksA;
+            if (clicksA !== clicksB) return clicksB - clicksA;
+            return a.name.localeCompare(b.name);
           });
         }
+        sorted.forEach((superCat, i) => {
+          if (super_category_clicks && super_category_clicks[superCat.name]) {
+            sorted[i].name =
+              superCat.name + "(" + super_category_clicks[superCat.name] + ")";
+          }
+        });
         setSuperCategories(sorted);
       } catch (error) {
         console.error("Error loading super categories:", error);
@@ -610,6 +622,20 @@ const TopicNodeTree = ({ onClose, onCloseCat }) => {
     setSuperCategoryClicks(newClicks);
     chrome.storage.local.set({ super_category_clicks: newClicks });
     // Do NOT sort superCategories here, only on full refresh
+
+    // Select the first category in the filtered list (do not update visited cache)
+    const includes = superCategory.includes;
+    let filteredCategories = Object.keys(mergedTopics);
+    if (superCategory.name !== "All" && Array.isArray(includes)) {
+      filteredCategories = filteredCategories.filter((cat) =>
+        includes.includes(cat)
+      );
+    }
+    if (filteredCategories.length > 0) {
+      setSelectedCategory(filteredCategories[0]);
+      setSelectedSubcategory(null);
+      setTopicData([]);
+    }
   };
 
   // Add this constant for the All pill

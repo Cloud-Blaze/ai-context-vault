@@ -319,7 +319,7 @@ function OptionsPage() {
       <h1>AI Context Vault - Options</h1>
       <hr />
 
-      <h2>GitHub Gist Sync Context Settings</h2>
+      <h2>GitHub Gist Sync Settings</h2>
       <label htmlFor="pat">GitHub PAT:</label>
       <input
         id="pat"
@@ -360,7 +360,12 @@ function OptionsPage() {
       <div className="mt-10">
         <h2 className="text-2xl font-bold mb-2">Profile Management</h2>
         <div className="mb-4 flex items-center justify-between">
-          <span className="font-semibold">Profiles</span>
+          <span
+            style={{ marginRight: 15, marginBottom: 15 }}
+            className="font-semibold"
+          >
+            Profiles
+          </span>
           <button className="button" onClick={handleAddProfile}>
             Add Profile
           </button>
@@ -371,6 +376,7 @@ function OptionsPage() {
               type="radio"
               checked={selectedAlias === ""}
               onChange={() => handleSelectProfile("")}
+              style={{ marginRight: 10 }}
             />
             <span
               onClick={() => handleSelectProfile("")}
@@ -392,6 +398,7 @@ function OptionsPage() {
                 type="radio"
                 checked={selectedAlias === profile.alias}
                 onChange={() => handleSelectProfile(profile.alias)}
+                style={{ marginRight: 10 }}
               />
               <span
                 onClick={() => handleSelectProfile(profile.alias)}

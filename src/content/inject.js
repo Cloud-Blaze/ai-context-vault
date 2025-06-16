@@ -1049,7 +1049,7 @@ async function toggleOverlay() {
     settingsCog.innerHTML = "&#9881;"; // ⚙️ gear unicode
     Object.assign(settingsCog.style, {
       position: "absolute",
-      top: "11px",
+      top: "4px",
       right: "41px",
       cursor: "pointer",
       fontSize: "26px",
