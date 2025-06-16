@@ -1161,6 +1161,21 @@ export async function injectTextIntoTextarea(
   text,
   shouldSendAfterInjection = false
 ) {
+  // Get the user's language preference
+  const { ctx_language } = await chrome.storage.local.get("ctx_language");
+
+  // If language is set and not English, prepend the language instruction
+  if (ctx_language && ctx_language !== "English") {
+    text = `The following prompt is written in english but I desire you to respond in ${ctx_language}.\n\n${text}`;
+  }
+
+  // Find the textarea
+  const textarea = document.querySelector("textarea");
+  if (!textarea) {
+    console.error("[AI Context Vault] No textarea found");
+    return;
+  }
+
   // Inject active profile context if selected
   let finalText = text;
   try {
@@ -1175,12 +1190,6 @@ export async function injectTextIntoTextarea(
     }
   } catch (e) {
     console.error("[AI Context Vault] Failed to inject profile context:", e);
-  }
-
-  const textarea = findActiveTextarea();
-  if (!textarea) {
-    console.log("[AI Context Vault] No active textarea found");
-    return;
   }
 
   // Update the textarea
