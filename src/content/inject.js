@@ -17,6 +17,7 @@ import { GodModeStorage } from "../services/godModeStorage.js";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import TopicNodeTree from "./components/TopicNodeTree";
+import ToneStyleSelector from "./components/ToneStyleSelector";
 
 var closeCategories = () => {};
 
@@ -1012,12 +1013,43 @@ function setupKeyboardShortcuts() {
           document.body.appendChild(container);
         }
 
+        // Create container for tone and style selector if it doesn't exist
+        let toneStyleContainer = document.getElementById(
+          "tone-style-container"
+        );
+        if (!toneStyleContainer) {
+          toneStyleContainer = document.createElement("div");
+          toneStyleContainer.id = "tone-style-container";
+          toneStyleContainer.style.height = "1px";
+          toneStyleContainer.className =
+            "fixed inset-0 flex items-start justify-center z-50";
+          document.body.appendChild(toneStyleContainer);
+        }
         // Create root and render TopicNodeTree
         const root = createRoot(container);
         closeCategories = () => {
+          toggleOverlay();
           root.unmount();
           container.remove();
         };
+
+        // Create root and render ToneStyleSelector
+        const toneStyleRoot = createRoot(toneStyleContainer);
+        toneStyleRoot.render(
+          <div
+            className="relative w-full max-w-4xl rounded-lg shadow-xl border border-[#23272f] bg-[#23272f]"
+            style={{ marginTop: "720px", backgroundColor: "rgb(30, 30, 30)" }}
+          >
+            <ToneStyleSelector
+              onClose={() => {
+                toneStyleRoot.unmount();
+                toneStyleContainer.remove();
+                closeCategories();
+              }}
+            />
+          </div>
+        );
+
         root.render(
           <TopicNodeTree
             onClose={() => {
@@ -1311,9 +1343,37 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       document.body.appendChild(container);
     }
 
+    // Create container for tone and style selector if it doesn't exist
+    let toneStyleContainer = document.getElementById("tone-style-container");
+    if (!toneStyleContainer) {
+      toneStyleContainer = document.createElement("div");
+      toneStyleContainer.id = "tone-style-container";
+      toneStyleContainer.style.height = "1px";
+      toneStyleContainer.className =
+        "fixed inset-0 flex items-start justify-center z-50";
+      document.body.appendChild(toneStyleContainer);
+    }
+
+    // Create root and render ToneStyleSelector
+    const toneStyleRoot = createRoot(toneStyleContainer);
+    toneStyleRoot.render(
+      <div
+        className="relative w-full max-w-4xl rounded-lg shadow-xl border border-[#23272f] bg-[#23272f]"
+        style={{ marginTop: "720px", backgroundColor: "rgb(30, 30, 30)" }}
+      >
+        <ToneStyleSelector
+          onClose={() => {
+            toneStyleRoot.unmount();
+            toneStyleContainer.remove();
+          }}
+        />
+      </div>
+    );
+
     // Create root and render TopicNodeTree
     const root = createRoot(container);
     closeCategories = () => {
+      toggleOverlay();
       root.unmount();
       container.remove();
     };
