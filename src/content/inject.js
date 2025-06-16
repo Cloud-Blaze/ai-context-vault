@@ -1169,13 +1169,6 @@ export async function injectTextIntoTextarea(
     text = `The following prompt is written in english but I desire you to respond in ${ctx_language}.\n\n${text}`;
   }
 
-  // Find the textarea
-  const textarea = document.querySelector("textarea");
-  if (!textarea) {
-    console.error("[AI Context Vault] No textarea found");
-    return;
-  }
-
   // Inject active profile context if selected
   let finalText = text;
   try {
@@ -1190,6 +1183,12 @@ export async function injectTextIntoTextarea(
     }
   } catch (e) {
     console.error("[AI Context Vault] Failed to inject profile context:", e);
+  }
+
+  const textarea = findActiveTextarea();
+  if (!textarea) {
+    console.log("[AI Context Vault] No active textarea found");
+    return;
   }
 
   // Update the textarea
@@ -1303,6 +1302,32 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.type === "TOGGLE_OVERLAY") {
     console.log("[AI Context Vault] Toggling overlay visibility");
     toggleOverlay();
+
+    // Create container for topic node tree if it doesn't exist
+    let container = document.getElementById("topic-node-tree-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "topic-node-tree-container";
+      document.body.appendChild(container);
+    }
+
+    // Create root and render TopicNodeTree
+    const root = createRoot(container);
+    closeCategories = () => {
+      root.unmount();
+      container.remove();
+    };
+    root.render(
+      <TopicNodeTree
+        onClose={() => {
+          toggleOverlay();
+          closeCategories();
+        }}
+        onCloseCat={() => {
+          closeCategories();
+        }}
+      />
+    );
   }
   if (message.type === "REFRESH_OVERLAY") {
     console.log("[AI Context Vault] Refreshing overlay content");
