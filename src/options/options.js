@@ -357,127 +357,6 @@ function OptionsPage() {
         Save Gist URL
       </button>
 
-      <hr />
-
-      <h2>God Mode Settings (Alpha)</h2>
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            id="enableGodMode"
-            checked={enableGodMode}
-            onChange={(e) => handleGodModeToggle(e.target.checked)}
-          />
-          Enable God Mode (Track potentially deleted requests and responses)
-        </label>
-      </div>
-
-      {enableGodMode && (
-        <div style={{ marginTop: 15 }}>
-          <div style={{ marginBottom: 15 }}>
-            <label htmlFor="godModePat">GitHub PAT for God Mode:</label>
-            <input
-              id="godModePat"
-              type="password"
-              className="input"
-              value={godModePat}
-              onChange={(e) => setGodModePat(e.target.value)}
-              placeholder="Enter GitHub PAT for God Mode"
-              style={{ width: 300, marginRight: 8 }}
-            />
-            <button
-              className="button"
-              onClick={() => handleGodModePAT(godModePat)}
-            >
-              Save God Mode Token
-            </button>
-            <button
-              className="button"
-              onClick={() => createOrUpdateGodModeGist(setNothing)}
-              style={{ marginLeft: 10 }}
-            >
-              Create/Update God Mode Gist
-            </button>
-          </div>
-          <div>
-            <label htmlFor="godModeGistUrl">God Mode Gist URL:</label>
-            <input
-              id="godModeGistUrl"
-              type="text"
-              className="input"
-              value={godModeGistUrl}
-              onChange={(e) => setGodModeGistUrl(e.target.value)}
-              placeholder="Enter Gist URL for God Mode (must be different from main context)"
-              style={{ width: 400, marginRight: 8 }}
-            />
-            <button
-              className="button"
-              onClick={() => handleGodModeGistUrl(godModeGistUrl)}
-            >
-              Save God Mode Gist URL
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div style={{ marginTop: 30 }}>
-        <h2>Business Questions Template Prompt</h2>
-        <textarea
-          value={businessQuestionsTemplate}
-          onChange={(e) => setBusinessQuestionsTemplate(e.target.value)}
-          rows={6}
-          style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
-        />
-        <button
-          className="button"
-          onClick={() =>
-            setTemplate(
-              "ctx_business_questions_template",
-              businessQuestionsTemplate
-            )
-          }
-        >
-          Save
-        </button>
-      </div>
-      <div style={{ marginTop: 30 }}>
-        <h2>Role Learning Template</h2>
-        <textarea
-          value={roleLearningTemplate}
-          onChange={(e) => setRoleLearningTemplate(e.target.value)}
-          rows={6}
-          style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
-        />
-        <button
-          className="button"
-          onClick={() =>
-            setTemplate("ctx_role_learning_template", roleLearningTemplate)
-          }
-        >
-          Save
-        </button>
-      </div>
-      <div style={{ marginTop: 30 }}>
-        <h2>Context Injection Template</h2>
-        <textarea
-          value={contextInjectionTemplate}
-          onChange={(e) => setContextInjectionTemplate(e.target.value)}
-          rows={6}
-          style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
-        />
-        <button
-          className="button"
-          onClick={() =>
-            setTemplate(
-              "ctx_context_injection_template",
-              contextInjectionTemplate
-            )
-          }
-        >
-          Save
-        </button>
-      </div>
-
       <div className="mt-10">
         <h2 className="text-2xl font-bold mb-2">Profile Management</h2>
         <div className="mb-4 flex items-center justify-between">
@@ -493,7 +372,12 @@ function OptionsPage() {
               checked={selectedAlias === ""}
               onChange={() => handleSelectProfile("")}
             />
-            <span>No Profile</span>
+            <span
+              onClick={() => handleSelectProfile("")}
+              style={{ cursor: "pointer" }}
+            >
+              No Profile
+            </span>
           </label>
           {profiles.map((profile) => (
             <div
@@ -509,7 +393,13 @@ function OptionsPage() {
                 checked={selectedAlias === profile.alias}
                 onChange={() => handleSelectProfile(profile.alias)}
               />
-              <span className="font-semibold">{profile.alias}</span>
+              <span
+                onClick={() => handleSelectProfile(profile.alias)}
+                className="font-semibold"
+                style={{ cursor: "pointer" }}
+              >
+                {profile.alias}
+              </span>
               <button
                 className="ai-context-button edit"
                 onClick={() => handleEditProfile(profile)}
@@ -585,7 +475,132 @@ function OptionsPage() {
             <span className="font-semibold">
               Current Active Profile on all Prompts:
             </span>{" "}
-            {selectedAlias}
+            <span style={{ color: "rgb(122, 162, 212)", fontWeight: "bold" }}>
+              {typeof selectedAlias === "object" && selectedAlias !== null
+                ? selectedAlias.alias
+                : selectedAlias}
+            </span>
+          </div>
+        )}
+
+        <div style={{ marginTop: 30 }}>
+          <h2>Business Questions Template Prompt</h2>
+          <textarea
+            value={businessQuestionsTemplate}
+            onChange={(e) => setBusinessQuestionsTemplate(e.target.value)}
+            rows={6}
+            style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
+          />
+          <button
+            className="button"
+            onClick={() =>
+              setTemplate(
+                "ctx_business_questions_template",
+                businessQuestionsTemplate
+              )
+            }
+          >
+            Save
+          </button>
+        </div>
+        <div style={{ marginTop: 30 }}>
+          <h2>Role Learning Template</h2>
+          <textarea
+            value={roleLearningTemplate}
+            onChange={(e) => setRoleLearningTemplate(e.target.value)}
+            rows={6}
+            style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
+          />
+          <button
+            className="button"
+            onClick={() =>
+              setTemplate("ctx_role_learning_template", roleLearningTemplate)
+            }
+          >
+            Save
+          </button>
+        </div>
+        <div style={{ marginTop: 30 }}>
+          <h2>Context Injection Template</h2>
+          <textarea
+            value={contextInjectionTemplate}
+            onChange={(e) => setContextInjectionTemplate(e.target.value)}
+            rows={6}
+            style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
+          />
+          <button
+            className="button"
+            onClick={() =>
+              setTemplate(
+                "ctx_context_injection_template",
+                contextInjectionTemplate
+              )
+            }
+          >
+            Save
+          </button>
+        </div>
+
+        <hr />
+
+        <h2>God Mode Settings (Alpha)</h2>
+        <div>
+          <label>
+            <input
+              type="checkbox"
+              id="enableGodMode"
+              checked={enableGodMode}
+              onChange={(e) => handleGodModeToggle(e.target.checked)}
+            />
+            Enable God Mode (Track potentially deleted requests and responses)
+          </label>
+        </div>
+
+        {enableGodMode && (
+          <div style={{ marginTop: 15 }}>
+            <div style={{ marginBottom: 15 }}>
+              <label htmlFor="godModePat">GitHub PAT for God Mode:</label>
+              <input
+                id="godModePat"
+                type="password"
+                className="input"
+                value={godModePat}
+                onChange={(e) => setGodModePat(e.target.value)}
+                placeholder="Enter GitHub PAT for God Mode"
+                style={{ width: 300, marginRight: 8 }}
+              />
+              <button
+                className="button"
+                onClick={() => handleGodModePAT(godModePat)}
+              >
+                Save God Mode Token
+              </button>
+              <button
+                className="button"
+                onClick={() => createOrUpdateGodModeGist(setNothing)}
+                style={{ marginLeft: 10 }}
+              >
+                Create/Update God Mode Gist
+              </button>
+            </div>
+            <div>
+              <label htmlFor="godModeGistUrl">God Mode Gist URL:</label>
+              <input
+                id="godModeGistUrl"
+                type="text"
+                className="input"
+                value={godModeGistUrl}
+                onChange={(e) => setGodModeGistUrl(e.target.value)}
+                placeholder="Enter Gist URL for God Mode (must be different from main context)"
+                style={{ width: 400, marginRight: 8 }}
+              />
+              <button
+                className="button"
+                onClick={() => handleGodModeGistUrl(godModeGistUrl)}
+              >
+                Save God Mode Gist URL
+              </button>
+            </div>
           </div>
         )}
       </div>
