@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { injectTextIntoTextarea, showConfirmationBubble } from "../inject";
 import {
   saveLastTopicSelection,
@@ -18,8 +18,12 @@ import {
 
 const VAULT_BORDER = "border-[#23272f]";
 
-const TopicNodeTree = ({ onClose }) => {
+const TopicNodeTree = ({ onClose, onCloseCat }) => {
   const [topics, setTopics] = useState({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState(null);
+  const [searchResults, setSearchResults] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [topicData, setTopicData] = useState([]);
@@ -278,7 +282,58 @@ const TopicNodeTree = ({ onClose }) => {
     }
   }, [customPrompts, newPromptCategory]);
 
+  // Add debounced search function
+  const debouncedSearch = useCallback((query) => {
+    if (query.length < 3) {
+      setSearchResults(null);
+      return;
+    }
+
+    setIsSearching(true);
+    fetch(
+      `https://us-central1-cloud-blaze.cloudfunctions.net/SearchPrompts?q=${encodeURIComponent(
+        query
+      )}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        setSearchResults(data);
+        setIsSearching(false);
+      })
+      .catch((error) => {
+        console.error("Search error:", error);
+        setIsSearching(false);
+      });
+  }, []);
+
+  // Handle search input changes
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    // Clear existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Set new timeout
+    const timeout = setTimeout(() => {
+      debouncedSearch(query);
+    }, 2000);
+
+    setSearchTimeout(timeout);
+  };
+
+  // Clear search when category/subcategory is selected
   const handleCategoryClick = (category) => {
+    setSearchQuery("");
+    setSearchResults(null);
     setSelectedCategory(category);
     setSelectedSubcategory(null);
     setTopicData([]);
@@ -290,6 +345,8 @@ const TopicNodeTree = ({ onClose }) => {
     subcatArr.length > 0 && subcatArr[0].hasOwnProperty("CustomQ");
 
   const handleSubcategoryClick = async (subcategory) => {
+    setSearchQuery("");
+    setSearchResults(null);
     setSelectedSubcategory(subcategory);
     setTopicsLoading(true);
     saveLastTopicSelection(selectedCategory, subcategory);
@@ -581,113 +638,144 @@ const TopicNodeTree = ({ onClose }) => {
               ref={superCategoriesRef}
               onScroll={handleSuperCategoriesScroll}
               className="w-full z-20 overflow-x-auto overflow-y-hidden border-t border-b border-[#333]"
-              style={{ height: "90px", backgroundColor: "rgb(30, 30, 30)" }}
+              style={{ height: "106px", backgroundColor: "rgb(30, 30, 30)" }}
             >
-              <div className="flex items-center h-full px-4 space-x-2">
-                <span className="text-gray-300 font-medium whitespace-nowrap">
-                  Group:
-                </span>
-                {/* Show red X to clear filter if not All */}
-                {selectedSuperCategory &&
-                  selectedSuperCategory.name !== "All" && (
+              <div className="flex flex-col h-full px-4">
+                {/* Search Input */}
+                <div className="flex items-center mt-2 mb-2 w-full">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    placeholder="Search prompts..."
+                    className="flex-grow px-4 py-2 bg-gray-800 border border-gray-600 rounded-full text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {isSearching ? (
+                    <div className="ml-3" style={{ marginLeft: "22px" }}>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                    </div>
+                  ) : (
                     <button
+                      onClick={() => {
+                        onCloseCat();
+                      }}
+                      className="ai-context-close text-2xl"
+                      style={{ lineHeight: 1, marginLeft: "22px" }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                {/* Super Categories */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-300 font-medium whitespace-nowrap">
+                    Group:
+                  </span>
+                  {/* Show red X to clear filter if not All */}
+                  {selectedSuperCategory &&
+                    selectedSuperCategory.name !== "All" && (
+                      <button
+                        onClick={() =>
+                          setSelectedSuperCategory(ALL_SUPER_CATEGORY)
+                        }
+                        className="ml-2 flex items-center justify-center p-1 rounded-full hover:bg-red-100 transition-colors"
+                        title="Clear filter"
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <svg
+                          width="22"
+                          height="22"
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle cx="10" cy="10" r="10" fill="#ef4444" />
+                          <path
+                            d="M6 6L14 14M14 6L6 14"
+                            stroke="white"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  <div className="flex space-x-2 overflow-x-auto pb-2">
+                    {/* All pill always first */}
+                    <button
+                      key={ALL_SUPER_CATEGORY.name}
                       onClick={() =>
                         setSelectedSuperCategory(ALL_SUPER_CATEGORY)
                       }
-                      className="ml-2 flex items-center justify-center p-1 rounded-full hover:bg-red-100 transition-colors"
-                      title="Clear filter"
+                      className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                        !selectedSuperCategory ||
+                        selectedSuperCategory.name === "All"
+                          ? "bg-green-400 text-white"
+                          : "hover:opacity-90"
+                      }`}
                       style={{
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
+                        backgroundColor:
+                          !selectedSuperCategory ||
+                          selectedSuperCategory.name === "All"
+                            ? "#22c55e"
+                            : ALL_SUPER_CATEGORY.color,
+                        color:
+                          !selectedSuperCategory ||
+                          selectedSuperCategory.name === "All"
+                            ? "#fff"
+                            : "#fff",
+                        minWidth: "fit-content",
+                        marginLeft: 15,
+                        marginTop: 3,
                       }}
                     >
-                      <svg
-                        width="22"
-                        height="22"
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
+                      <span
+                        className="mr-1.5"
+                        style={{ fontSize: "1.5em", lineHeight: 1 }}
                       >
-                        <circle cx="10" cy="10" r="10" fill="#ef4444" />
-                        <path
-                          d="M6 6L14 14M14 6L6 14"
-                          stroke="white"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        />
-                      </svg>
+                        {ALL_SUPER_CATEGORY.icon}
+                      </span>
+                      {ALL_SUPER_CATEGORY.name}
                     </button>
-                  )}
-                <div className="flex space-x-2 overflow-x-auto pb-2">
-                  {/* All pill always first */}
-                  <button
-                    key={ALL_SUPER_CATEGORY.name}
-                    onClick={() => setSelectedSuperCategory(ALL_SUPER_CATEGORY)}
-                    className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                      !selectedSuperCategory ||
-                      selectedSuperCategory.name === "All"
-                        ? "bg-green-400 text-white"
-                        : "hover:opacity-90"
-                    }`}
-                    style={{
-                      backgroundColor:
-                        !selectedSuperCategory ||
-                        selectedSuperCategory.name === "All"
-                          ? "#22c55e"
-                          : ALL_SUPER_CATEGORY.color,
-                      color:
-                        !selectedSuperCategory ||
-                        selectedSuperCategory.name === "All"
-                          ? "#fff"
-                          : "#fff",
-                      minWidth: "fit-content",
-                      marginLeft: 15,
-                      marginTop: 3,
-                    }}
-                  >
-                    <span
-                      className="mr-1.5"
-                      style={{ fontSize: "1.5em", lineHeight: 1 }}
-                    >
-                      {ALL_SUPER_CATEGORY.icon}
-                    </span>
-                    {ALL_SUPER_CATEGORY.name}
-                  </button>
-                  {/* Render the rest of the super categories */}
-                  {superCategories.map((superCat) => {
-                    const isSelected =
-                      selectedSuperCategory?.name === superCat.name;
-                    return (
-                      <button
-                        key={superCat.name}
-                        onClick={() => handleSuperCategoryClick(superCat)}
-                        className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                          isSelected
-                            ? "bg-green-400 text-white"
-                            : "hover:opacity-90"
-                        }`}
-                        style={{
-                          backgroundColor: isSelected
-                            ? "#22c55e"
-                            : superCat.color,
-                          color: isSelected ? "#fff" : "#000",
-                          minWidth: "fit-content",
-                        }}
-                      >
-                        <span
-                          className="mr-1.5"
-                          style={{ fontSize: "1.5em", lineHeight: 1 }}
+                    {/* Render the rest of the super categories */}
+                    {superCategories.map((superCat) => {
+                      const isSelected =
+                        selectedSuperCategory?.name === superCat.name;
+                      return (
+                        <button
+                          key={superCat.name}
+                          onClick={() => handleSuperCategoryClick(superCat)}
+                          className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                            isSelected
+                              ? "bg-green-400 text-white"
+                              : "hover:opacity-90"
+                          }`}
+                          style={{
+                            backgroundColor: isSelected
+                              ? "#22c55e"
+                              : superCat.color,
+                            color: isSelected ? "#fff" : "#000",
+                            minWidth: "fit-content",
+                          }}
                         >
-                          {superCat.icon}
-                        </span>
-                        {superCat.name}
-                      </button>
-                    );
-                  })}
+                          <span
+                            className="mr-1.5"
+                            style={{ fontSize: "1.5em", lineHeight: 1 }}
+                          >
+                            {superCat.icon}
+                          </span>
+                          {superCat.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
+
             <div className="flex overflow-y-auto" style={{ height: "496px" }}>
               {/* Categories Panel */}
               <div
@@ -873,79 +961,189 @@ const TopicNodeTree = ({ onClose }) => {
                   )}
                 </div>
               </div>
-
               {/* Topics Panel */}
-              <div
-                ref={topicsRef}
-                onScroll={handleTopicsScroll}
-                className="w-1/3 p-0 overflow-y-auto"
-                style={{ height: "496px" }}
-              >
+              {!searchResults ? (
                 <div
-                  className="sticky top-0 z-10 p-4"
-                  style={{ backgroundColor: "rgb(30, 30, 30)" }}
+                  ref={topicsRef}
+                  onScroll={handleTopicsScroll}
+                  className="w-1/3 p-0 overflow-y-auto"
+                  style={{ height: "496px" }}
                 >
-                  <h2 className="text-lg font-semibold text-gray-200">
-                    Inject Prompt
-                  </h2>
-                </div>
-                <div className="p-4 pt-0">
-                  {topicsLoading ? (
-                    <div className="text-gray-400">Loading topics...</div>
-                  ) : topicData &&
-                    topicData.length > 0 &&
-                    topicData[0].hasOwnProperty("Q") ? (
-                    <div className="space-y-2">
-                      {topicData.map((topic) => {
-                        const isNumbered = /^\s*\d+\.\s/.test(topic.Q);
-                        if (isNumbered) {
+                  <div
+                    className="sticky top-0 z-10 p-4"
+                    style={{ backgroundColor: "rgb(30, 30, 30)" }}
+                  >
+                    <h2 className="text-lg font-semibold text-gray-200">
+                      Inject Prompt
+                    </h2>
+                  </div>
+                  <div className="p-4 pt-0">
+                    {topicsLoading ? (
+                      <div className="text-gray-400">Loading topics...</div>
+                    ) : topicData &&
+                      topicData.length > 0 &&
+                      topicData[0].hasOwnProperty("Q") ? (
+                      <div className="space-y-2">
+                        {topicData.map((topic) => {
+                          const isNumbered = /^\s*\d+\.\s/.test(topic.Q);
+                          if (isNumbered) {
+                            return (
+                              <React.Fragment key={topic.Q}>
+                                <hr className="border-gray-700 my-1" />
+                                <div
+                                  className="w-full text-left px-3 py-2 rounded-md bg-gray-800 text-gray-400 flex items-center cursor-default select-none"
+                                  style={{ minHeight: "150px" }}
+                                >
+                                  {topic.Q}
+                                </div>
+                                <hr className="border-gray-700 my-1" />
+                              </React.Fragment>
+                            );
+                          }
                           return (
-                            <React.Fragment key={topic.Q}>
-                              <hr className="border-gray-700 my-1" />
-                              <div
-                                className="w-full text-left px-3 py-2 rounded-md bg-gray-800 text-gray-400 flex items-center cursor-default select-none"
-                                style={{ minHeight: "150px" }}
-                              >
-                                {topic.Q}
-                              </div>
-                              <hr className="border-gray-700 my-1" />
-                            </React.Fragment>
+                            <button
+                              key={topic.Q}
+                              onClick={() => handleTopicClick(topic)}
+                              className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                              style={{
+                                minHeight: "50px",
+                                border: "2px solid #ebebeb",
+                                borderWidth: "2px",
+                                borderStyle: "solid",
+                                borderColor: "#ebebeb",
+                              }}
+                            >
+                              {topic.Q}
+                            </button>
                           );
-                        }
-                        return (
-                          <button
-                            key={topic.Q}
-                            onClick={() => handleTopicClick(topic)}
-                            className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
-                            style={{
-                              minHeight: "50px",
-                              border: "2px solid #ebebeb",
-                              borderWidth: "2px",
-                              borderStyle: "solid",
-                              borderColor: "#ebebeb",
-                            }}
-                          >
-                            {topic.Q}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : topicData &&
-                    topicData.length > 0 &&
-                    topicData[0].topic ? (
-                    <div className="space-y-2">
-                      {topicData
-                        .slice()
-                        .sort((a, b) => a.topic.localeCompare(b.topic))
-                        .map((topic) => {
-                          console.error("Topic:", topic.topic);
+                        })}
+                      </div>
+                    ) : topicData &&
+                      topicData.length > 0 &&
+                      topicData[0].topic ? (
+                      <div className="space-y-2">
+                        {topicData
+                          .slice()
+                          .sort((a, b) => a.topic.localeCompare(b.topic))
+                          .map((topic) => {
+                            console.error("Topic:", topic.topic);
+                            return (
+                              <button
+                                key={topic.id}
+                                onClick={() => handleTopicClick(topic)}
+                                className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                                style={{
+                                  minHeight: "90px",
+                                  border: "2px solid #ebebeb",
+                                  borderWidth: "2px",
+                                  borderStyle: "solid",
+                                  borderColor: "#ebebeb",
+                                }}
+                              >
+                                {visitedTopics.includes(topic.topic) && (
+                                  <svg
+                                    className="mr-2 flex-shrink-0"
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="10"
+                                      fill="#22c55e"
+                                    />
+                                    <path
+                                      d="M6 10.5L9 13.5L14 8.5"
+                                      stroke="white"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                )}
+                                {topic.topic}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    ) : topicData && topicData.length > 0 ? (
+                      <div className="space-y-2">
+                        {topicData.map((topic) => {
                           return (
+                            <button
+                              key={topic.CustomQ}
+                              onClick={() => handleTopicClick(topic)}
+                              className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                              style={{
+                                minHeight: "50px",
+                                border: "2px solid #ebebeb",
+                                borderWidth: "2px",
+                                borderStyle: "solid",
+                                borderColor: "#ebebeb",
+                              }}
+                            >
+                              {topic.hasOwnProperty("CustomQ") &&
+                              topic.CustomQ.length > 0
+                                ? truncateMessage(topic.CustomQ)
+                                : truncateMessage(topic.system_message)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-gray-400">Select a subcategory</div>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Topics Panel Search */}
+              {searchResults ? (
+                <div
+                  ref={topicsRef}
+                  onScroll={handleTopicsScroll}
+                  className="w-1/3 p-0 overflow-y-auto"
+                  style={{ height: "496px" }}
+                >
+                  <div
+                    className="sticky top-0 z-10 p-4"
+                    style={{ backgroundColor: "rgb(30, 30, 30)" }}
+                  >
+                    <h2 className="text-lg font-semibold text-gray-200">
+                      {searchResults ? "Search Results" : "Inject Prompt"}
+                    </h2>
+                  </div>
+                  <div className="p-4 pt-0">
+                    {searchResults ? (
+                      <div className="space-y-2">
+                        {searchResults.resultsQ &&
+                          searchResults.resultsQ.map((result) => (
+                            <button
+                              key={result.id}
+                              onClick={() => handleTopicClick({ Q: result.Q })}
+                              className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                              style={{
+                                minHeight: "50px",
+                                border: "2px solid #ebebeb",
+                                borderWidth: "2px",
+                                borderStyle: "solid",
+                                borderColor: "#ebebeb",
+                              }}
+                            >
+                              {result.Q}
+                            </button>
+                          ))}
+                        {searchResults.results &&
+                          searchResults.results.map((topic) => (
                             <button
                               key={topic.id}
                               onClick={() => handleTopicClick(topic)}
                               className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
                               style={{
-                                minHeight: "90px",
+                                minHeight: "50px",
                                 border: "2px solid #ebebeb",
                                 borderWidth: "2px",
                                 borderStyle: "solid",
@@ -978,38 +1176,64 @@ const TopicNodeTree = ({ onClose }) => {
                               )}
                               {topic.topic}
                             </button>
-                          );
-                        })}
-                    </div>
-                  ) : topicData && topicData.length > 0 ? (
-                    <div className="space-y-2">
-                      {topicData.map((topic) => {
-                        return (
-                          <button
-                            key={topic.CustomQ}
-                            onClick={() => handleTopicClick(topic)}
-                            className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
-                            style={{
-                              minHeight: "50px",
-                              border: "2px solid #ebebeb",
-                              borderWidth: "2px",
-                              borderStyle: "solid",
-                              borderColor: "#ebebeb",
-                            }}
-                          >
-                            {topic.hasOwnProperty("CustomQ") &&
-                            topic.CustomQ.length > 0
-                              ? truncateMessage(topic.CustomQ)
-                              : truncateMessage(topic.system_message)}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-gray-400">Select a subcategory</div>
-                  )}
+                          ))}
+                      </div>
+                    ) : topicsLoading ? (
+                      <div className="text-gray-400">Loading topics...</div>
+                    ) : topicData &&
+                      topicData.length > 0 &&
+                      topicData[0].topic ? (
+                      <div className="space-y-2">
+                        {topicData
+                          .slice()
+                          .sort((a, b) => a.topic.localeCompare(b.topic))
+                          .map((topic) => {
+                            return (
+                              <button
+                                key={topic.id}
+                                onClick={() => handleTopicClick(topic)}
+                                className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                                style={{
+                                  minHeight: "90px",
+                                  border: "2px solid #ebebeb",
+                                  borderWidth: "2px",
+                                  borderStyle: "solid",
+                                  borderColor: "#ebebeb",
+                                }}
+                              >
+                                {visitedTopics.includes(topic.topic) && (
+                                  <svg
+                                    className="mr-2 flex-shrink-0"
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="10"
+                                      fill="#22c55e"
+                                    />
+                                    <path
+                                      d="M6 10.5L9 13.5L14 8.5"
+                                      stroke="white"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                )}
+                                {topic.topic}
+                              </button>
+                            );
+                          })}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           </div>
         </div>

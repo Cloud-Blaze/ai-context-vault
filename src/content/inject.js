@@ -1024,6 +1024,9 @@ function setupKeyboardShortcuts() {
               toggleOverlay();
               closeCategories();
             }}
+            onCloseCat={() => {
+              closeCategories();
+            }}
           />
         );
       }
