@@ -127,7 +127,6 @@ const TopicNodeTree = ({ onClose, onCloseCat }) => {
         if (!response.ok)
           throw new Error("Failed to fetch supercategories.json");
         const data = await response.json();
-        console.log("Supercategories data:", data);
         // Sort by click count ONLY on initial load
         const { super_category_clicks } = await chrome.storage.local.get(
           "super_category_clicks"

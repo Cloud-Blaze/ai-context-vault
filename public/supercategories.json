@@ -111,6 +111,21 @@
     ]
   },
   {
+    "name": "Business Questions",
+    "description": "Business questions on creating engaging content and storytelling techniques.",
+    "icon": "✍️",
+    "color": "#C8E6C9",
+    "includes": [
+      "Business Questions - General",
+      "Business Questions - Miscellaneous",
+      "Business Questions - Social Media",
+      "Business Questions - Marketing Sales",
+      "Business Questions - Content Creation",
+      "Business Questions - Tech",
+      "Business Questions - Design"
+    ]
+  },
+  {
     "name": "Biz Engineering & Technology",
     "description": "Applied engineering disciplines and emerging automation technologies.",
     "icon": "🛠️",
