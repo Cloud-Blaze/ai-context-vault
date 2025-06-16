@@ -40,11 +40,15 @@ const TopicNodeTree = ({ onClose }) => {
   const [allSubcategories, setAllSubcategories] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingPromptId, setEditingPromptId] = useState(null);
+  const [superCategories, setSuperCategories] = useState([]);
+  const [selectedSuperCategory, setSelectedSuperCategory] = useState(null);
+  const [superCategoryClicks, setSuperCategoryClicks] = useState({});
 
   // Add refs for the scrollable containers
   const categoriesRef = useRef(null);
   const subcategoriesRef = useRef(null);
   const topicsRef = useRef(null);
+  const superCategoriesRef = useRef(null);
 
   // Add scroll position handlers
   const handleCategoriesScroll = () => {
@@ -67,6 +71,15 @@ const TopicNodeTree = ({ onClose }) => {
     if (topicsRef.current) {
       chrome.storage.local.set({
         ctx_topics_scroll: topicsRef.current.scrollTop,
+      });
+    }
+  };
+
+  // Add scroll position handler for super categories
+  const handleSuperCategoriesScroll = () => {
+    if (superCategoriesRef.current) {
+      chrome.storage.local.set({
+        ctx_supercategories_scroll: superCategoriesRef.current.scrollTop,
       });
     }
   };
@@ -98,6 +111,51 @@ const TopicNodeTree = ({ onClose }) => {
           topicsRef.current.scrollTop = ctx_topics_scroll;
         }
       }, 3700);
+    };
+
+    restoreScrollPositions();
+  }, []);
+
+  // Load super categories and their click counts
+  useEffect(() => {
+    const loadSuperCategories = async () => {
+      try {
+        const extensionId = chrome.runtime.id;
+        const response = await fetch(
+          `chrome-extension://${extensionId}/supercategories.json`
+        );
+        console.log("Supercategories fetch response:", response);
+        if (!response.ok)
+          throw new Error("Failed to fetch supercategories.json");
+        const data = await response.json();
+        console.log("Supercategories data:", data);
+        // Sort by name initially
+        const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
+        setSuperCategories(sorted);
+        // Load click counts from storage
+        const { super_category_clicks } = await chrome.storage.local.get(
+          "super_category_clicks"
+        );
+        if (super_category_clicks) {
+          setSuperCategoryClicks(super_category_clicks);
+        }
+      } catch (error) {
+        console.error("Error loading super categories:", error);
+      }
+    };
+    loadSuperCategories();
+  }, []);
+
+  // Restore scroll position for super categories
+  useEffect(() => {
+    const restoreScrollPositions = async () => {
+      const { ctx_supercategories_scroll } = await chrome.storage.local.get([
+        "ctx_supercategories_scroll",
+      ]);
+
+      if (superCategoriesRef.current && ctx_supercategories_scroll) {
+        superCategoriesRef.current.scrollTop = ctx_supercategories_scroll;
+      }
     };
 
     restoreScrollPositions();
@@ -487,6 +545,49 @@ const TopicNodeTree = ({ onClose }) => {
       : message;
   };
 
+  // Handle super category click
+  const handleSuperCategoryClick = (superCategory) => {
+    setSelectedSuperCategory(superCategory);
+
+    // Update click count
+    const newClicks = {
+      ...superCategoryClicks,
+      [superCategory.name]: (superCategoryClicks[superCategory.name] || 0) + 1,
+    };
+    setSuperCategoryClicks(newClicks);
+    chrome.storage.local.set({ super_category_clicks: newClicks });
+
+    // Sort super categories by click count
+    const sorted = [...superCategories].sort((a, b) => {
+      const clicksA = newClicks[a.name] || 0;
+      const clicksB = newClicks[b.name] || 0;
+      return clicksB - clicksA;
+    });
+    setSuperCategories(sorted);
+  };
+
+  // Add this constant for the All pill
+  const ALL_SUPER_CATEGORY = {
+    name: "All",
+    icon: "⭐️",
+    color: "#23272f", // dark grey
+    includes: [],
+  };
+
+  // Filter topics based on selected super category
+  const filteredTopics = React.useMemo(() => {
+    if (!selectedSuperCategory || selectedSuperCategory.name === "All")
+      return mergedTopics;
+    const filtered = {};
+    const includes = selectedSuperCategory.includes;
+    for (const [cat, subcats] of Object.entries(mergedTopics)) {
+      if (includes.includes(cat)) {
+        filtered[cat] = subcats;
+      }
+    }
+    return filtered;
+  }, [mergedTopics, selectedSuperCategory]);
+
   return (
     <div
       className="fixed inset-0 flex items-start justify-center z-50"
@@ -497,260 +598,112 @@ const TopicNodeTree = ({ onClose }) => {
         className={`relative w-full max-w-4xl rounded-lg shadow-xl border ${VAULT_BORDER} bg-[#23272f]`}
         style={{ backgroundColor: "rgb(30, 30, 30)" }}
       >
-        <div className="flex h-[600px]">
-          {/* Categories Panel */}
-          <div
-            ref={categoriesRef}
-            onScroll={handleCategoriesScroll}
-            className={`w-1/3 border-r ${VAULT_BORDER} p-0 overflow-y-auto`}
-          >
+        <div className="flex flex-col h-[600px]">
+          <div className="flex flex-1 flex-col w-full">
+            {/* Super Categories Filter - now at the top of the columns, below headers */}
             <div
-              className="sticky top-0 z-10 p-4 flex justify-between items-center"
-              style={{ backgroundColor: "rgb(30, 30, 30)" }}
+              ref={superCategoriesRef}
+              onScroll={handleSuperCategoriesScroll}
+              className="w-full z-20 overflow-x-auto overflow-y-hidden border-t border-b border-[#333]"
+              style={{ height: "90px", backgroundColor: "rgb(30, 30, 30)" }}
             >
-              <h2 className="text-lg font-semibold text-gray-200">
-                Categories
-              </h2>
-              <button
-                onClick={handleAddPrompt}
-                className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
-              >
-                Add Prompt
-              </button>
-            </div>
-            <div className="p-4 pt-0">
-              {categoriesLoading ? (
-                <div className="text-gray-400">Loading categories...</div>
-              ) : (
-                <div className="space-y-2">
-                  {Object.keys(mergedTopics).map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => handleCategoryClick(category)}
-                      className={`w-full text-left px-3 py-2 rounded-md transition-colors font-semibold flex items-center${
-                        selectedCategory === category
-                          ? " bg-green-400 text-black"
-                          : " text-gray-300 hover:bg-gray-700"
-                      }`}
-                      style={{ minHeight: "50px" }}
+              <div className="flex items-center h-full px-4 space-x-2">
+                <span className="text-gray-300 font-medium whitespace-nowrap">
+                  Group:
+                </span>
+                <div className="flex space-x-2 overflow-x-auto pb-2">
+                  {/* All pill always first */}
+                  <button
+                    key={ALL_SUPER_CATEGORY.name}
+                    onClick={() => setSelectedSuperCategory(ALL_SUPER_CATEGORY)}
+                    className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                      !selectedSuperCategory ||
+                      selectedSuperCategory.name === "All"
+                        ? "ring-2 ring-white"
+                        : "hover:opacity-90"
+                    }`}
+                    style={{
+                      backgroundColor: ALL_SUPER_CATEGORY.color,
+                      color: "#fff",
+                      minWidth: "fit-content",
+                      marginLeft: 15,
+                      marginTop: 3,
+                    }}
+                  >
+                    <span
+                      className="mr-1.5"
+                      style={{ fontSize: "1.5em", lineHeight: 1 }}
                     >
-                      {isCategoryVisited(category) && (
-                        <svg
-                          className="mr-2 flex-shrink-0"
-                          width="20"
-                          height="20"
-                          viewBox="0 0 20 20"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <circle cx="10" cy="10" r="10" fill="#22c55e" />
-                          <path
-                            d="M6 10.5L9 13.5L14 8.5"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
-                      {category}
+                      {ALL_SUPER_CATEGORY.icon}
+                    </span>
+                    {ALL_SUPER_CATEGORY.name}
+                  </button>
+                  {/* Render the rest of the super categories */}
+                  {superCategories.map((superCat) => (
+                    <button
+                      key={superCat.name}
+                      onClick={() => handleSuperCategoryClick(superCat)}
+                      className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                        selectedSuperCategory?.name === superCat.name
+                          ? "ring-2 ring-white"
+                          : "hover:opacity-90"
+                      }`}
+                      style={{
+                        backgroundColor: superCat.color,
+                        color: "#000",
+                        minWidth: "fit-content",
+                      }}
+                    >
+                      <span
+                        className="mr-1.5"
+                        style={{ fontSize: "1.5em", lineHeight: 1 }}
+                      >
+                        {superCat.icon}
+                      </span>
+                      {superCat.name}
                     </button>
                   ))}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-
-          {/* Subcategories Panel */}
-          <div
-            ref={subcategoriesRef}
-            onScroll={handleSubcategoriesScroll}
-            className={`w-1/3 border-r ${VAULT_BORDER} p-0 overflow-y-auto`}
-          >
-            <div
-              className="sticky top-0 z-10 p-4"
-              style={{ backgroundColor: "rgb(30, 30, 30)" }}
-            >
-              <h2 className="text-lg font-semibold text-gray-200">
-                {isCustomPrompt ? "Prompt Alias" : "Subcategories"}
-              </h2>
-            </div>
-            <div className="p-4 pt-0">
-              {selectedCategory ? (
-                <div className="space-y-2">
-                  {mergedTopics[selectedCategory] &&
-                    Object.keys(mergedTopics[selectedCategory]).map(
-                      (subcategory) => (
-                        <div
-                          key={subcategory}
-                          className="flex items-center justify-between gap-2"
-                        >
-                          <button
-                            onClick={() => handleSubcategoryClick(subcategory)}
-                            className={`flex-1 text-left px-3 py-2 rounded-md transition-colors font-semibold flex items-center${
-                              selectedSubcategory === subcategory
-                                ? " bg-green-400 text-black"
-                                : " text-gray-300 hover:bg-gray-700"
-                            }`}
-                            style={{ minHeight: "50px" }}
-                          >
-                            {isSubcategoryVisited(
-                              selectedCategory,
-                              subcategory
-                            ) && (
-                              <svg
-                                className="mr-2 flex-shrink-0"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 20 20"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                              >
-                                <circle cx="10" cy="10" r="10" fill="#22c55e" />
-                                <path
-                                  d="M6 10.5L9 13.5L14 8.5"
-                                  stroke="white"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            )}
-                            {mergedTopics[selectedCategory][subcategory].name ||
-                              subcategory}
-                          </button>
-                          {isCustomPrompt && (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEditPrompt(
-                                    selectedCategory,
-                                    subcategory
-                                  );
-                                }}
-                                className="flex-shrink-0 p-2 text-blue-500 hover:text-blue-600"
-                                title="Edit prompt"
-                              >
-                                <button className="ai-context-button edit">
-                                  ✎
-                                </button>
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeletePrompt(
-                                    selectedCategory,
-                                    subcategory
-                                  );
-                                }}
-                                className="flex-shrink-0 p-2 text-red-500 hover:text-red-600"
-                                title="Delete prompt"
-                              >
-                                <svg
-                                  width="20"
-                                  height="20"
-                                  viewBox="0 0 20 20"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <path
-                                    d="M15 5L5 15M5 5L15 15"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      )
-                    )}
+            <div className="flex overflow-y-auto" style={{ height: "496px" }}>
+              {/* Categories Panel */}
+              <div
+                ref={categoriesRef}
+                onScroll={handleCategoriesScroll}
+                className={`w-1/3 border-r ${VAULT_BORDER} p-0 overflow-y-auto`}
+              >
+                <div
+                  className="sticky top-0 z-10 p-4 flex justify-between items-center"
+                  style={{ backgroundColor: "rgb(30, 30, 30)" }}
+                >
+                  <h2 className="text-lg font-semibold text-gray-200">
+                    Categories
+                  </h2>
+                  <button
+                    onClick={handleAddPrompt}
+                    className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
+                  >
+                    Add Prompt
+                  </button>
                 </div>
-              ) : (
-                <div className="text-gray-400">Select a category</div>
-              )}
-            </div>
-          </div>
-
-          {/* Topics Panel */}
-          <div
-            ref={topicsRef}
-            onScroll={handleTopicsScroll}
-            className="w-1/3 p-0 overflow-y-auto"
-          >
-            <div
-              className="sticky top-0 z-10 p-4"
-              style={{ backgroundColor: "rgb(30, 30, 30)" }}
-            >
-              <h2 className="text-lg font-semibold text-gray-200">
-                Inject Prompt
-              </h2>
-            </div>
-            <div className="p-4 pt-0">
-              {topicsLoading ? (
-                <div className="text-gray-400">Loading topics...</div>
-              ) : topicData &&
-                topicData.length > 0 &&
-                topicData[0].hasOwnProperty("Q") ? (
-                <div className="space-y-2">
-                  {topicData.map((topic) => {
-                    const isNumbered = /^\s*\d+\.\s/.test(topic.Q);
-                    if (isNumbered) {
-                      return (
-                        <React.Fragment key={topic.Q}>
-                          <hr className="border-gray-700 my-1" />
-                          <div
-                            className="w-full text-left px-3 py-2 rounded-md bg-gray-800 text-gray-400 flex items-center cursor-default select-none"
-                            style={{ minHeight: "150px" }}
-                          >
-                            {topic.Q}
-                          </div>
-                          <hr className="border-gray-700 my-1" />
-                        </React.Fragment>
-                      );
-                    }
-                    return (
-                      <button
-                        key={topic.Q}
-                        onClick={() => handleTopicClick(topic)}
-                        className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
-                        style={{
-                          minHeight: "50px",
-                          border: "2px solid #ebebeb",
-                          borderWidth: "2px",
-                          borderStyle: "solid",
-                          borderColor: "#ebebeb",
-                        }}
-                      >
-                        {topic.Q}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : topicData && topicData.length > 0 && topicData[0].topic ? (
-                <div className="space-y-2">
-                  {topicData
-                    .slice()
-                    .sort((a, b) => a.topic.localeCompare(b.topic))
-                    .map((topic) => {
-                      console.error("Topic:", topic.topic);
-                      return (
+                <div className="p-4 pt-0">
+                  {categoriesLoading ? (
+                    <div className="text-gray-400">Loading categories...</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {Object.keys(filteredTopics).map((category) => (
                         <button
-                          key={topic.id}
-                          onClick={() => handleTopicClick(topic)}
-                          className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
-                          style={{
-                            minHeight: "90px",
-                            border: "2px solid #ebebeb",
-                            borderWidth: "2px",
-                            borderStyle: "solid",
-                            borderColor: "#ebebeb",
-                          }}
+                          key={category}
+                          onClick={() => handleCategoryClick(category)}
+                          className={`w-full text-left px-3 py-2 rounded-md transition-colors font-semibold flex items-center${
+                            selectedCategory === category
+                              ? " bg-green-400 text-black"
+                              : " text-gray-300 hover:bg-gray-700"
+                          }`}
+                          style={{ minHeight: "50px" }}
                         >
-                          {visitedTopics.includes(topic.topic) && (
+                          {isCategoryVisited(category) && (
                             <svg
                               className="mr-2 flex-shrink-0"
                               width="20"
@@ -769,38 +722,271 @@ const TopicNodeTree = ({ onClose }) => {
                               />
                             </svg>
                           )}
-                          {topic.topic}
+                          {category}
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ) : topicData && topicData.length > 0 ? (
-                <div className="space-y-2">
-                  {topicData.map((topic) => {
-                    return (
-                      <button
-                        key={topic.CustomQ}
-                        onClick={() => handleTopicClick(topic)}
-                        className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
-                        style={{
-                          minHeight: "50px",
-                          border: "2px solid #ebebeb",
-                          borderWidth: "2px",
-                          borderStyle: "solid",
-                          borderColor: "#ebebeb",
-                        }}
-                      >
-                        {topic.hasOwnProperty("CustomQ") &&
-                        topic.CustomQ.length > 0
-                          ? truncateMessage(topic.CustomQ)
-                          : truncateMessage(topic.system_message)}
-                      </button>
-                    );
-                  })}
+              </div>
+
+              {/* Subcategories Panel */}
+              <div
+                ref={subcategoriesRef}
+                onScroll={handleSubcategoriesScroll}
+                className={`w-1/3 border-r ${VAULT_BORDER} p-0 overflow-y-auto`}
+                style={{ height: "467px" }}
+              >
+                <div
+                  className="sticky top-0 z-10 p-4"
+                  style={{ backgroundColor: "rgb(30, 30, 30)" }}
+                >
+                  <h2 className="text-lg font-semibold text-gray-200">
+                    {isCustomPrompt ? "Prompt Alias" : "Subcategories"}
+                  </h2>
                 </div>
-              ) : (
-                <div className="text-gray-400">Select a subcategory</div>
-              )}
+                <div className="p-4 pt-0">
+                  {selectedCategory ? (
+                    <div className="space-y-2">
+                      {mergedTopics[selectedCategory] &&
+                        Object.keys(mergedTopics[selectedCategory]).map(
+                          (subcategory) => (
+                            <div
+                              key={subcategory}
+                              className="flex items-center justify-between gap-2"
+                            >
+                              <button
+                                onClick={() =>
+                                  handleSubcategoryClick(subcategory)
+                                }
+                                className={`flex-1 text-left px-3 py-2 rounded-md transition-colors font-semibold flex items-center${
+                                  selectedSubcategory === subcategory
+                                    ? " bg-green-400 text-black"
+                                    : " text-gray-300 hover:bg-gray-700"
+                                }`}
+                                style={{ minHeight: "50px" }}
+                              >
+                                {isSubcategoryVisited(
+                                  selectedCategory,
+                                  subcategory
+                                ) && (
+                                  <svg
+                                    className="mr-2 flex-shrink-0"
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <circle
+                                      cx="10"
+                                      cy="10"
+                                      r="10"
+                                      fill="#22c55e"
+                                    />
+                                    <path
+                                      d="M6 10.5L9 13.5L14 8.5"
+                                      stroke="white"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                )}
+                                {mergedTopics[selectedCategory][subcategory]
+                                  .name || subcategory}
+                              </button>
+                              {isCustomPrompt && (
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditPrompt(
+                                        selectedCategory,
+                                        subcategory
+                                      );
+                                    }}
+                                    className="flex-shrink-0 p-2 text-blue-500 hover:text-blue-600"
+                                    title="Edit prompt"
+                                  >
+                                    <button className="ai-context-button edit">
+                                      ✎
+                                    </button>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeletePrompt(
+                                        selectedCategory,
+                                        subcategory
+                                      );
+                                    }}
+                                    className="flex-shrink-0 p-2 text-red-500 hover:text-red-600"
+                                    title="Delete prompt"
+                                  >
+                                    <svg
+                                      width="20"
+                                      height="20"
+                                      viewBox="0 0 20 20"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <path
+                                        d="M15 5L5 15M5 5L15 15"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )
+                        )}
+                    </div>
+                  ) : (
+                    <div className="text-gray-400">Select a category</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Topics Panel */}
+              <div
+                ref={topicsRef}
+                onScroll={handleTopicsScroll}
+                className="w-1/3 p-0 overflow-y-auto"
+              >
+                <div
+                  className="sticky top-0 z-10 p-4"
+                  style={{ backgroundColor: "rgb(30, 30, 30)" }}
+                >
+                  <h2 className="text-lg font-semibold text-gray-200">
+                    Inject Prompt
+                  </h2>
+                </div>
+                <div className="p-4 pt-0">
+                  {topicsLoading ? (
+                    <div className="text-gray-400">Loading topics...</div>
+                  ) : topicData &&
+                    topicData.length > 0 &&
+                    topicData[0].hasOwnProperty("Q") ? (
+                    <div className="space-y-2">
+                      {topicData.map((topic) => {
+                        const isNumbered = /^\s*\d+\.\s/.test(topic.Q);
+                        if (isNumbered) {
+                          return (
+                            <React.Fragment key={topic.Q}>
+                              <hr className="border-gray-700 my-1" />
+                              <div
+                                className="w-full text-left px-3 py-2 rounded-md bg-gray-800 text-gray-400 flex items-center cursor-default select-none"
+                                style={{ minHeight: "150px" }}
+                              >
+                                {topic.Q}
+                              </div>
+                              <hr className="border-gray-700 my-1" />
+                            </React.Fragment>
+                          );
+                        }
+                        return (
+                          <button
+                            key={topic.Q}
+                            onClick={() => handleTopicClick(topic)}
+                            className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                            style={{
+                              minHeight: "50px",
+                              border: "2px solid #ebebeb",
+                              borderWidth: "2px",
+                              borderStyle: "solid",
+                              borderColor: "#ebebeb",
+                            }}
+                          >
+                            {topic.Q}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : topicData &&
+                    topicData.length > 0 &&
+                    topicData[0].topic ? (
+                    <div className="space-y-2">
+                      {topicData
+                        .slice()
+                        .sort((a, b) => a.topic.localeCompare(b.topic))
+                        .map((topic) => {
+                          console.error("Topic:", topic.topic);
+                          return (
+                            <button
+                              key={topic.id}
+                              onClick={() => handleTopicClick(topic)}
+                              className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                              style={{
+                                minHeight: "90px",
+                                border: "2px solid #ebebeb",
+                                borderWidth: "2px",
+                                borderStyle: "solid",
+                                borderColor: "#ebebeb",
+                              }}
+                            >
+                              {visitedTopics.includes(topic.topic) && (
+                                <svg
+                                  className="mr-2 flex-shrink-0"
+                                  width="20"
+                                  height="20"
+                                  viewBox="0 0 20 20"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <circle
+                                    cx="10"
+                                    cy="10"
+                                    r="10"
+                                    fill="#22c55e"
+                                  />
+                                  <path
+                                    d="M6 10.5L9 13.5L14 8.5"
+                                    stroke="white"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              )}
+                              {topic.topic}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  ) : topicData && topicData.length > 0 ? (
+                    <div className="space-y-2">
+                      {topicData.map((topic) => {
+                        return (
+                          <button
+                            key={topic.CustomQ}
+                            onClick={() => handleTopicClick(topic)}
+                            className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                            style={{
+                              minHeight: "50px",
+                              border: "2px solid #ebebeb",
+                              borderWidth: "2px",
+                              borderStyle: "solid",
+                              borderColor: "#ebebeb",
+                            }}
+                          >
+                            {topic.hasOwnProperty("CustomQ") &&
+                            topic.CustomQ.length > 0
+                              ? truncateMessage(topic.CustomQ)
+                              : truncateMessage(topic.system_message)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-gray-400">Select a subcategory</div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

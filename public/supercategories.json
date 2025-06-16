@@ -1,6 +1,6 @@
 [
   {
-    "name": "Biz Social Media & Branding",
+    "name": "Biz Social Media Marketing & Branding",
     "description": "Business questions on creating engaging content and storytelling techniques.",
     "icon": "✍️",
     "color": "#FFDFBA",
@@ -10,11 +10,20 @@
       "Business Questions - Social Media",
       "Business Questions - Marketing Sales",
       "Business Questions - Content Creation",
+      "Affiliate Marketing",
+      "Content Marketing",
+      "Digital Marketing",
+      "Influencer Marketing",
+      "Market Research",
+      "Marketing",
       "YouTube Content Creation",
       "Author Branding",
       "Branding",
       "Digital Branding",
-      "Digital Detox",
+      "Search Engine Marketing",
+      "Email Marketing",
+      "Book Marketing",
+      "Fashion Marketing",
       "Digital Entertainment Platforms",
       "Digital Ethics",
       "Digital Exhibits",
@@ -102,7 +111,7 @@
     ]
   },
   {
-    "name": "Engineering & Technology",
+    "name": "Biz Engineering & Technology",
     "description": "Applied engineering disciplines and emerging automation technologies.",
     "icon": "🛠️",
     "color": "#FFD1DC",
@@ -152,7 +161,7 @@
     ]
   },
   {
-    "name": "Computer Science & AI",
+    "name": "Biz Computer Science & AI",
     "description": "Core computer science topics, algorithms, and artificial intelligence methodologies.",
     "icon": "🤖",
     "color": "#FDFD96",
@@ -171,7 +180,7 @@
     ]
   },
   {
-    "name": "Software Development",
+    "name": "Biz Software Development",
     "description": "Software engineering practices, programming, and application development.",
     "icon": "💻",
     "color": "#FBC9F9",
@@ -240,7 +249,7 @@
     ]
   },
   {
-    "name": "Business & Economics",
+    "name": "Biz Economics",
     "description": "Business operations, strategy, management, and economic theory.",
     "icon": "💼",
     "color": "#CCFFCC",
@@ -289,7 +298,7 @@
     ]
   },
   {
-    "name": "Economics & Finance",
+    "name": "Biz Finance",
     "description": "Financial markets, investment, blockchain, and economic policy analysis.",
     "icon": "💲",
     "color": "#CCCCFF",
@@ -783,6 +792,7 @@
       "Community Outreach",
       "Digital Nomad Lifestyle",
       "Disaster Recovery",
+      "Digital Detox",
       "Disaster Resilience",
       "Discord Communities",
       "Employee Engagement",
@@ -798,7 +808,7 @@
     ]
   },
   {
-    "name": "Productivity & Organization",
+    "name": "Biz Productivity",
     "description": "Time management, workflow optimization, and organizational tools.",
     "icon": "📅",
     "color": "#F2EAFC",
@@ -886,7 +896,7 @@
     ]
   },
   {
-    "name": "Careers & Professional Development",
+    "name": "Biz Careers & Development",
     "description": "Guidance for career growth, job-seeking, and professional skills.",
     "icon": "🧑‍💼",
     "color": "#B3E5FC",
@@ -903,7 +913,7 @@
     ]
   },
   {
-    "name": "Personal Development",
+    "name": "Biz Personal Development",
     "description": "Self-improvement, mindset, and personal growth strategies.",
     "icon": "🌱",
     "color": "#FFECB3",
@@ -997,7 +1007,6 @@
       "Fashion & Style",
       "Fashion (General)",
       "Fashion Entrepreneurship",
-      "Fashion Marketing",
       "Fashion Styling",
       "Manga Art Style",
       "Stage Directing",
@@ -1005,23 +1014,6 @@
       "Stage Makeup",
       "Sustainable Fashion",
       "Vintage Clothing"
-    ]
-  },
-  {
-    "name": "Hobbies & Crafts",
-    "description": "Creative hobbies and DIY craft activities.",
-    "icon": "🧶",
-    "color": "#FFCC80",
-    "includes": [
-      "Birdwatching",
-      "Cake Decorating",
-      "Cake Sculpting",
-      "Calligraphy",
-      "Calligraphy (Advanced)",
-      "Ceramics",
-      "Knitting and Crochet",
-      "Macramé",
-      "Woodworking"
     ]
   },
   {
@@ -1039,13 +1031,12 @@
     ]
   },
   {
-    "name": "Emerging Tech",
+    "name": "Biz Tech",
     "description": "Cutting-edge technologies and innovations.",
     "icon": "🚀",
     "color": "#B2DFDB",
     "includes": [
       "3D Bioprinting",
-      "Affiliate Marketing",
       "Animal Ethics (Secular)",
       "Archaeobotany",
       "Archaeological Field Techniques",
@@ -1056,14 +1047,12 @@
       "Baroque Art",
       "Bartending (Mixology)",
       "Bioethics (Secular)",
-      "Book Marketing",
       "Carbon Management",
       "Carbon Sequestration",
       "Cartography",
       "Circular Economy",
       "Classic Cars",
       "Contemporary Art Movements",
-      "Content Marketing",
       "Crypto & Web3 Ecosystems",
       "Cryptography",
       "Cryptography & Cybersecurity (Advanced)",
@@ -1072,9 +1061,7 @@
       "Dark Energy",
       "Dark Matter",
       "Digital Libraries",
-      "Digital Marketing",
       "Early Literacy",
-      "Email Marketing",
       "Emerging Tech",
       "Ethical Dilemmas (Secular)",
       "Ethical Hacking",
@@ -1087,7 +1074,6 @@
       "High-Performance Computing (HPC) & Parallel Systems",
       "Historic Preservation",
       "Immunology (Basics)",
-      "Influencer Marketing",
       "Information Literacy",
       "Infosec & Ethical Hacking",
       "Insurance Basics",
@@ -1100,8 +1086,6 @@
       "Malware Analysis",
       "Mandarin Chinese",
       "Marine & Ocean Studies",
-      "Market Research",
-      "Marketing",
       "Mars Missions",
       "Minimalist Wardrobe",
       "Museum Marketing",
@@ -1121,7 +1105,6 @@
       "Renaissance Art",
       "Renaissance Studies",
       "Salary Negotiation",
-      "Search Engine Marketing",
       "Search Engine Optimization",
       "Smart Cities",
       "Smart Materials",
@@ -1187,13 +1170,6 @@
     ]
   },
   {
-    "name": "Sustainability & Environment",
-    "description": "Eco-friendly practices and environmental stewardship.",
-    "icon": "🌿",
-    "color": "#DCEDC8",
-    "includes": ["Clean Energy Advocacy"]
-  },
-  {
     "name": "Lifestyle & Recreation",
     "description": "Leisure, lifestyle trends, and recreational activities.",
     "icon": "🎉",
@@ -1253,6 +1229,15 @@
     "includes": [
       "Coin Collecting",
       "Collecting",
+      "Birdwatching",
+      "Cake Decorating",
+      "Cake Sculpting",
+      "Calligraphy",
+      "Calligraphy (Advanced)",
+      "Ceramics",
+      "Knitting and Crochet",
+      "Macramé",
+      "Woodworking",
       "Collecting (Advanced)",
       "Comic Book Collecting",
       "Comic Book Collecting (Detailed)",
@@ -1465,6 +1450,7 @@
       "Venture Capital",
       "Virtual Assistance",
       "Virtual Events",
+      "Clean Energy Advocacy",
       "Virtual Reality",
       "Visitor Experience"
     ]
