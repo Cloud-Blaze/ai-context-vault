@@ -19,7 +19,18 @@ import { createRoot } from "react-dom/client";
 import TopicNodeTree from "./components/TopicNodeTree";
 import ToneStyleSelector from "./components/ToneStyleSelector";
 
-var closeCategories = () => {};
+let closeCategories = () => {};
+let closeToneStyle = () => {};
+
+function closeAllPopups() {
+  // Hide overlay
+  const overlayPanel = document.getElementById("__ai_context_overlay__");
+  if (overlayPanel) overlayPanel.style.display = "none";
+  // Remove TopicNodeTree
+  closeCategories && closeCategories();
+  // Remove ToneStyleSelector
+  closeToneStyle && closeToneStyle();
+}
 
 // Function to format timestamp in DD/MM HH:mm format
 function formatTimestamp(timestamp) {
@@ -1028,7 +1039,6 @@ function setupKeyboardShortcuts() {
         // Create root and render TopicNodeTree
         const root = createRoot(container);
         closeCategories = () => {
-          toggleOverlay();
           root.unmount();
           container.remove();
         };
@@ -1040,27 +1050,16 @@ function setupKeyboardShortcuts() {
             className="relative w-full max-w-4xl rounded-lg shadow-xl border border-[#23272f] bg-[#23272f]"
             style={{ marginTop: "720px", backgroundColor: "rgb(30, 30, 30)" }}
           >
-            <ToneStyleSelector
-              onClose={() => {
-                toneStyleRoot.unmount();
-                toneStyleContainer.remove();
-                closeCategories();
-              }}
-            />
+            <ToneStyleSelector onClose={closeAllPopups} />
           </div>
         );
 
-        root.render(
-          <TopicNodeTree
-            onClose={() => {
-              toggleOverlay();
-              closeCategories();
-            }}
-            onCloseCat={() => {
-              closeCategories();
-            }}
-          />
-        );
+        closeToneStyle = () => {
+          toneStyleRoot.unmount();
+          toneStyleContainer.remove();
+        };
+
+        root.render(<TopicNodeTree onClose={closeAllPopups} />);
       }
     },
     true // Capture phase
@@ -1117,7 +1116,7 @@ async function toggleOverlay() {
   if (panel.style.display === "none" || currentDisplayStyle === "none") {
     panel.style.display = "block";
   } else {
-    closeCategories();
+    closeAllPopups();
     panel.style.display = "none";
   }
 }
@@ -1361,33 +1360,17 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         className="relative w-full max-w-4xl rounded-lg shadow-xl border border-[#23272f] bg-[#23272f]"
         style={{ marginTop: "720px", backgroundColor: "rgb(30, 30, 30)" }}
       >
-        <ToneStyleSelector
-          onClose={() => {
-            toneStyleRoot.unmount();
-            toneStyleContainer.remove();
-          }}
-        />
+        <ToneStyleSelector onClose={closeAllPopups} />
       </div>
     );
 
     // Create root and render TopicNodeTree
     const root = createRoot(container);
     closeCategories = () => {
-      toggleOverlay();
       root.unmount();
       container.remove();
     };
-    root.render(
-      <TopicNodeTree
-        onClose={() => {
-          toggleOverlay();
-          closeCategories();
-        }}
-        onCloseCat={() => {
-          closeCategories();
-        }}
-      />
-    );
+    root.render(<TopicNodeTree onClose={closeAllPopups} />);
   }
   if (message.type === "REFRESH_OVERLAY") {
     console.log("[AI Context Vault] Refreshing overlay content");

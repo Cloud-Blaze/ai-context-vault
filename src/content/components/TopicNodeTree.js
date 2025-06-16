@@ -18,7 +18,7 @@ import {
 
 const VAULT_BORDER = "border-[#23272f]";
 
-const TopicNodeTree = ({ onClose, onCloseCat }) => {
+const TopicNodeTree = ({ onClose }) => {
   const [topics, setTopics] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -694,9 +694,7 @@ const TopicNodeTree = ({ onClose, onCloseCat }) => {
                     </div>
                   ) : (
                     <button
-                      onClick={() => {
-                        onCloseCat();
-                      }}
+                      onClick={onClose}
                       className="ai-context-close text-2xl"
                       style={{ lineHeight: 1, marginLeft: "22px" }}
                     >
