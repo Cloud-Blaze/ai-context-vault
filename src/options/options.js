@@ -12,6 +12,7 @@ import {
   getCurrentProfileSelected,
 } from "../storage/contextStorage";
 import { encryptPAT, decryptPAT } from "../services/patEncryption";
+import { languageList } from "../storage/languageList";
 
 function OptionsPage() {
   const [pat, setPat] = useState("");
@@ -37,6 +38,13 @@ function OptionsPage() {
   const [profilePrompt, setProfilePrompt] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [profileError, setProfileError] = useState("");
+
+  // Language selection state
+  const [language, setLanguage] = useState("");
+
+  const sortedLanguageList = [...languageList].sort((a, b) =>
+    a.localeCompare(b)
+  );
 
   useEffect(() => {
     // Load both encrypted PAT and gistURL from chrome.storage.local
@@ -105,6 +113,12 @@ function OptionsPage() {
       setSelectedAlias(current || "");
     })();
   }, [showProfileModal]);
+
+  useEffect(() => {
+    chrome.storage.local.get(["ctx_language"], (res) => {
+      setLanguage(res.ctx_language || "English");
+    });
+  }, []);
 
   const handleManualPAT = async (pat) => {
     if (!pat || pat.length < 10) {
@@ -309,6 +323,12 @@ function OptionsPage() {
     }
   };
 
+  const handleLanguageChange = (e) => {
+    const lang = e.target.value;
+    setLanguage(lang);
+    chrome.storage.local.set({ ctx_language: lang });
+  };
+
   return (
     <div style={{ fontFamily: "sans-serif", padding: 20 }}>
       <style>{`
@@ -489,6 +509,41 @@ function OptionsPage() {
             </span>
           </div>
         )}
+
+        <hr />
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-2">Language Settings</h2>
+          <label
+            htmlFor="language-select"
+            className="block mb-2 font-semibold"
+            style={{
+              color: "rgb(122, 162, 212)",
+              fontWeight: "bold",
+              marginBottom: 10,
+              marginRight: 8,
+            }}
+          >
+            Select your preferred language:
+          </label>
+          <select
+            id="language-select"
+            value={language}
+            onChange={handleLanguageChange}
+            className="px-3 py-2 border border-gray-300 rounded-md"
+            style={{ minWidth: 250, fontSize: 16 }}
+          >
+            {sortedLanguageList.map((lang) => (
+              <option key={lang} value={lang}>
+                {lang}
+              </option>
+            ))}
+          </select>
+          <div className="mt-2 text-sm text-gray-500">
+            <strong>Current language:</strong> {language}
+          </div>
+        </div>
+
+        <br />
 
         <div style={{ marginTop: 30 }}>
           <h2>Business Questions Template Prompt</h2>
@@ -861,44 +916,35 @@ export async function createOrUpdateGodModeGist(callbackFunc) {
               },
               body: JSON.stringify(gistPayload),
             });
-            console.error(
-              "[AI Context Vault] Create response status:",
-              resp.status
-            );
           }
 
           if (!resp.ok) {
             const errData = await resp.json();
             console.error(
-              "[AI Context Vault] GitHub API error:",
-              JSON.stringify(errData, null, 2)
+              "[AI Context Vault] Gist creation/update error:",
+              errData
             );
-            alert("God Mode Gist creation/update failed. Check console.");
+            alert("Gist creation/update failed. Check console.");
             return reject(errData);
           } else {
             const gistInfo = await resp.json();
-            console.error(
-              "[AI Context Vault] Gist created/updated successfully:",
-              JSON.stringify(gistInfo, null, 2)
+            console.log(
+              "[AI Context Vault] Created/Updated Gist:",
+              gistInfo.html_url
             );
             if (gistUrl && gistUrl.includes("/")) {
-              alert("God Mode Gist updated successfully!");
+              alert("Gist updated successfully!");
             } else {
-              alert("God Mode Gist created successfully!");
+              alert("Gist created successfully!");
             }
             callbackFunc();
 
             // Always store the final gistURL
-            chrome.storage.local.set(
-              { godModeGistURL: gistInfo.html_url },
-              () => {
-                console.error(
-                  "[AI Context Vault] Stored God Mode gistURL:",
-                  gistInfo.html_url
-                );
-              }
-            );
-            setGodModeGistUrl(gistInfo.html_url);
+            chrome.storage.local.set({ gistURL: gistInfo.html_url }, () => {
+              console.log(
+                "[AI Context Vault] Stored gistURL in local storage."
+              );
+            });
 
             resolve(gistInfo);
           }
@@ -907,13 +953,10 @@ export async function createOrUpdateGodModeGist(callbackFunc) {
             "[AI Context Vault] createOrUpdateGodModeGist error:",
             err
           );
-          console.error("[AI Context Vault] Error stack:", err.stack);
-          alert(`Error creating/updating God Mode gist: ${err.message}`);
+          alert(`Error creating/updating gist: ${err.message}`);
           reject(err);
         }
       }
     );
   });
 }
-
-initGitHubGistSyncUI();
