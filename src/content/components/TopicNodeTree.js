@@ -283,11 +283,19 @@ const TopicNodeTree = ({ onClose, onCloseCat }) => {
   }, [customPrompts, newPromptCategory]);
 
   // Add debounced search function
+  const abortControllerRef = useRef(null);
   const debouncedSearch = useCallback((query) => {
     if (query.length < 3) {
       setSearchResults(null);
       return;
     }
+
+    // Abort previous request if it exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     setIsSearching(true);
     fetch(
@@ -299,6 +307,7 @@ const TopicNodeTree = ({ onClose, onCloseCat }) => {
         headers: {
           "Content-Type": "application/json",
         },
+        signal: controller.signal,
       }
     )
       .then((response) => response.json())
@@ -307,6 +316,10 @@ const TopicNodeTree = ({ onClose, onCloseCat }) => {
         setIsSearching(false);
       })
       .catch((error) => {
+        if (error.name === "AbortError") {
+          // Request was aborted, do nothing
+          return;
+        }
         console.error("Search error:", error);
         setIsSearching(false);
       });
