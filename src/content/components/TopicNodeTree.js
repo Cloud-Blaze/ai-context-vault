@@ -84,35 +84,30 @@ const TopicNodeTree = ({ onClose }) => {
     }
   };
 
-  // Add useEffect for scroll restoration
+  // Persist last selected super category
+  useEffect(() => {
+    if (selectedSuperCategory) {
+      chrome.storage.local.set({
+        ctx_last_super_category: selectedSuperCategory,
+      });
+    }
+  }, [selectedSuperCategory]);
+
+  // Add useEffect for scroll restoration and last super category
   useEffect(() => {
     const restoreScrollPositions = async () => {
-      const {
-        ctx_categories_scroll,
-        ctx_subcategories_scroll,
-        ctx_topics_scroll,
-      } = await chrome.storage.local.get([
-        "ctx_categories_scroll",
-        "ctx_subcategories_scroll",
-        "ctx_topics_scroll",
-      ]);
-
-      // Use setTimeout to ensure the DOM is ready
-      setTimeout(() => {
-        if (categoriesRef.current && ctx_categories_scroll) {
-          categoriesRef.current.scrollTop = ctx_categories_scroll;
-        }
-        if (subcategoriesRef.current && ctx_subcategories_scroll) {
-          subcategoriesRef.current.scrollTop = ctx_subcategories_scroll;
-        }
-      }, 100);
-      setTimeout(() => {
-        if (topicsRef.current && ctx_topics_scroll) {
-          topicsRef.current.scrollTop = ctx_topics_scroll;
-        }
-      }, 3700);
+      const { ctx_supercategories_scroll, ctx_last_super_category } =
+        await chrome.storage.local.get([
+          "ctx_supercategories_scroll",
+          "ctx_last_super_category",
+        ]);
+      if (superCategoriesRef.current && ctx_supercategories_scroll) {
+        superCategoriesRef.current.scrollTop = ctx_supercategories_scroll;
+      }
+      if (ctx_last_super_category) {
+        setSelectedSuperCategory(ctx_last_super_category);
+      }
     };
-
     restoreScrollPositions();
   }, []);
 
@@ -148,21 +143,6 @@ const TopicNodeTree = ({ onClose }) => {
       }
     };
     loadSuperCategories();
-  }, []);
-
-  // Restore scroll position for super categories
-  useEffect(() => {
-    const restoreScrollPositions = async () => {
-      const { ctx_supercategories_scroll } = await chrome.storage.local.get([
-        "ctx_supercategories_scroll",
-      ]);
-
-      if (superCategoriesRef.current && ctx_supercategories_scroll) {
-        superCategoriesRef.current.scrollTop = ctx_supercategories_scroll;
-      }
-    };
-
-    restoreScrollPositions();
   }, []);
 
   useEffect(() => {
@@ -607,6 +587,38 @@ const TopicNodeTree = ({ onClose }) => {
                 <span className="text-gray-300 font-medium whitespace-nowrap">
                   Group:
                 </span>
+                {/* Show red X to clear filter if not All */}
+                {selectedSuperCategory &&
+                  selectedSuperCategory.name !== "All" && (
+                    <button
+                      onClick={() =>
+                        setSelectedSuperCategory(ALL_SUPER_CATEGORY)
+                      }
+                      className="ml-2 flex items-center justify-center p-1 rounded-full hover:bg-red-100 transition-colors"
+                      title="Clear filter"
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <circle cx="10" cy="10" r="10" fill="#ef4444" />
+                        <path
+                          d="M6 6L14 14M14 6L6 14"
+                          stroke="white"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 <div className="flex space-x-2 overflow-x-auto pb-2">
                   {/* All pill always first */}
                   <button

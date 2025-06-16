@@ -791,6 +791,7 @@
     "icon": "🎉",
     "color": "#EDF7F6",
     "includes": [
+      "Classic Cars",
       "Alternative Lifestyles & Communities",
       "Community Engagement",
       "Community Gardens",
@@ -912,7 +913,6 @@
       "Interview Skills",
       "Job Hunting",
       "Salary Negotiation",
-      "Networking",
       "Professional Image",
       "Renewable Energy",
       "Renewable Energy Careers"
@@ -1037,7 +1037,7 @@
     ]
   },
   {
-    "name": "Biz Tech",
+    "name": "Biz Technology",
     "description": "Cutting-edge technologies and innovations.",
     "icon": "🚀",
     "color": "#B2DFDB",
@@ -1045,10 +1045,8 @@
       "3D Bioprinting",
       "Drones",
       "Virtual Reality",
-      "Artifact Curation",
       "Artificial Intelligence",
-      "Circular Economy",
-      "Classic Cars",
+      "Networking",
       "Contemporary Art Movements",
       "Crypto & Web3 Ecosystems",
       "Cryptography",
@@ -1452,7 +1450,9 @@
       "Street Art",
       "Sugar Sculpting",
       "Tattoo Art (Non-Erotic)",
-      "Variety Shows"
+      "Variety Shows",
+      "Artifact Curation",
+      "Circular Economy"
     ]
   }
 ]
