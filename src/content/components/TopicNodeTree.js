@@ -129,16 +129,20 @@ const TopicNodeTree = ({ onClose }) => {
           throw new Error("Failed to fetch supercategories.json");
         const data = await response.json();
         console.log("Supercategories data:", data);
-        // Sort by name initially
-        const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
-        setSuperCategories(sorted);
-        // Load click counts from storage
+        // Sort by click count ONLY on initial load
         const { super_category_clicks } = await chrome.storage.local.get(
           "super_category_clicks"
         );
+        let sorted = data;
         if (super_category_clicks) {
           setSuperCategoryClicks(super_category_clicks);
+          sorted = [...data].sort((a, b) => {
+            const clicksA = super_category_clicks[a.name] || 0;
+            const clicksB = super_category_clicks[b.name] || 0;
+            return clicksB - clicksA;
+          });
         }
+        setSuperCategories(sorted);
       } catch (error) {
         console.error("Error loading super categories:", error);
       }
@@ -548,7 +552,6 @@ const TopicNodeTree = ({ onClose }) => {
   // Handle super category click
   const handleSuperCategoryClick = (superCategory) => {
     setSelectedSuperCategory(superCategory);
-
     // Update click count
     const newClicks = {
       ...superCategoryClicks,
@@ -556,14 +559,7 @@ const TopicNodeTree = ({ onClose }) => {
     };
     setSuperCategoryClicks(newClicks);
     chrome.storage.local.set({ super_category_clicks: newClicks });
-
-    // Sort super categories by click count
-    const sorted = [...superCategories].sort((a, b) => {
-      const clicksA = newClicks[a.name] || 0;
-      const clicksB = newClicks[b.name] || 0;
-      return clicksB - clicksA;
-    });
-    setSuperCategories(sorted);
+    // Do NOT sort superCategories here, only on full refresh
   };
 
   // Add this constant for the All pill
@@ -619,12 +615,20 @@ const TopicNodeTree = ({ onClose }) => {
                     className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                       !selectedSuperCategory ||
                       selectedSuperCategory.name === "All"
-                        ? "ring-2 ring-white"
+                        ? "bg-green-400 text-white"
                         : "hover:opacity-90"
                     }`}
                     style={{
-                      backgroundColor: ALL_SUPER_CATEGORY.color,
-                      color: "#fff",
+                      backgroundColor:
+                        !selectedSuperCategory ||
+                        selectedSuperCategory.name === "All"
+                          ? "#22c55e"
+                          : ALL_SUPER_CATEGORY.color,
+                      color:
+                        !selectedSuperCategory ||
+                        selectedSuperCategory.name === "All"
+                          ? "#fff"
+                          : "#fff",
                       minWidth: "fit-content",
                       marginLeft: 15,
                       marginTop: 3,
@@ -639,30 +643,36 @@ const TopicNodeTree = ({ onClose }) => {
                     {ALL_SUPER_CATEGORY.name}
                   </button>
                   {/* Render the rest of the super categories */}
-                  {superCategories.map((superCat) => (
-                    <button
-                      key={superCat.name}
-                      onClick={() => handleSuperCategoryClick(superCat)}
-                      className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                        selectedSuperCategory?.name === superCat.name
-                          ? "ring-2 ring-white"
-                          : "hover:opacity-90"
-                      }`}
-                      style={{
-                        backgroundColor: superCat.color,
-                        color: "#000",
-                        minWidth: "fit-content",
-                      }}
-                    >
-                      <span
-                        className="mr-1.5"
-                        style={{ fontSize: "1.5em", lineHeight: 1 }}
+                  {superCategories.map((superCat) => {
+                    const isSelected =
+                      selectedSuperCategory?.name === superCat.name;
+                    return (
+                      <button
+                        key={superCat.name}
+                        onClick={() => handleSuperCategoryClick(superCat)}
+                        className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                          isSelected
+                            ? "bg-green-400 text-white"
+                            : "hover:opacity-90"
+                        }`}
+                        style={{
+                          backgroundColor: isSelected
+                            ? "#22c55e"
+                            : superCat.color,
+                          color: isSelected ? "#fff" : "#000",
+                          minWidth: "fit-content",
+                        }}
                       >
-                        {superCat.icon}
-                      </span>
-                      {superCat.name}
-                    </button>
-                  ))}
+                        <span
+                          className="mr-1.5"
+                          style={{ fontSize: "1.5em", lineHeight: 1 }}
+                        >
+                          {superCat.icon}
+                        </span>
+                        {superCat.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -735,7 +745,7 @@ const TopicNodeTree = ({ onClose }) => {
                 ref={subcategoriesRef}
                 onScroll={handleSubcategoriesScroll}
                 className={`w-1/3 border-r ${VAULT_BORDER} p-0 overflow-y-auto`}
-                style={{ height: "467px" }}
+                style={{ height: "496px" }}
               >
                 <div
                   className="sticky top-0 z-10 p-4"
@@ -857,6 +867,7 @@ const TopicNodeTree = ({ onClose }) => {
                 ref={topicsRef}
                 onScroll={handleTopicsScroll}
                 className="w-1/3 p-0 overflow-y-auto"
+                style={{ height: "496px" }}
               >
                 <div
                   className="sticky top-0 z-10 p-4"
