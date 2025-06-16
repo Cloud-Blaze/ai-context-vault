@@ -819,3 +819,52 @@ export async function deleteCustomPrompt(category, subcategory) {
   }
   return customPrompts;
 }
+
+/**
+ * Profile Manager helpers
+ */
+export async function getProfiles() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(null, (items) => {
+      const profiles = Object.keys(items)
+        .filter((k) => k.startsWith("ctx_profiles_"))
+        .map((k) => items[k]);
+      resolve(profiles);
+    });
+  });
+}
+
+export async function saveProfile(profile) {
+  // Prevent duplicate aliases
+  const key = `ctx_profiles_${profile.alias.replace(/\s+/g, "_")}`;
+  const profiles = await getProfiles();
+  if (profiles.some((p) => p.alias === profile.alias && p.id !== profile.id)) {
+    throw new Error("Duplicate alias");
+  }
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [key]: profile }, () => resolve());
+  });
+}
+
+export async function deleteProfile(alias) {
+  const key = `ctx_profiles_${alias.replace(/\s+/g, "_")}`;
+  return new Promise((resolve) => {
+    chrome.storage.local.remove([key], () => resolve());
+  });
+}
+
+export async function setCurrentProfileSelected(alias) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ ctx_current_profile_selected: alias }, () =>
+      resolve()
+    );
+  });
+}
+
+export async function getCurrentProfileSelected() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["ctx_current_profile_selected"], (res) => {
+      resolve(res.ctx_current_profile_selected || null);
+    });
+  });
+}

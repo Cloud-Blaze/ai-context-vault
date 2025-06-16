@@ -5,6 +5,11 @@ import {
   syncFullDataToGist,
   getTemplate,
   setTemplate,
+  getProfiles,
+  saveProfile,
+  deleteProfile,
+  setCurrentProfileSelected,
+  getCurrentProfileSelected,
 } from "../storage/contextStorage";
 import { encryptPAT, decryptPAT } from "../services/patEncryption";
 
@@ -24,6 +29,14 @@ function OptionsPage() {
   const [contextInjectionTemplate, setContextInjectionTemplate] = useState(
     "\n\n📏EXECUTION PARAMETERS:\n- Full contextual compliance is a non-negotiable requirement\n\n- Deviation from established context is prohibited\n\n- Every response must be comprehensively informed by and aligned with this context\n\nCONTINUED INTERACTION:\n-Preserve and apply all previous contextual understanding\n-Integrate new input with existing knowledge\n-Respond comprehensively and contextually\n\n🆕NEW USER PROMPT ON "
   );
+  const [profiles, setProfiles] = useState([]);
+  const [selectedAlias, setSelectedAlias] = useState("");
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [modalMode, setModalMode] = useState("add");
+  const [profileAlias, setProfileAlias] = useState("");
+  const [profilePrompt, setProfilePrompt] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [profileError, setProfileError] = useState("");
 
   useEffect(() => {
     // Load both encrypted PAT and gistURL from chrome.storage.local
@@ -83,6 +96,15 @@ function OptionsPage() {
       );
     })();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      const loaded = await getProfiles();
+      setProfiles(loaded);
+      const current = await getCurrentProfileSelected();
+      setSelectedAlias(current || "");
+    })();
+  }, [showProfileModal]);
 
   const handleManualPAT = async (pat) => {
     if (!pat || pat.length < 10) {
@@ -230,8 +252,70 @@ function OptionsPage() {
     });
   };
 
+  const handleSelectProfile = async (alias) => {
+    setSelectedAlias(alias);
+    await setCurrentProfileSelected(alias);
+  };
+
+  const handleAddProfile = () => {
+    setProfileAlias("");
+    setProfilePrompt("");
+    setEditingId(null);
+    setModalMode("add");
+    setShowProfileModal(true);
+    setProfileError("");
+  };
+
+  const handleEditProfile = (profile) => {
+    setProfileAlias(profile.alias);
+    setProfilePrompt(profile.prompt);
+    setEditingId(profile.id);
+    setModalMode("edit");
+    setShowProfileModal(true);
+    setProfileError("");
+  };
+
+  const handleDeleteProfile = async (alias) => {
+    await deleteProfile(alias);
+    const loaded = await getProfiles();
+    setProfiles(loaded);
+    if (selectedAlias === alias) {
+      setSelectedAlias("");
+      await setCurrentProfileSelected("");
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!profileAlias.trim()) {
+      setProfileError("Alias is required");
+      return;
+    }
+    if (!profilePrompt.trim()) {
+      setProfileError("Prompt is required");
+      return;
+    }
+    try {
+      await saveProfile({
+        id: editingId || Date.now().toString(),
+        alias: profileAlias.trim(),
+        prompt: profilePrompt.trim(),
+      });
+      setShowProfileModal(false);
+      setProfileError("");
+      const loaded = await getProfiles();
+      setProfiles(loaded);
+    } catch (e) {
+      setProfileError(e.message);
+    }
+  };
+
   return (
     <div style={{ fontFamily: "sans-serif", padding: 20 }}>
+      <style>{`
+        input[type="text"], input[type="password"], textarea {
+          font-size: 16px !important;
+        }
+      `}</style>
       <h1>AI Context Vault - Options</h1>
       <hr />
 
@@ -269,7 +353,9 @@ function OptionsPage() {
         placeholder="https://gist.github.com/username/gistId"
         style={{ width: 400, marginRight: 8 }}
       />
-      <button onClick={() => saveGistURL(gistUrl)}>Save Gist URL</button>
+      <button onClick={() => saveGistURL(gistUrl)} className="button">
+        Save Gist URL
+      </button>
 
       <hr />
 
@@ -343,6 +429,7 @@ function OptionsPage() {
           style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
         />
         <button
+          className="button"
           onClick={() =>
             setTemplate(
               "ctx_business_questions_template",
@@ -362,6 +449,7 @@ function OptionsPage() {
           style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
         />
         <button
+          className="button"
           onClick={() =>
             setTemplate("ctx_role_learning_template", roleLearningTemplate)
           }
@@ -378,6 +466,7 @@ function OptionsPage() {
           style={{ width: "100%", fontFamily: "monospace", marginBottom: 8 }}
         />
         <button
+          className="button"
           onClick={() =>
             setTemplate(
               "ctx_context_injection_template",
@@ -387,6 +476,118 @@ function OptionsPage() {
         >
           Save
         </button>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-2xl font-bold mb-2">Profile Management</h2>
+        <div className="mb-4 flex items-center justify-between">
+          <span className="font-semibold">Profiles</span>
+          <button className="button" onClick={handleAddProfile}>
+            Add Profile
+          </button>
+        </div>
+        <div className="space-y-2">
+          <label className="flex items-center space-x-2">
+            <input
+              type="radio"
+              checked={selectedAlias === ""}
+              onChange={() => handleSelectProfile("")}
+            />
+            <span>No Profile</span>
+          </label>
+          {profiles.map((profile) => (
+            <div
+              key={profile.id}
+              className={`flex items-center space-x-2 border rounded-md px-3 py-2 ${
+                selectedAlias === profile.alias
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-300"
+              }`}
+            >
+              <input
+                type="radio"
+                checked={selectedAlias === profile.alias}
+                onChange={() => handleSelectProfile(profile.alias)}
+              />
+              <span className="font-semibold">{profile.alias}</span>
+              <button
+                className="ai-context-button edit"
+                onClick={() => handleEditProfile(profile)}
+                title="Edit"
+              >
+                ✎
+              </button>
+              <button
+                className="ai-context-button delete"
+                onClick={() => handleDeleteProfile(profile.alias)}
+                title="Delete"
+              >
+                x
+              </button>
+            </div>
+          ))}
+        </div>
+        {showProfileModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+              <h3 className="text-lg font-semibold mb-4">
+                {modalMode === "add" ? "Add Profile" : "Edit Profile"}
+              </h3>
+              <div className="mb-4">
+                <label
+                  className="block text-sm font-medium mb-1"
+                  style={{ marginRight: 10 }}
+                >
+                  Alias
+                </label>
+                <input
+                  type="text"
+                  value={profileAlias}
+                  onChange={(e) => setProfileAlias(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  style={{ width: 450, height: 46 }}
+                  disabled={modalMode === "edit"}
+                />
+              </div>
+              <div className="mb-4" style={{ marginTop: 15 }}>
+                <label className="block text-sm font-medium mb-1">Prompt</label>
+                <br />
+                <br />
+                <textarea
+                  value={profilePrompt}
+                  onChange={(e) => setProfilePrompt(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  rows={10}
+                  style={{ width: 645 }}
+                />
+              </div>
+              {profileError && (
+                <div className="text-red-600 mb-2">{profileError}</div>
+              )}
+              <div className="flex justify-end space-x-2">
+                <button
+                  className="px-4 py-2 text-gray-600 hover:text-black"
+                  onClick={() => setShowProfileModal(false)}
+                  style={{ marginRight: 10 }}
+                >
+                  Cancel
+                </button>
+                <button className="button" onClick={handleSaveProfile}>
+                  {modalMode === "add" ? "Add" : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {selectedAlias && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+            <hr />
+            <span className="font-semibold">
+              Current Active Profile on all Prompts:
+            </span>{" "}
+            {selectedAlias}
+          </div>
+        )}
       </div>
     </div>
   );

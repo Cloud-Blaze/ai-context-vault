@@ -1161,6 +1161,22 @@ export async function injectTextIntoTextarea(
   text,
   shouldSendAfterInjection = false
 ) {
+  // Inject active profile context if selected
+  let finalText = text;
+  try {
+    const storage = await import("../storage/contextStorage.js");
+    const selectedAlias = await storage.getCurrentProfileSelected();
+    if (selectedAlias) {
+      const profiles = await storage.getProfiles();
+      const profile = profiles.find((p) => p.alias === selectedAlias);
+      if (profile && profile.prompt) {
+        finalText = `${profile.prompt}\n\n` + text;
+      }
+    }
+  } catch (e) {
+    console.error("[AI Context Vault] Failed to inject profile context:", e);
+  }
+
   const textarea = findActiveTextarea();
   if (!textarea) {
     console.log("[AI Context Vault] No active textarea found");
@@ -1170,7 +1186,7 @@ export async function injectTextIntoTextarea(
   // Update the textarea
   if (textarea.tagName.toLowerCase() === "div") {
     // contenteditable div
-    const htmlContent = text.replace(
+    const htmlContent = finalText.replace(
       /\n/g,
       '<p><br class="ProseMirror-trailingBreak"></p>'
     );
@@ -1178,7 +1194,7 @@ export async function injectTextIntoTextarea(
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
   } else {
     // standard textarea
-    textarea.value = text;
+    textarea.value = finalText;
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
