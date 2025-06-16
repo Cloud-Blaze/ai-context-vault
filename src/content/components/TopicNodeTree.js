@@ -962,7 +962,7 @@ const TopicNodeTree = ({ onClose, onCloseCat }) => {
                 </div>
               </div>
               {/* Topics Panel */}
-              {!searchResults ? (
+              {!searchResults && !isSearching ? (
                 <div
                   ref={topicsRef}
                   onScroll={handleTopicsScroll}
@@ -1100,8 +1100,23 @@ const TopicNodeTree = ({ onClose, onCloseCat }) => {
                 </div>
               ) : null}
 
-              {/* Topics Panel Search */}
-              {searchResults ? (
+              {/* Topics Panel Searching */}
+              {isSearching ? (
+                <div
+                  ref={topicsRef}
+                  className="w-1/3 p-0 overflow-y-auto"
+                  style={{ height: "496px" }}
+                >
+                  <div
+                    className="sticky top-0 z-10 p-4"
+                    style={{ backgroundColor: "rgb(30, 30, 30)" }}
+                  >
+                    <h2 className="text-lg font-semibold text-gray-200">
+                      Searching Records...
+                    </h2>
+                  </div>
+                </div>
+              ) : searchResults ? (
                 <div
                   ref={topicsRef}
                   onScroll={handleTopicsScroll}
@@ -1113,7 +1128,7 @@ const TopicNodeTree = ({ onClose, onCloseCat }) => {
                     style={{ backgroundColor: "rgb(30, 30, 30)" }}
                   >
                     <h2 className="text-lg font-semibold text-gray-200">
-                      {searchResults ? "Search Results" : "Inject Prompt"}
+                      Search Results
                     </h2>
                   </div>
                   <div className="p-4 pt-0">
@@ -1178,8 +1193,6 @@ const TopicNodeTree = ({ onClose, onCloseCat }) => {
                             </button>
                           ))}
                       </div>
-                    ) : topicsLoading ? (
-                      <div className="text-gray-400">Loading topics...</div>
                     ) : topicData &&
                       topicData.length > 0 &&
                       topicData[0].topic ? (
