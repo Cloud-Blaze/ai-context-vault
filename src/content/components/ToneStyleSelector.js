@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { injectTextIntoTextarea } from "../inject";
+import { injectTextIntoTextarea, findActiveTextarea } from "../inject";
 
 const tones = [
   "Authoritative",
@@ -70,7 +70,23 @@ export default function ToneStyleSelector({ onClose }) {
   const handleSetTone = () => {
     if (tone && style) {
       const prompt = `Write in ${tone} tone and in a ${style} writing style.`;
-      injectTextIntoTextarea(prompt, false);
+
+      const textarea = findActiveTextarea();
+      if (!textarea) {
+        showConfirmationBubble("Could not find input area", "error");
+        return;
+      }
+
+      // Get the current content
+      let currentContent = "";
+      if (textarea.tagName.toLowerCase() === "div") {
+        // Handle contenteditable div
+        currentContent = textarea.innerText;
+      } else {
+        // Standard textarea
+        currentContent = textarea.value;
+      }
+      injectTextIntoTextarea(prompt + "\n\n" + currentContent, false);
       onClose();
     }
   };
@@ -78,7 +94,9 @@ export default function ToneStyleSelector({ onClose }) {
   return (
     <div className="flex flex-col h-[120px] p-4">
       <div className="flex justify-between items-center mb-2">
-        <h3 className="text-lg font-semibold text-gray-200">Tone and Style</h3>
+        <h3 className="text-lg font-semibold text-gray-200">
+          Tone and Style Helper
+        </h3>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-200">
           ×
         </button>

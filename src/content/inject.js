@@ -109,7 +109,7 @@ async function ensureOverlayExists() {
     closeButton.className = "ai-context-close";
 
     closeButton.addEventListener("click", function () {
-      overlayPanel.style.display = "none";
+      closeAllPopups();
     });
 
     header.appendChild(title);
@@ -1157,7 +1157,7 @@ function ensureSettingsButton(panel) {
 /**
  * Find the active textarea in ChatGPT's interface or a generic text field if needed.
  */
-function findActiveTextarea() {
+export function findActiveTextarea() {
   const possibleSelectors = [
     "textarea[data-id='root']", // ChatGPT
     "textarea.chat-input",
