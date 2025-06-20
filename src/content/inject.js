@@ -12,12 +12,12 @@ import {
   getContextKey,
   getTemplate,
 } from "../storage/contextStorage.js";
-import "./inject.css";
 import { GodModeStorage } from "../services/godModeStorage.js";
 import React from "react";
-import { createRoot } from "react-dom/client";
+import { ShadowDomWrapper } from "./shadowDomWrapper.js";
 import TopicNodeTree from "./components/TopicNodeTree";
 import ToneStyleSelector from "./components/ToneStyleSelector";
+import { createRoot } from "react-dom/client";
 
 let closeCategories = () => {};
 let closeToneStyle = () => {};
@@ -1021,6 +1021,10 @@ function setupKeyboardShortcuts() {
         if (!container) {
           container = document.createElement("div");
           container.id = "topic-node-tree-container";
+          container.style.position = "fixed";
+          container.style.top = "20px";
+          container.style.left = "20px";
+          container.style.zIndex = "2147483647";
           document.body.appendChild(container);
         }
 
@@ -1031,20 +1035,45 @@ function setupKeyboardShortcuts() {
         if (!toneStyleContainer) {
           toneStyleContainer = document.createElement("div");
           toneStyleContainer.id = "tone-style-container";
-          toneStyleContainer.style.height = "1px";
-          toneStyleContainer.className =
-            "fixed inset-0 flex items-start justify-center z-50";
+          toneStyleContainer.style.position = "fixed";
+          toneStyleContainer.style.top = "0";
+          toneStyleContainer.style.left = "0";
+          toneStyleContainer.style.width = "100%";
+          toneStyleContainer.style.height = "100%";
+          toneStyleContainer.style.zIndex = "2147483646";
           document.body.appendChild(toneStyleContainer);
         }
-        // Create root and render TopicNodeTree
+
+        // Load combined CSS if not already loaded
+        if (!document.getElementById("ai-context-combined-css")) {
+          const extensionId = chrome.runtime.id;
+          const link = document.createElement("link");
+          link.id = "ai-context-combined-css";
+          link.rel = "stylesheet";
+          link.href = `chrome-extension://${extensionId}/inject.css`;
+          document.head.appendChild(link);
+        }
+
+        console.log("[AI Context Vault] Creating TopicNodeTree React root...");
         const root = createRoot(container);
+        console.log(
+          "[AI Context Vault] TopicNodeTree React root created, rendering..."
+        );
+
         closeCategories = () => {
+          console.log("[AI Context Vault] Closing TopicNodeTree...");
           root.unmount();
           container.remove();
         };
 
-        // Create root and render ToneStyleSelector
+        console.log(
+          "[AI Context Vault] Creating ToneStyleSelector React root..."
+        );
         const toneStyleRoot = createRoot(toneStyleContainer);
+        console.log(
+          "[AI Context Vault] ToneStyleSelector React root created, rendering..."
+        );
+
         toneStyleRoot.render(
           <div
             className="relative w-full max-w-4xl rounded-lg shadow-xl border border-[#23272f] bg-[#23272f]"
@@ -1055,11 +1084,23 @@ function setupKeyboardShortcuts() {
         );
 
         closeToneStyle = () => {
+          console.log("[AI Context Vault] Closing ToneStyleSelector...");
           toneStyleRoot.unmount();
           toneStyleContainer.remove();
         };
 
-        root.render(<TopicNodeTree onClose={closeAllPopups} />);
+        console.log("[AI Context Vault] Rendering TopicNodeTree component...");
+        try {
+          root.render(<TopicNodeTree onClose={closeAllPopups} />);
+          console.log(
+            "[AI Context Vault] TopicNodeTree component rendered successfully"
+          );
+        } catch (error) {
+          console.error(
+            "[AI Context Vault] Error rendering TopicNodeTree:",
+            error
+          );
+        }
       }
     },
     true // Capture phase
@@ -1359,6 +1400,10 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (!container) {
       container = document.createElement("div");
       container.id = "topic-node-tree-container";
+      container.style.position = "fixed";
+      container.style.top = "20px";
+      container.style.left = "20px";
+      container.style.zIndex = "2147483647";
       document.body.appendChild(container);
     }
 
@@ -1367,14 +1412,43 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (!toneStyleContainer) {
       toneStyleContainer = document.createElement("div");
       toneStyleContainer.id = "tone-style-container";
-      toneStyleContainer.style.height = "1px";
-      toneStyleContainer.className =
-        "fixed inset-0 flex items-start justify-center z-50";
+      toneStyleContainer.style.position = "fixed";
+      toneStyleContainer.style.top = "0";
+      toneStyleContainer.style.left = "0";
+      toneStyleContainer.style.width = "100%";
+      toneStyleContainer.style.height = "100%";
+      toneStyleContainer.style.zIndex = "2147483646";
       document.body.appendChild(toneStyleContainer);
     }
 
-    // Create root and render ToneStyleSelector
+    // Load combined CSS if not already loaded
+    if (!document.getElementById("ai-context-combined-css")) {
+      const extensionId = chrome.runtime.id;
+      const link = document.createElement("link");
+      link.id = "ai-context-combined-css";
+      link.rel = "stylesheet";
+      link.href = `chrome-extension://${extensionId}/inject.css`;
+      document.head.appendChild(link);
+    }
+
+    console.log("[AI Context Vault] Creating TopicNodeTree React root...");
+    const root = createRoot(container);
+    console.log(
+      "[AI Context Vault] TopicNodeTree React root created, rendering..."
+    );
+
+    closeCategories = () => {
+      console.log("[AI Context Vault] Closing TopicNodeTree...");
+      root.unmount();
+      container.remove();
+    };
+
+    console.log("[AI Context Vault] Creating ToneStyleSelector React root...");
     const toneStyleRoot = createRoot(toneStyleContainer);
+    console.log(
+      "[AI Context Vault] ToneStyleSelector React root created, rendering..."
+    );
+
     toneStyleRoot.render(
       <div
         className="relative w-full max-w-4xl rounded-lg shadow-xl border border-[#23272f] bg-[#23272f]"
@@ -1384,13 +1458,47 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       </div>
     );
 
-    // Create root and render TopicNodeTree
-    const root = createRoot(container);
-    closeCategories = () => {
-      root.unmount();
-      container.remove();
+    closeToneStyle = () => {
+      console.log("[AI Context Vault] Closing ToneStyleSelector...");
+      toneStyleRoot.unmount();
+      toneStyleContainer.remove();
     };
-    root.render(<TopicNodeTree onClose={closeAllPopups} />);
+
+    console.log("[AI Context Vault] Rendering TopicNodeTree component...");
+    try {
+      root.render(<TopicNodeTree onClose={closeAllPopups} />);
+      console.log(
+        "[AI Context Vault] TopicNodeTree component rendered successfully"
+      );
+    } catch (error) {
+      console.error("[AI Context Vault] Error rendering TopicNodeTree:", error);
+      // Fallback: render a simple test component
+      root.render(
+        <div
+          style={{
+            background: "white",
+            color: "black",
+            padding: "20px",
+            border: "2px solid red",
+            position: "fixed",
+            top: "20px",
+            left: "20px",
+            zIndex: "2147483647",
+          }}
+        >
+          <h3>TopicNodeTree Test</h3>
+          <p>If you can see this, React is working</p>
+          <button
+            onClick={() => {
+              console.log("Test button clicked");
+              closeAllPopups();
+            }}
+          >
+            Close
+          </button>
+        </div>
+      );
+    }
   }
   if (message.type === "REFRESH_OVERLAY") {
     console.log("[AI Context Vault] Refreshing overlay content");

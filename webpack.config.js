@@ -7,10 +7,12 @@ module.exports = {
     background: "./src/background/background.js",
     inject: "./src/content/inject.js",
     options: "./src/options/options.js",
+    "inject-combined": "./src/content/inject-combined.css",
   },
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "[name].bundle.js",
+    publicPath: "",
     clean: true,
   },
   devtool: "source-map",
@@ -28,7 +30,7 @@ module.exports = {
       },
       {
         test: /\.css$/i,
-        use: [MiniCssExtractPlugin.loader, "css-loader"],
+        use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
       },
     ],
   },
@@ -44,6 +46,25 @@ module.exports = {
         },
       ],
     }),
+    // Custom plugin to copy the generated CSS file
+    {
+      apply: (compiler) => {
+        compiler.hooks.afterEmit.tap("CopyCSSPlugin", (compilation) => {
+          const fs = require("fs");
+          const sourcePath = path.join(
+            __dirname,
+            "dist",
+            "inject-combined.css"
+          );
+          const targetPath = path.join(__dirname, "dist", "inject.css");
+
+          if (fs.existsSync(sourcePath)) {
+            fs.copyFileSync(sourcePath, targetPath);
+            console.log("Copied inject-combined.css to inject.css");
+          }
+        });
+      },
+    },
   ],
   resolve: {
     extensions: [".js", ".jsx"],
