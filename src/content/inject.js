@@ -1050,7 +1050,7 @@ function setupKeyboardShortcuts() {
         const toneStyleRoot = createRoot(toneStyleContainer);
         toneStyleRoot.render(
           <div
-            className="fixed inset-0 flex items-start justify-center z-50"
+            className="fixed inset-0 flex items-start justify-center z-25"
             style={{
               height: "1px",
               pointerEvents: "none",

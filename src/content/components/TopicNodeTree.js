@@ -1221,7 +1221,7 @@ const TopicNodeTree = ({ onClose }) => {
           />
           <div
             className="relative bg-[#23272f] rounded-lg shadow-xl border border-gray-700 p-6 w-full max-w-2xl"
-            style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+            style={{ backgroundColor: "rgba(0, 0, 0)" }}
           >
             <h3 className="text-lg font-semibold text-gray-200 mb-4">
               {isEditing ? "Edit Custom Prompt" : "Add Custom Prompt"}
