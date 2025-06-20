@@ -1050,7 +1050,7 @@ function setupKeyboardShortcuts() {
         const toneStyleRoot = createRoot(toneStyleContainer);
         toneStyleRoot.render(
           <div
-            className="fixed inset-0 flex items-start justify-center z-25"
+            className="fixed inset-0 flex items-start justify-center z-50"
             style={{
               height: "1px",
               pointerEvents: "none",
@@ -1077,7 +1077,12 @@ function setupKeyboardShortcuts() {
 
         console.log("[AI Context Vault] Rendering TopicNodeTree component...");
         try {
-          root.render(<TopicNodeTree onClose={closeAllPopups} />);
+          root.render(
+            <TopicNodeTree
+              onClose={closeAllPopups}
+              closeToneStyle={closeToneStyle}
+            />
+          );
           console.log(
             "[AI Context Vault] TopicNodeTree component rendered successfully"
           );

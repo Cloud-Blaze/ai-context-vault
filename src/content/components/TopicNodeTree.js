@@ -18,7 +18,7 @@ import {
 
 const VAULT_BORDER = "border-[#23272f]";
 
-const TopicNodeTree = ({ onClose }) => {
+const TopicNodeTree = ({ onClose, closeToneStyle }) => {
   const [topics, setTopics] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -114,6 +114,13 @@ const TopicNodeTree = ({ onClose }) => {
     };
     restoreScrollPositions();
   }, []);
+
+  // Call closeToneStyle when showAddPromptPopup becomes true
+  useEffect(() => {
+    if (showAddPromptPopup) {
+      closeToneStyle();
+    }
+  }, [showAddPromptPopup, closeToneStyle]);
 
   // Load super categories and their click counts
   useEffect(() => {
