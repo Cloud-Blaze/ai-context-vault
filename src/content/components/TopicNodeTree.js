@@ -132,25 +132,10 @@ const TopicNodeTree = ({ onClose }) => {
           "super_category_clicks"
         );
         let sorted = data;
-        if (super_category_clicks) {
-          setSuperCategoryClicks(super_category_clicks);
-          // 1. All always first
-          // 2. Then by click count (desc)
-          // 3. Then alphabetically
-          sorted = [...data].sort((a, b) => {
-            if (a.name === "All") return -1;
-            if (b.name === "All") return 1;
-            const clicksA = super_category_clicks[a.name] || 0;
-            const clicksB = super_category_clicks[b.name] || 0;
-            if (clicksA !== clicksB) return clicksB - clicksA;
-            return a.name.localeCompare(b.name);
-          });
-        }
-        sorted.forEach((superCat, i) => {
-          if (super_category_clicks && super_category_clicks[superCat.name]) {
-            sorted[i].name =
-              superCat.name + "(" + super_category_clicks[superCat.name] + ")";
-          }
+        sorted = [...data].sort((a, b) => {
+          if (a.name === "All") return -1;
+          if (b.name === "All") return 1;
+          return a.name.localeCompare(b.name);
         });
         setSuperCategories(sorted);
       } catch (error) {
@@ -790,20 +775,23 @@ const TopicNodeTree = ({ onClose }) => {
                               : "hover:opacity-90"
                           }`}
                           style={{
-                            backgroundColor: isSelected
-                              ? "#22c55e"
-                              : superCat.color,
+                            backgroundColor: isSelected ? "#22c55e" : "#ebebeb",
                             color: isSelected ? "#fff" : "#000",
-                            minWidth: "fit-content",
+                            minWidth: 207,
+                            maxWidth: 207,
                           }}
                         >
                           <span
                             className="mr-1.5"
-                            style={{ fontSize: "1.5em", lineHeight: 1 }}
+                            style={{
+                              fontSize: "1.5em",
+                              lineHeight: 1,
+                              marginRight: 4,
+                            }}
                           >
                             {superCat.icon}
                           </span>
-                          {superCat.name}
+                          {truncateMessage(superCat.name, 28)}
                         </button>
                       );
                     })}
@@ -842,32 +830,26 @@ const TopicNodeTree = ({ onClose }) => {
                         <button
                           key={category}
                           onClick={() => handleCategoryClick(category)}
-                          className={`w-full text-left px-3 py-2 rounded-md transition-colors font-semibold flex items-center${
+                          className={`w-full text-left px-3 py-2 rounded-md transition-colors font-semibold ${
                             selectedCategory === category
-                              ? " bg-green-400 text-black"
-                              : " text-gray-300 hover:bg-gray-700"
+                              ? "bg-green-400"
+                              : "hover:bg-gray-700"
                           }`}
-                          style={{ minHeight: "50px" }}
+                          style={{
+                            minHeight: "50px",
+                            color:
+                              selectedCategory === category
+                                ? "#000"
+                                : isCategoryVisited(category)
+                                ? "#A78BFA"
+                                : "#d1d5db",
+                            textDecoration:
+                              isCategoryVisited(category) &&
+                              selectedCategory !== category
+                                ? "underline"
+                                : "none",
+                          }}
                         >
-                          {isCategoryVisited(category) && (
-                            <svg
-                              className="mr-2 flex-shrink-0"
-                              width="20"
-                              height="20"
-                              viewBox="0 0 20 20"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <circle cx="10" cy="10" r="10" fill="#22c55e" />
-                              <path
-                                d="M6 10.5L9 13.5L14 8.5"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          )}
                           {category}
                         </button>
                       ))}
@@ -905,40 +887,31 @@ const TopicNodeTree = ({ onClose }) => {
                                 onClick={() =>
                                   handleSubcategoryClick(subcategory)
                                 }
-                                className={`flex-1 text-left px-3 py-2 rounded-md transition-colors font-semibold flex items-center${
+                                className={`flex-1 text-left px-3 py-2 rounded-md transition-colors font-semibold ${
                                   selectedSubcategory === subcategory
-                                    ? " bg-green-400 text-black"
-                                    : " text-gray-300 hover:bg-gray-700"
+                                    ? "bg-green-400"
+                                    : "hover:bg-gray-700"
                                 }`}
-                                style={{ minHeight: "50px" }}
+                                style={{
+                                  minHeight: "50px",
+                                  color:
+                                    selectedSubcategory === subcategory
+                                      ? "#000"
+                                      : isSubcategoryVisited(
+                                          selectedCategory,
+                                          subcategory
+                                        )
+                                      ? "#A78BFA"
+                                      : "#d1d5db",
+                                  textDecoration:
+                                    isSubcategoryVisited(
+                                      selectedCategory,
+                                      subcategory
+                                    ) && selectedSubcategory !== subcategory
+                                      ? "underline"
+                                      : "none",
+                                }}
                               >
-                                {isSubcategoryVisited(
-                                  selectedCategory,
-                                  subcategory
-                                ) && (
-                                  <svg
-                                    className="mr-2 flex-shrink-0"
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 20 20"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                  >
-                                    <circle
-                                      cx="10"
-                                      cy="10"
-                                      r="10"
-                                      fill="#22c55e"
-                                    />
-                                    <path
-                                      d="M6 10.5L9 13.5L14 8.5"
-                                      stroke="white"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </svg>
-                                )}
                                 {mergedTopics[selectedCategory][subcategory]
                                   .name || subcategory}
                               </button>
@@ -1067,39 +1040,20 @@ const TopicNodeTree = ({ onClose }) => {
                               <button
                                 key={topic.id}
                                 onClick={() => handleTopicClick(topic)}
-                                className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                                className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-700 transition-colors cursor-pointer border-2 border-[#ebebeb]"
                                 style={{
                                   minHeight: "90px",
                                   border: "2px solid #ebebeb",
-                                  borderWidth: "2px",
-                                  borderStyle: "solid",
-                                  borderColor: "#ebebeb",
+                                  color: visitedTopics.includes(topic.topic)
+                                    ? "#A78BFA"
+                                    : "#d1d5db",
+                                  textDecoration: visitedTopics.includes(
+                                    topic.topic
+                                  )
+                                    ? "underline"
+                                    : "none",
                                 }}
                               >
-                                {visitedTopics.includes(topic.topic) && (
-                                  <svg
-                                    className="mr-2 flex-shrink-0"
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 20 20"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                  >
-                                    <circle
-                                      cx="10"
-                                      cy="10"
-                                      r="10"
-                                      fill="#22c55e"
-                                    />
-                                    <path
-                                      d="M6 10.5L9 13.5L14 8.5"
-                                      stroke="white"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </svg>
-                                )}
                                 {topic.topic}
                               </button>
                             );
@@ -1192,39 +1146,20 @@ const TopicNodeTree = ({ onClose }) => {
                             <button
                               key={topic.id}
                               onClick={() => handleTopicClick(topic)}
-                              className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                              className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-700 transition-colors cursor-pointer border-2 border-[#ebebeb]"
                               style={{
                                 minHeight: "50px",
                                 border: "2px solid #ebebeb",
-                                borderWidth: "2px",
-                                borderStyle: "solid",
-                                borderColor: "#ebebeb",
+                                color: visitedTopics.includes(topic.topic)
+                                  ? "#A78BFA"
+                                  : "#d1d5db",
+                                textDecoration: visitedTopics.includes(
+                                  topic.topic
+                                )
+                                  ? "underline"
+                                  : "none",
                               }}
                             >
-                              {visitedTopics.includes(topic.topic) && (
-                                <svg
-                                  className="mr-2 flex-shrink-0"
-                                  width="20"
-                                  height="20"
-                                  viewBox="0 0 20 20"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                >
-                                  <circle
-                                    cx="10"
-                                    cy="10"
-                                    r="10"
-                                    fill="#22c55e"
-                                  />
-                                  <path
-                                    d="M6 10.5L9 13.5L14 8.5"
-                                    stroke="white"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              )}
                               {topic.topic}
                             </button>
                           ))}
@@ -1241,39 +1176,20 @@ const TopicNodeTree = ({ onClose }) => {
                               <button
                                 key={topic.id}
                                 onClick={() => handleTopicClick(topic)}
-                                className="w-full text-left px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 transition-colors flex items-center cursor-pointer border-2 border-[#ebebeb]"
+                                className="w-full text-left px-3 py-2 rounded-md hover:bg-gray-700 transition-colors cursor-pointer border-2 border-[#ebebeb]"
                                 style={{
                                   minHeight: "90px",
                                   border: "2px solid #ebebeb",
-                                  borderWidth: "2px",
-                                  borderStyle: "solid",
-                                  borderColor: "#ebebeb",
+                                  color: visitedTopics.includes(topic.topic)
+                                    ? "#A78BFA"
+                                    : "#d1d5db",
+                                  textDecoration: visitedTopics.includes(
+                                    topic.topic
+                                  )
+                                    ? "underline"
+                                    : "none",
                                 }}
                               >
-                                {visitedTopics.includes(topic.topic) && (
-                                  <svg
-                                    className="mr-2 flex-shrink-0"
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 20 20"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                  >
-                                    <circle
-                                      cx="10"
-                                      cy="10"
-                                      r="10"
-                                      fill="#22c55e"
-                                    />
-                                    <path
-                                      d="M6 10.5L9 13.5L14 8.5"
-                                      stroke="white"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </svg>
-                                )}
                                 {topic.topic}
                               </button>
                             );

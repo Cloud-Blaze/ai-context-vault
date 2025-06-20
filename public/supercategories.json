@@ -1,6 +1,6 @@
 [
   {
-    "name": "Biz Social Media Marketing & Branding",
+    "name": "Biz Social Media & Brand",
     "description": "Business questions on creating engaging content and storytelling techniques.",
     "icon": "✍️",
     "color": "#FFDFBA",
@@ -33,16 +33,6 @@
     ]
   },
   {
-    "name": "Biz General",
-    "description": "General business questions covering a wide range of foundational topics.",
-    "icon": "📋",
-    "color": "#FFFFBA",
-    "includes": [
-      "Business Questions - General",
-      "Business Questions - Miscellaneous"
-    ]
-  },
-  {
     "name": "Science & Research",
     "description": "Fundamental natural and physical sciences, research methods, and discoveries.",
     "icon": "🔬",
@@ -52,6 +42,8 @@
       "Advanced Neuroscience & Brain Interfaces",
       "Advanced Sciences & Research",
       "Archival Science",
+      "Carbon Management",
+      "Carbon Sequestration",
       "Astrobiology",
       "Astronomy",
       "Astronomy & Stargazing",
@@ -73,9 +65,6 @@
       "Conflict Resolution (Advanced)",
       "Conservation Biology",
       "Cosmology (Non-Religious)",
-      "Data Science & Analytics",
-      "Data Science (General)",
-      "Data Science Foundations",
       "Earth Science",
       "Ecology (Advanced)",
       "Food Science",
@@ -85,6 +74,7 @@
       "Historical Fiction",
       "History of Science",
       "Human Resources (Advanced)",
+      "Galaxy Formation",
       "Introductory Astronomy & Space Topics",
       "Library Science",
       "Life Milestones & Transitions",
@@ -111,11 +101,13 @@
     ]
   },
   {
-    "name": "Business Questions",
+    "name": "Biz Questions",
     "description": "Business questions on creating engaging content and storytelling techniques.",
     "icon": "✍️",
     "color": "#C8E6C9",
     "includes": [
+      "Business Questions - General",
+      "Business Questions - Miscellaneous",
       "Business Questions - General",
       "Business Questions - Miscellaneous",
       "Business Questions - Social Media",
@@ -126,15 +118,15 @@
     ]
   },
   {
-    "name": "Biz Engineering & Technology",
+    "name": "Biz Engineering & Tech",
     "description": "Applied engineering disciplines and emerging automation technologies.",
     "icon": "🛠️",
     "color": "#FFD1DC",
     "includes": [
       "Business Questions - Tech",
-      "Advanced Software Engineering",
       "Aerospace Engineering",
       "Architectural Engineering",
+      "AutoML",
       "Automation",
       "Biomedical Engineering",
       "Chemical & Process Engineering",
@@ -143,19 +135,14 @@
       "Civil Engineering",
       "Consumer Electronics",
       "Cyber-Physical Systems",
-      "Distributed Systems",
       "Earthquake Engineering",
       "Electrical & Electronics Engineering",
       "Electrical Engineering",
       "Engineering & Industrial Tech",
       "Environmental Engineering",
       "Green Technology",
-      "IT Infrastructure",
       "Industrial & Manufacturing Engineering (Advanced)",
       "Industrial Engineering",
-      "Information Technology",
-      "Infrastructure Automation",
-      "Infrastructure as Code",
       "Kids Robotics",
       "Marine Engineering",
       "Mechanical & Mechatronics Engineering",
@@ -169,9 +156,6 @@
       "Robotics & Advanced Automation",
       "Space Robotics",
       "Swarm Robotics",
-      "Systems Administration",
-      "Systems Engineering & Integration",
-      "Technology & Innovation",
       "Technology Trends"
     ]
   },
@@ -195,12 +179,15 @@
     ]
   },
   {
-    "name": "Biz Software Development",
+    "name": "Software Development",
     "description": "Software engineering practices, programming, and application development.",
     "icon": "💻",
     "color": "#FBC9F9",
     "includes": [
+      "Kanban",
+      "Kubernetes",
       "C Programming",
+      "Containerization",
       "C++ Programming",
       "Consulting Freelancing",
       "Curriculum Development",
@@ -208,6 +195,18 @@
       "Freelancing",
       "Game Development",
       "Go Programming",
+      "Systems Administration",
+      "Systems Engineering & Integration",
+      "Infrastructure Automation",
+      "Infrastructure as Code",
+      "Information Technology",
+      "IT Infrastructure",
+      "Distributed Systems",
+      "Advanced Software Engineering",
+      "Data Science & Analytics",
+      "Data Science (General)",
+      "Data Science Foundations",
+      "Technology & Innovation",
       "Java Programming",
       "JavaScript Programming",
       "Kotlin Programming",
@@ -677,11 +676,12 @@
     "includes": [
       "Geopolitics & World Affairs",
       "Government & Public Policy",
+      "Estate Planning",
       "Law & Justice"
     ]
   },
   {
-    "name": "Environment & Earth Sciences",
+    "name": "Environment & Earth Sci",
     "description": "Earth systems, climate science, and environmental studies.",
     "icon": "🌍",
     "color": "#F0FFF0",
@@ -727,7 +727,6 @@
     "icon": "🏋️",
     "color": "#F5F5DC",
     "includes": [
-      "Cognitive Exercises",
       "E-sports & Competitive Gaming",
       "Extreme Sports",
       "Fitness Competitions",
@@ -742,7 +741,6 @@
       "Sports Coaching",
       "Sports Psychology",
       "Team Sports (Non-Political)",
-      "Trading Cards (Sports)",
       "Transportation (General)",
       "Urban Mobility",
       "Urban Transportation & Mobility",
@@ -763,7 +761,6 @@
       "Eco-Friendly Living",
       "Eco-Friendly Products",
       "Eco-Tourism",
-      "Estate Planning",
       "Event Planning",
       "Heritage Tourism",
       "Hospitality",
@@ -790,6 +787,7 @@
       "Cooking Techniques",
       "Customer Service",
       "Food & Culinary",
+      "Artisanal Bread",
       "Food (General)",
       "Stir-Frying",
       "Food and Beverage Service",
@@ -813,6 +811,11 @@
       "Community Outreach",
       "Digital Nomad Lifestyle",
       "Disaster Recovery",
+      "Camping",
+      "Festival Planning",
+      "Festivals and Celebrations (non-religious)",
+      "Minimalism",
+      "Van Life",
       "Digital Detox",
       "Disaster Resilience",
       "Discord Communities",
@@ -850,7 +853,7 @@
     ]
   },
   {
-    "name": "DIY & Home Improvement",
+    "name": "Home Improvement",
     "description": "Do-it-yourself projects, home repairs, and crafting guides.",
     "icon": "🔨",
     "color": "#FFFEDB",
@@ -883,6 +886,7 @@
     "color": "#FFEEF4",
     "includes": [
       "Board Games",
+      "Cognitive Exercises",
       "Board Games & Tabletop RPGs",
       "Board Governance",
       "Game Streaming",
@@ -917,7 +921,7 @@
     ]
   },
   {
-    "name": "Biz Careers & Development",
+    "name": "Biz Careers & Dev",
     "description": "Guidance for career growth, job-seeking, and professional skills.",
     "icon": "🧑‍💼",
     "color": "#B3E5FC",
@@ -934,7 +938,7 @@
     ]
   },
   {
-    "name": "Biz Personal Development",
+    "name": "Personal Development",
     "description": "Self-improvement, mindset, and personal growth strategies.",
     "icon": "🌱",
     "color": "#FFECB3",
@@ -1095,7 +1099,7 @@
     ]
   },
   {
-    "name": "Academic Skills & Research",
+    "name": "Acad. Skills & Research",
     "description": "Research methods, educational techniques, and academic integrity.",
     "icon": "📚",
     "color": "#FFF9C4",
@@ -1145,19 +1149,6 @@
     ]
   },
   {
-    "name": "Lifestyle & Recreation",
-    "description": "Leisure, lifestyle trends, and recreational activities.",
-    "icon": "🎉",
-    "color": "#FFE0B2",
-    "includes": [
-      "Camping",
-      "Festival Planning",
-      "Festivals and Celebrations (non-religious)",
-      "Minimalism",
-      "Van Life"
-    ]
-  },
-  {
     "name": "Ethics & Rituals",
     "description": "Guidance on ethical principles, professional conduct, and ceremonial practices.",
     "icon": "⚖️",
@@ -1197,7 +1188,7 @@
     ]
   },
   {
-    "name": "Collectibles & Collections",
+    "name": "Collectibles",
     "description": "Hobbyist topics focused on collecting various items and collectibles.",
     "icon": "🏺",
     "color": "#FFF9C4",
@@ -1214,6 +1205,7 @@
       "Macramé",
       "Woodworking",
       "Collecting (Advanced)",
+      "Trading Cards (Sports)",
       "Comic Book Collecting",
       "Comic Book Collecting (Detailed)",
       "Action Figures",
@@ -1281,7 +1273,6 @@
       "Anti-Inflammatory Diets",
       "Antique Furniture",
       "Augmented Reality",
-      "AutoML",
       "Autobiographies",
       "Ballet",
       "Bilingualism",
@@ -1298,7 +1289,6 @@
       "Composting",
       "Confectionery",
       "Consulting",
-      "Containerization",
       "Cosmic Microwave Background",
       "Criminology",
       "Crowdfunding",
@@ -1332,7 +1322,6 @@
       "Forum Moderation",
       "Franchising",
       "Fundraising",
-      "Galaxy Formation",
       "Gamification",
       "Gentrification (Socioeconomic)",
       "Geomorphology",
@@ -1354,8 +1343,6 @@
       "Internet of Things",
       "Invasive Species",
       "Journaling",
-      "Kanban",
-      "Kubernetes",
       "Latch Hooking",
       "Livestreaming",
       "Logic",
@@ -1430,12 +1417,9 @@
       "Information Literacy",
       "Historic Preservation",
       "Bioethics (Secular)",
-      "Carbon Management",
-      "Carbon Sequestration",
       "Cartography",
       "Archaeological Field Techniques",
       "Archaeological Preservation",
-      "Artisanal Bread",
       "Baroque Art",
       "Animal Ethics (Secular)",
       "Archaeobotany",
