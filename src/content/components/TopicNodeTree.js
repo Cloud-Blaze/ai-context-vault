@@ -689,8 +689,13 @@ const TopicNodeTree = ({ onClose }) => {
                 </div>
                 {/* Super Categories */}
                 <div className="flex items-center space-x-2">
-                  <span className="text-gray-300 font-medium whitespace-nowrap">
-                    Group:
+                  <span
+                    className="text-lg font-semibold text-gray-200 whitespace-nowrap"
+                    style={{
+                      marginBottom: 22,
+                    }}
+                  >
+                    Topic:
                   </span>
                   {/* Show red X to clear filter if not All */}
                   {selectedSuperCategory &&
@@ -705,6 +710,7 @@ const TopicNodeTree = ({ onClose }) => {
                           border: "none",
                           background: "transparent",
                           cursor: "pointer",
+                          marginBottom: 24,
                         }}
                       >
                         <svg
@@ -724,43 +730,41 @@ const TopicNodeTree = ({ onClose }) => {
                         </svg>
                       </button>
                     )}
-                  <div className="flex space-x-2 overflow-x-auto pb-2">
-                    {/* All pill always first */}
-                    <button
-                      key={ALL_SUPER_CATEGORY.name}
-                      onClick={() =>
-                        setSelectedSuperCategory(ALL_SUPER_CATEGORY)
-                      }
-                      className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  {/* All pill always first and static */}
+                  <button
+                    key={ALL_SUPER_CATEGORY.name}
+                    onClick={() => setSelectedSuperCategory(ALL_SUPER_CATEGORY)}
+                    className={`flex-shrink-0 flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                      !selectedSuperCategory ||
+                      selectedSuperCategory.name === "All"
+                        ? "bg-green-400 text-white"
+                        : "hover:opacity-90"
+                    }`}
+                    style={{
+                      marginBottom: 22,
+                      backgroundColor:
                         !selectedSuperCategory ||
                         selectedSuperCategory.name === "All"
-                          ? "bg-green-400 text-white"
-                          : "hover:opacity-90"
-                      }`}
-                      style={{
-                        backgroundColor:
-                          !selectedSuperCategory ||
-                          selectedSuperCategory.name === "All"
-                            ? "#22c55e"
-                            : ALL_SUPER_CATEGORY.color,
-                        color:
-                          !selectedSuperCategory ||
-                          selectedSuperCategory.name === "All"
-                            ? "#fff"
-                            : "#fff",
-                        minWidth: "fit-content",
-                        marginLeft: 15,
-                        marginTop: 3,
-                      }}
+                          ? "#22c55e"
+                          : ALL_SUPER_CATEGORY.color,
+                      color:
+                        !selectedSuperCategory ||
+                        selectedSuperCategory.name === "All"
+                          ? "#fff"
+                          : "#fff",
+                      minWidth: "fit-content",
+                      marginTop: 3,
+                    }}
+                  >
+                    <span
+                      className="mr-1.5"
+                      style={{ fontSize: "1.5em", lineHeight: 1 }}
                     >
-                      <span
-                        className="mr-1.5"
-                        style={{ fontSize: "1.5em", lineHeight: 1 }}
-                      >
-                        {ALL_SUPER_CATEGORY.icon}
-                      </span>
-                      {ALL_SUPER_CATEGORY.name}
-                    </button>
+                      {ALL_SUPER_CATEGORY.icon}
+                    </span>
+                    {ALL_SUPER_CATEGORY.name}
+                  </button>
+                  <div className="flex space-x-2 overflow-x-auto pb-2">
                     {/* Render the rest of the super categories */}
                     {superCategories.map((superCat) => {
                       const isSelected =
@@ -841,7 +845,7 @@ const TopicNodeTree = ({ onClose }) => {
                               selectedCategory === category
                                 ? "#000"
                                 : isCategoryVisited(category)
-                                ? "#A78BFA"
+                                ? "#64B5F6"
                                 : "#d1d5db",
                             textDecoration:
                               isCategoryVisited(category) &&
@@ -901,7 +905,7 @@ const TopicNodeTree = ({ onClose }) => {
                                           selectedCategory,
                                           subcategory
                                         )
-                                      ? "#A78BFA"
+                                      ? "#64B5F6"
                                       : "#d1d5db",
                                   textDecoration:
                                     isSubcategoryVisited(
@@ -1045,7 +1049,7 @@ const TopicNodeTree = ({ onClose }) => {
                                   minHeight: "90px",
                                   border: "2px solid #ebebeb",
                                   color: visitedTopics.includes(topic.topic)
-                                    ? "#A78BFA"
+                                    ? "#64B5F6"
                                     : "#d1d5db",
                                   textDecoration: visitedTopics.includes(
                                     topic.topic
@@ -1151,7 +1155,7 @@ const TopicNodeTree = ({ onClose }) => {
                                 minHeight: "50px",
                                 border: "2px solid #ebebeb",
                                 color: visitedTopics.includes(topic.topic)
-                                  ? "#A78BFA"
+                                  ? "#64B5F6"
                                   : "#d1d5db",
                                 textDecoration: visitedTopics.includes(
                                   topic.topic
@@ -1181,7 +1185,7 @@ const TopicNodeTree = ({ onClose }) => {
                                   minHeight: "90px",
                                   border: "2px solid #ebebeb",
                                   color: visitedTopics.includes(topic.topic)
-                                    ? "#A78BFA"
+                                    ? "#64B5F6"
                                     : "#d1d5db",
                                   textDecoration: visitedTopics.includes(
                                     topic.topic
