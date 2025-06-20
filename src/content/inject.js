@@ -1286,10 +1286,27 @@ async function injectContextIntoTextarea(shouldSendAfterInjection = false) {
   const { domain, chatId } = parseUrlForIds(window.location.href);
   const contextData = await getContext(domain, chatId);
   const formattedContext = formatContextForPrompt(contextData);
+  const selectedAlias = await storage.getCurrentProfileSelected();
+  let hasSelectedProfileOnly = false;
+  let hasSelectedProfile = false;
+  if (selectedAlias) {
+    const profiles = await storage.getProfiles();
+    const profile = profiles.find((p) => p.alias === selectedAlias);
+    if (profile && profile.prompt) {
+      hasSelectedProfile = true;
+    }
+  }
 
-  if (!formattedContext) {
-    showConfirmationBubble("No context available to inject", "warning");
+  if (!formattedContext && !hasSelectedProfile) {
+    showConfirmationBubble(
+      "No context or profile available to inject",
+      "warning"
+    );
     return;
+  }
+
+  if (!formattedContext && hasSelectedProfile) {
+    hasSelectedProfileOnly = true;
   }
 
   // Get current timestamp
@@ -1302,7 +1319,7 @@ async function injectContextIntoTextarea(shouldSendAfterInjection = false) {
   );
 
   // Construct the new content
-  const newContent =
+  let newContent =
     "‼️ CONTEXT PROTOCOL - HIGHEST PRIORITY:\n\n" +
     formattedContext +
     contextInjectionTemplate +
@@ -1311,6 +1328,9 @@ async function injectContextIntoTextarea(shouldSendAfterInjection = false) {
     currentContent +
     '"';
 
+  if (hasSelectedProfileOnly) {
+    newContent = currentContent;
+  }
   await injectTextIntoTextarea(newContent, shouldSendAfterInjection);
 
   if (shouldSendAfterInjection) {

@@ -118,52 +118,107 @@ func SearchPrompts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var results []Prompt
-	for _, p := range promptsCache {
-		if strings.Contains(strings.ToLower(p.Category), query) {
-			p.MatchedCategory = true
-		} else {
-			p.MatchedCategory = false
+	trimmedQuery := strings.TrimSpace(query)
+	if !strings.Contains(trimmedQuery, " ") {
+		if err := loadPrompts(); err != nil {
+			http.Error(w, "Failed to load prompts: "+err.Error(), 500)
+			return
 		}
-		if strings.Contains(strings.ToLower(p.Subcategory), query) {
-			p.MatchedSubcategory = true
-		} else {
-			p.MatchedSubcategory = false
-		}
-		if strings.Contains(strings.ToLower(p.SystemMessage), query) {
-			p.MatchedSystemMessage = true
-		} else {
-			p.MatchedSystemMessage = false
+		if err := loadPromptsQ(); err != nil {
+			http.Error(w, "Failed to load loadPromptsQ: "+err.Error(), 500)
+			return
 		}
 
-		// Check if any keyword matches
-		keywordMatch := false
-		for _, keyword := range p.Keywords {
-			if strings.Contains(strings.ToLower(keyword), query) {
-				keywordMatch = true
-				break
+		var results []Prompt
+		for _, p := range promptsCache {
+			if strings.Contains(strings.ToLower(p.Category), trimmedQuery) {
+				p.MatchedCategory = true
+			} else {
+				p.MatchedCategory = false
+			}
+			if strings.Contains(strings.ToLower(p.Subcategory), trimmedQuery) {
+				p.MatchedSubcategory = true
+			} else {
+				p.MatchedSubcategory = false
+			}
+			if strings.Contains(strings.ToLower(p.SystemMessage), trimmedQuery) {
+				p.MatchedSystemMessage = true
+			} else {
+				p.MatchedSystemMessage = false
+			}
+
+			// Check if any keyword matches
+			keywordMatch := false
+			for _, keyword := range p.Keywords {
+				if strings.Contains(strings.ToLower(keyword), trimmedQuery) {
+					keywordMatch = true
+					break
+				}
+			}
+
+			if strings.Contains(strings.ToLower(p.Category), trimmedQuery) ||
+				strings.Contains(strings.ToLower(p.Subcategory), trimmedQuery) ||
+				strings.Contains(strings.ToLower(p.SystemMessage), trimmedQuery) ||
+				keywordMatch {
+				results = append(results, p)
 			}
 		}
 
-		if strings.Contains(strings.ToLower(p.Category), query) ||
-			strings.Contains(strings.ToLower(p.Subcategory), query) ||
-			strings.Contains(strings.ToLower(p.SystemMessage), query) ||
-			keywordMatch {
-			results = append(results, p)
+		var resultsQ []PromptQ
+		for _, p := range promptsCacheQ {
+			if strings.Contains(strings.ToLower(p.Q), trimmedQuery) {
+				resultsQ = append(resultsQ, p)
+			}
 		}
 
-	}
-
-	var resultsQ []PromptQ
-	for _, p := range promptsCacheQ {
-		if strings.Contains(strings.ToLower(p.Q), query) {
-			resultsQ = append(resultsQ, p)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"results":  results,
+			"resultsQ": resultsQ,
+		})
+	} else {
+		// Query contains space: split and require all words in SystemMessage (AND logic)
+		words := strings.Fields(trimmedQuery)
+		var results []Prompt
+		for _, p := range promptsCache {
+			sysMsg := strings.ToLower(p.SystemMessage)
+			allWordsPresent := true
+			for _, word := range words {
+				if !strings.Contains(sysMsg, word) {
+					allWordsPresent = false
+					break
+				}
+			}
+			if allWordsPresent {
+				p.MatchedSystemMessage = true
+				results = append(results, p)
+			} else {
+				p.MatchedSystemMessage = false
+			}
+			// Still set category/subcategory matches for highlighting
+			if strings.Contains(strings.ToLower(p.Category), trimmedQuery) {
+				p.MatchedCategory = true
+			} else {
+				p.MatchedCategory = false
+			}
+			if strings.Contains(strings.ToLower(p.Subcategory), trimmedQuery) {
+				p.MatchedSubcategory = true
+			} else {
+				p.MatchedSubcategory = false
+			}
 		}
-	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"results":  results,
-		"resultsQ": resultsQ,
-	})
+		var resultsQ []PromptQ
+		for _, p := range promptsCacheQ {
+			if strings.Contains(strings.ToLower(p.Q), trimmedQuery) {
+				resultsQ = append(resultsQ, p)
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"results":  results,
+			"resultsQ": resultsQ,
+		})
+	}
 }
