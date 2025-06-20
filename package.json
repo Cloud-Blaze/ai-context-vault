@@ -1,6 +1,6 @@
 {
   "name": "ai-context-vault",
-  "version": "1.0.36",
+  "version": "1.0.37",
   "description": "Chrome extension to store and auto-inject user context into AI chat interfaces.",
   "scripts": {
     "generate-icons": "bash scripts/generate-icons.sh",
