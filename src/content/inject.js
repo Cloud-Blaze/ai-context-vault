@@ -103,7 +103,7 @@ function formatContextForPrompt(context) {
     mainContainer.appendChild(floatingButtonContainer);
     const floatingButtonRoot = createRoot(floatingButtonContainer);
     floatingButtonRoot.render(<FloatingButton onClick={openPanels} />);
-  }, 1500);
+  }, 2500);
 
   console.log("[AI Context Vault] Initialization complete");
 })();
@@ -955,6 +955,7 @@ function openPanels() {
   if (!container) {
     container = document.createElement("div");
     container.id = "topic-node-tree-container";
+    container.style.pointerEvents = "auto";
     mainContainer.appendChild(container);
   }
 
@@ -963,6 +964,7 @@ function openPanels() {
   if (!toneStyleContainer) {
     toneStyleContainer = document.createElement("div");
     toneStyleContainer.id = "tone-style-container";
+    toneStyleContainer.style.pointerEvents = "auto";
     mainContainer.appendChild(toneStyleContainer);
   }
 
@@ -1124,6 +1126,7 @@ function setupKeyboardShortcuts() {
  */
 async function toggleOverlay() {
   const panel = await ensureOverlayExists();
+  panel.style.pointerEvents = "auto";
 
   // Ensure settings cog is present
   let settingsCog = document.getElementById("__ai_context_settings_cog__");
@@ -1405,74 +1408,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   }
   if (message.type === "TOGGLE_OVERLAY") {
     console.log("[AI Context Vault] Toggling overlay visibility");
-    toggleOverlay();
-
-    // Create container for topic node tree if it doesn't exist
-    let container = document.getElementById("topic-node-tree-container");
-    if (!container) {
-      container = document.createElement("div");
-      container.id = "topic-node-tree-container";
-      mainContainer.appendChild(container);
-    }
-
-    // Create container for tone and style selector if it doesn't exist
-    let toneStyleContainer = document.getElementById("tone-style-container");
-    if (!toneStyleContainer) {
-      toneStyleContainer = document.createElement("div");
-      toneStyleContainer.id = "tone-style-container";
-      mainContainer.appendChild(toneStyleContainer);
-    }
-
-    // Create root and render TopicNodeTree
-    const root = createRoot(container);
-    console.log(
-      "[AI Context Vault] TopicNodeTree React root created, rendering..."
-    );
-
-    closeCategories = () => {
-      console.log("[AI Context Vault] Closing TopicNodeTree...");
-      root.unmount();
-      container.remove();
-    };
-
-    // Create root and render ToneStyleSelector
-    const toneStyleRoot = createRoot(toneStyleContainer);
-    toneStyleRoot.render(
-      <div
-        className="fixed inset-0 flex items-start justify-center z-50"
-        style={{
-          height: "1px",
-          pointerEvents: "none",
-        }}
-      >
-        <div
-          className="relative w-full max-w-4xl rounded-lg shadow-xl border border-[#23272f] bg-[#23272f]"
-          style={{
-            marginTop: "720px",
-            backgroundColor: "rgb(30, 30, 30)",
-            pointerEvents: "auto",
-          }}
-        >
-          <ToneStyleSelector onClose={closeAllPopups} />
-        </div>
-      </div>
-    );
-
-    closeToneStyle = () => {
-      console.log("[AI Context Vault] Closing ToneStyleSelector...");
-      toneStyleRoot.unmount();
-      toneStyleContainer.remove();
-    };
-
-    console.log("[AI Context Vault] Rendering TopicNodeTree component...");
-    try {
-      root.render(<TopicNodeTree onClose={closeAllPopups} />);
-      console.log(
-        "[AI Context Vault] TopicNodeTree component rendered successfully"
-      );
-    } catch (error) {
-      console.error("[AI Context Vault] Error rendering TopicNodeTree:", error);
-    }
+    openPanels();
   }
   if (message.type === "REFRESH_OVERLAY") {
     console.log("[AI Context Vault] Refreshing overlay content");

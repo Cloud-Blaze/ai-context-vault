@@ -1730,6 +1730,7 @@
   justify-content: center;
   overflow: hidden; /* To contain the pseudo-element */
   z-index: 2147483646; /* One less than main container to be safe */
+  box-shadow: 0 4px 12px rgba(128, 128, 128, 0.5); /* Added grey shadow */
 }
 
 .floating-action-button::before {
@@ -1751,7 +1752,8 @@
 }
 
 .floating-action-button-icon {
-  width: 65px;
-  height: 65px;
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
+  mix-blend-mode: multiply; /* This should make the white background of the image transparent */
 }

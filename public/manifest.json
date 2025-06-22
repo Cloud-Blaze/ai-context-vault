@@ -110,7 +110,8 @@
         "questions.json",
         "questions/*",
         "supercategories.json",
-        "icons/icon128.png"
+        "icons/ai-context-vault-transparent.png",
+        "icons/icon-grey-transparent.png"
       ],
       "matches": ["<all_urls>"]
     }
