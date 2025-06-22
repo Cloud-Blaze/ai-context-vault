@@ -18,9 +18,24 @@ import { ShadowDomWrapper } from "./shadowDomWrapper.js";
 import TopicNodeTree from "./components/TopicNodeTree";
 import ToneStyleSelector from "./components/ToneStyleSelector";
 import { createRoot } from "react-dom/client";
+import FloatingButton from "./components/FloatingButton";
 
 let closeCategories = () => {};
 let closeToneStyle = () => {};
+let contextPanel = null;
+let lastRefresh = 0;
+
+// Create a main container for all UI elements
+const mainContainer = document.createElement("div");
+mainContainer.id = "__ai_context_vault_main_container__";
+mainContainer.style.position = "fixed";
+mainContainer.style.top = "0";
+mainContainer.style.left = "0";
+mainContainer.style.width = "100vw";
+mainContainer.style.height = "100vh";
+mainContainer.style.zIndex = "2147483647";
+mainContainer.style.pointerEvents = "none";
+document.body.appendChild(mainContainer);
 
 function closeAllPopups() {
   // Hide overlay
@@ -80,6 +95,16 @@ function formatContextForPrompt(context) {
   // Ensure the overlay element exists in the DOM
   await ensureOverlayExists();
 
+  window.setTimeout(function () {
+    // Add a container for the floating button and render it
+    const floatingButtonContainer = document.createElement("div");
+    floatingButtonContainer.id = "floating-button-container";
+    floatingButtonContainer.style.pointerEvents = "auto";
+    mainContainer.appendChild(floatingButtonContainer);
+    const floatingButtonRoot = createRoot(floatingButtonContainer);
+    floatingButtonRoot.render(<FloatingButton onClick={openPanels} />);
+  }, 1500);
+
   console.log("[AI Context Vault] Initialization complete");
 })();
 
@@ -121,7 +146,7 @@ async function ensureOverlayExists() {
     overlayPanel.appendChild(header);
     overlayPanel.appendChild(content);
 
-    document.body.appendChild(overlayPanel);
+    mainContainer.appendChild(overlayPanel);
 
     console.log("[AI Context Vault] Created overlay element and added to DOM");
 
@@ -922,6 +947,79 @@ function generateSimpleSelector(el) {
   return `${tag}:contains("${text}")`;
 }
 
+function openPanels() {
+  toggleOverlay();
+
+  // Create container for topic node tree if it doesn't exist
+  let container = document.getElementById("topic-node-tree-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "topic-node-tree-container";
+    mainContainer.appendChild(container);
+  }
+
+  // Create container for tone and style selector if it doesn't exist
+  let toneStyleContainer = document.getElementById("tone-style-container");
+  if (!toneStyleContainer) {
+    toneStyleContainer = document.createElement("div");
+    toneStyleContainer.id = "tone-style-container";
+    mainContainer.appendChild(toneStyleContainer);
+  }
+
+  // Create root and render TopicNodeTree
+  const root = createRoot(container);
+  console.log(
+    "[AI Context Vault] TopicNodeTree React root created, rendering..."
+  );
+
+  closeCategories = () => {
+    console.log("[AI Context Vault] Closing TopicNodeTree...");
+    root.unmount();
+    container.remove();
+  };
+
+  // Create root and render ToneStyleSelector
+  const toneStyleRoot = createRoot(toneStyleContainer);
+  toneStyleRoot.render(
+    <div
+      className="fixed inset-0 flex items-start justify-center z-50"
+      style={{
+        height: "1px",
+        pointerEvents: "none",
+      }}
+    >
+      <div
+        className="relative w-full max-w-4xl rounded-lg shadow-xl border border-[#23272f] bg-[#23272f]"
+        style={{
+          marginTop: "720px",
+          backgroundColor: "rgb(30, 30, 30)",
+          pointerEvents: "auto",
+        }}
+      >
+        <ToneStyleSelector onClose={closeAllPopups} />
+      </div>
+    </div>
+  );
+
+  closeToneStyle = () => {
+    console.log("[AI Context Vault] Closing ToneStyleSelector...");
+    toneStyleRoot.unmount();
+    toneStyleContainer.remove();
+  };
+
+  console.log("[AI Context Vault] Rendering TopicNodeTree component...");
+  try {
+    root.render(
+      <TopicNodeTree onClose={closeAllPopups} closeToneStyle={closeToneStyle} />
+    );
+    console.log(
+      "[AI Context Vault] TopicNodeTree component rendered successfully"
+    );
+  } catch (error) {
+    console.error("[AI Context Vault] Error rendering TopicNodeTree:", error);
+  }
+}
+
 /**
  * Set up keyboard shortcuts. Note the special capturing approach for CMD+ENTER/CTRL+ENTER.
  */
@@ -1014,84 +1112,7 @@ function setupKeyboardShortcuts() {
       // CMD+J or CTRL+J to toggle overlay and show topic node tree
       if ((event.metaKey || event.ctrlKey) && event.key === "j") {
         event.preventDefault();
-        toggleOverlay();
-
-        // Create container for topic node tree if it doesn't exist
-        let container = document.getElementById("topic-node-tree-container");
-        if (!container) {
-          container = document.createElement("div");
-          container.id = "topic-node-tree-container";
-          document.body.appendChild(container);
-        }
-
-        // Create container for tone and style selector if it doesn't exist
-        let toneStyleContainer = document.getElementById(
-          "tone-style-container"
-        );
-        if (!toneStyleContainer) {
-          toneStyleContainer = document.createElement("div");
-          toneStyleContainer.id = "tone-style-container";
-          document.body.appendChild(toneStyleContainer);
-        }
-
-        // Create root and render TopicNodeTree
-        const root = createRoot(container);
-        console.log(
-          "[AI Context Vault] TopicNodeTree React root created, rendering..."
-        );
-
-        closeCategories = () => {
-          console.log("[AI Context Vault] Closing TopicNodeTree...");
-          root.unmount();
-          container.remove();
-        };
-
-        // Create root and render ToneStyleSelector
-        const toneStyleRoot = createRoot(toneStyleContainer);
-        toneStyleRoot.render(
-          <div
-            className="fixed inset-0 flex items-start justify-center z-50"
-            style={{
-              height: "1px",
-              pointerEvents: "none",
-            }}
-          >
-            <div
-              className="relative w-full max-w-4xl rounded-lg shadow-xl border border-[#23272f] bg-[#23272f]"
-              style={{
-                marginTop: "720px",
-                backgroundColor: "rgb(30, 30, 30)",
-                pointerEvents: "auto",
-              }}
-            >
-              <ToneStyleSelector onClose={closeAllPopups} />
-            </div>
-          </div>
-        );
-
-        closeToneStyle = () => {
-          console.log("[AI Context Vault] Closing ToneStyleSelector...");
-          toneStyleRoot.unmount();
-          toneStyleContainer.remove();
-        };
-
-        console.log("[AI Context Vault] Rendering TopicNodeTree component...");
-        try {
-          root.render(
-            <TopicNodeTree
-              onClose={closeAllPopups}
-              closeToneStyle={closeToneStyle}
-            />
-          );
-          console.log(
-            "[AI Context Vault] TopicNodeTree component rendered successfully"
-          );
-        } catch (error) {
-          console.error(
-            "[AI Context Vault] Error rendering TopicNodeTree:",
-            error
-          );
-        }
+        openPanels();
       }
     },
     true // Capture phase
@@ -1391,7 +1412,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (!container) {
       container = document.createElement("div");
       container.id = "topic-node-tree-container";
-      document.body.appendChild(container);
+      mainContainer.appendChild(container);
     }
 
     // Create container for tone and style selector if it doesn't exist
@@ -1399,7 +1420,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (!toneStyleContainer) {
       toneStyleContainer = document.createElement("div");
       toneStyleContainer.id = "tone-style-container";
-      document.body.appendChild(toneStyleContainer);
+      mainContainer.appendChild(toneStyleContainer);
     }
 
     // Create root and render TopicNodeTree
