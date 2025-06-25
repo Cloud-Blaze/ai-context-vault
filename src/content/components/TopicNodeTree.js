@@ -668,7 +668,7 @@ const TopicNodeTree = ({ onClose, closeToneStyle }) => {
               ref={superCategoriesRef}
               onScroll={handleSuperCategoriesScroll}
               className="w-full z-20 overflow-x-auto overflow-y-hidden border-t border-b border-[#333]"
-              style={{ height: "106px", backgroundColor: "rgb(30, 30, 30)" }}
+              style={{ height: "121px", backgroundColor: "rgb(30, 30, 30)" }}
             >
               <div className="flex flex-col h-full px-4">
                 {/* Search Input */}
