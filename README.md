@@ -6,15 +6,15 @@
 
 # [⚙️ Install via chrome store](https://chromewebstore.google.com/detail/ai-context-vault/balcaimgdkponcdafglemogmplcbflfn)
 
->> ## 👷 A [CloudBlaze.AI](https://cloudblaze.ai) Creation
->> ## 🌍 [https://aicontextvault.com](https://aicontextvault.com)
+> > ## 👷 A [CloudBlaze.AI](https://cloudblaze.ai) Creation
+> >
+> > ## 🌍 [https://aicontextvault.com](https://aicontextvault.com)
 
 ---
 
 ## 📹 Learn More By Watching
 
 [![Watch the Demo](https://img.youtube.com/vi/ZIPAgmuEVTU/0.jpg)](https://www.youtube.com/watch?v=ZIPAgmuEVTU)
-
 
 ## Mission & Vision: Empower Your Mind, Safeguard Your Narrative
 
@@ -73,17 +73,45 @@ Every highlight, bookmark, or annotation restores your narrative power and ensur
 
 ### ✨ Core Features
 
-- **Context Saving (Hotkey: CTRL/CMD+I):**  
-  Capture selected text from any AI chat and securely store it, tied to the chat’s unique URL.
+### 🔹 Context Saving (Hotkey: CTRL/CMD+I):
 
-- **Context Management UI (Hotkey: CTRL/CMD+J):**  
-  A floating overlay enables you to view, edit, and delete context entries, along with managing bookmarks in one place.
+Capture selected text from any AI chat and securely store it, tied to the chat’s unique URL.
 
-- **Bookmarks (Hotkey: CTRL/CMD+B):**  
-  Save key parts of your conversation with detailed anchors, editable labels, and timestamps. Your bookmarks sync seamlessly via GitHub Gist.
+### 🔹 Context Management UI (or new button in corner) (Hotkey: CTRL/CMD+J):
 
-- **GitHub Gist Sync:**  
-  Automatically back up and sync your saved context and bookmarks across all devices using a personal access token (PAT) with gist scope.
+A floating overlay enables you to view, edit, and delete context entries, along with managing bookmarks in one place.
+
+### 🔹 Bookmarks (Hotkey: CTRL/CMD+B):
+
+Save key parts of your conversation with detailed anchors, editable labels, and timestamps. Your bookmarks sync seamlessly via GitHub Gist.
+
+### 🔹 GitHub Gist Sync:
+
+Automatically back up and sync your saved context and bookmarks across all devices using a personal access token (PAT) with gist scope.
+
+### 🔹 Bookmarks (CMD/CTRL+B)
+
+Highlight and label important chat replies. Bookmarks stay visible across sessions.
+
+### 🔹 Persona Profile (New)
+
+Define a **global system prompt**—like “You are a startup growth hacker AI”—that is injected into every chat. (with ALT+ENTER)  
+Set it once from the Options page. Active until changed.
+
+### 🔹 Language Mode (New)
+
+Tell the AI how to respond: English, French, Hindi, Japanese, etc.  
+Language preference is injected along with context.
+
+### 🔹 Tone of response and writing style
+
+A simple tool that builds the sentence for how you want your AI to respond.
+
+### 🔹 Prompt Explorer (New)
+
+Instant access to 150,000+ categorized prompts.  
+Dive into any field (e.g. Design → UX → Mobile UI Audits) with one click.  
+Perfect for learning workflows, getting unstuck, or teaching AI new tricks.
 
 ---
 
