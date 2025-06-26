@@ -1,7 +1,7 @@
 {
   "name": "AI Context Vault",
   "description": "Injects saved memory into AI chats 🧠. Bookmarks, context snippets, encrypted Gist sync. More tools coming soon 🚀",
-  "version": "1.0.38",
+  "version": "1.0.39",
   "manifest_version": 3,
   "permissions": [
     "storage",
