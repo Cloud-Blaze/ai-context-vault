@@ -1,6 +1,6 @@
 # 🚀 AI Context Vault (Chrome Extension)
 
-> _A browser extension to manage, store, and inject custom context into AI chat interfaces (ChatGPT, Claude, DeepSeek Web, etc.). Built for productivity, clarity._
+> _AI Context Vault is your personal memory layer for AI chats—capture, organize, and sync important context, bookmarks, and personas across every LLM you use. It adds hotkey-driven tools, GitHub Gist syncing, and 150K+ prompts to supercharge your workflows. Like sticky notes, system prompts, and a prompt library—all wired into your browser._
 
 ---
 
@@ -15,6 +15,52 @@
 ## 📹 Learn More By Watching
 
 [![Watch the Demo](https://img.youtube.com/vi/ZIPAgmuEVTU/0.jpg)](https://www.youtube.com/watch?v=ZIPAgmuEVTU)
+
+---
+
+## 🎛️ Key Features & Behaviors
+
+### ✨ Core Features
+
+### 🔹 Context Saving (Hotkey: CTRL/CMD+I):
+
+Capture selected text from any AI chat and securely store it, tied to the chat’s unique URL.
+
+### 🔹 Context Management UI (or new button in corner) (Hotkey: CTRL/CMD+J):
+
+A floating overlay enables you to view, edit, and delete context entries, along with managing bookmarks in one place.
+
+### 🔹 Bookmarks (Hotkey: CTRL/CMD+B):
+
+Save key parts of your conversation with detailed anchors, editable labels, and timestamps. Your bookmarks sync seamlessly via GitHub Gist.
+
+### 🔹 GitHub Gist Sync:
+
+Automatically back up and sync your saved context and bookmarks across all devices using a personal access token (PAT) with gist scope.
+
+### 🔹 Bookmarks (CMD/CTRL+B)
+
+Highlight and label important chat replies. Bookmarks stay visible across sessions.
+
+### 🔹 Persona Profile (New)
+
+Define a **global system prompt**—like “You are a startup growth hacker AI”—that is injected into every chat. (with ALT+ENTER)  
+Set it once from the Options page. Active until changed.
+
+### 🔹 Language Mode (New)
+
+Tell the AI how to respond: English, French, Hindi, Japanese, etc.  
+Language preference is injected along with context.
+
+### 🔹 Tone of response and writing style
+
+A simple tool that builds the sentence for how you want your AI to respond.
+
+### 🔹 Prompt Explorer (New)
+
+Instant access to 150,000+ categorized prompts.  
+Dive into any field (e.g. Design → UX → Mobile UI Audits) with one click.  
+Perfect for learning workflows, getting unstuck, or teaching AI new tricks.
 
 ## Mission & Vision: Empower Your Mind, Safeguard Your Narrative
 
@@ -66,52 +112,6 @@ AI Context Vault was created to help you:
 > Save what the machine was never designed to hold.
 
 Every highlight, bookmark, or annotation restores your narrative power and ensures that even in moments of vulnerability, your insights remain yours alone.
-
----
-
-## 🎛️ Key Features & Behaviors
-
-### ✨ Core Features
-
-### 🔹 Context Saving (Hotkey: CTRL/CMD+I):
-
-Capture selected text from any AI chat and securely store it, tied to the chat’s unique URL.
-
-### 🔹 Context Management UI (or new button in corner) (Hotkey: CTRL/CMD+J):
-
-A floating overlay enables you to view, edit, and delete context entries, along with managing bookmarks in one place.
-
-### 🔹 Bookmarks (Hotkey: CTRL/CMD+B):
-
-Save key parts of your conversation with detailed anchors, editable labels, and timestamps. Your bookmarks sync seamlessly via GitHub Gist.
-
-### 🔹 GitHub Gist Sync:
-
-Automatically back up and sync your saved context and bookmarks across all devices using a personal access token (PAT) with gist scope.
-
-### 🔹 Bookmarks (CMD/CTRL+B)
-
-Highlight and label important chat replies. Bookmarks stay visible across sessions.
-
-### 🔹 Persona Profile (New)
-
-Define a **global system prompt**—like “You are a startup growth hacker AI”—that is injected into every chat. (with ALT+ENTER)  
-Set it once from the Options page. Active until changed.
-
-### 🔹 Language Mode (New)
-
-Tell the AI how to respond: English, French, Hindi, Japanese, etc.  
-Language preference is injected along with context.
-
-### 🔹 Tone of response and writing style
-
-A simple tool that builds the sentence for how you want your AI to respond.
-
-### 🔹 Prompt Explorer (New)
-
-Instant access to 150,000+ categorized prompts.  
-Dive into any field (e.g. Design → UX → Mobile UI Audits) with one click.  
-Perfect for learning workflows, getting unstuck, or teaching AI new tricks.
 
 ---
 
