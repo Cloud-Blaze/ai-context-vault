@@ -1,6 +1,6 @@
 # 🚀 AI Context Vault (Chrome Extension)
 
-> _A browser extension to manage, store, and inject custom context into AI chat interfaces (ChatGPT, Claude, DeepSeek Web, etc.). Built for productivity, clarity, and protecting your mental well-being._
+> _A browser extension to manage, store, and inject custom context into AI chat interfaces (ChatGPT, Claude, DeepSeek Web, etc.). Built for productivity, clarity._
 
 ---
 
