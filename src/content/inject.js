@@ -11,6 +11,12 @@ import {
   saveContext,
   getContextKey,
   getTemplate,
+  getProfiles,
+  getCurrentProfileSelected,
+  addContext,
+  deleteContext,
+  updateContext,
+  addBookmark,
 } from "../storage/contextStorage.js";
 import { GodModeStorage } from "../services/godModeStorage.js";
 import React from "react";
@@ -422,13 +428,11 @@ async function refreshOverlayContent(overlayPanel) {
           domain,
           chatId,
           async (text) => {
-            const storage = await import("../storage/contextStorage.js");
-            await storage.deleteContext(domain, chatId, entry.id);
+            await deleteContext(domain, chatId, entry.id);
             await refreshOverlayContent(overlayPanel);
           },
           async (id, newLabel) => {
-            const storage = await import("../storage/contextStorage.js");
-            await storage.updateContext(domain, chatId, entry.text, newLabel);
+            await updateContext(domain, chatId, entry.text, newLabel);
             await refreshOverlayContent(overlayPanel);
           }
         );
@@ -644,8 +648,7 @@ async function refreshOverlayContent(overlayPanel) {
                 );
                 return;
               }
-              const storage = await import("../storage/contextStorage");
-              await storage.addContext(domain, chatId, textToAdd);
+              await addContext(domain, chatId, textToAdd);
               const bubble = document.createElement("div");
               bubble.textContent = "Added to context!";
               Object.assign(bubble.style, {
@@ -889,8 +892,7 @@ function createContextEntry(entry, domain, chatId, onDelete, onUpdate) {
         const newText = editTextarea.value.trim();
         if (newText && newText !== entry.text) {
           try {
-            const storage = await import("../storage/contextStorage.js");
-            await storage.updateContext(domain, chatId, entry.text, newText);
+            await updateContext(domain, chatId, entry.text, newText);
             entry.text = newText;
             text.textContent = newText;
             showConfirmationBubble("Context updated successfully", "success");
@@ -1065,7 +1067,6 @@ function setupKeyboardShortcuts() {
         // Attempt to create a unique selector
         const selector = generateSimpleSelector(node);
 
-        const { addBookmark } = await import("../storage/contextStorage.js");
         await addBookmark(domain, chatId, label, selector, fallbackText);
         showConfirmationBubble("🔖 Bookmark added", "success");
 
@@ -1259,10 +1260,9 @@ export async function injectTextIntoTextarea(
   // Inject active profile context if selected
   let finalText = text;
   try {
-    const storage = await import("../storage/contextStorage.js");
-    const selectedAlias = await storage.getCurrentProfileSelected();
+    const selectedAlias = await getCurrentProfileSelected();
     if (selectedAlias) {
-      const profiles = await storage.getProfiles();
+      const profiles = await getProfiles();
       const profile = profiles.find((p) => p.alias === selectedAlias);
       if (profile && profile.prompt) {
         finalText = `${profile.prompt}\n\n` + text;
@@ -1342,15 +1342,19 @@ async function injectContextIntoTextarea(shouldSendAfterInjection = false) {
   const { domain, chatId } = parseUrlForIds(window.location.href);
   const contextData = await getContext(domain, chatId);
   const formattedContext = formatContextForPrompt(contextData);
-  const selectedAlias = await storage.getCurrentProfileSelected();
   let hasSelectedProfileOnly = false;
   let hasSelectedProfile = false;
-  if (selectedAlias) {
-    const profiles = await storage.getProfiles();
-    const profile = profiles.find((p) => p.alias === selectedAlias);
-    if (profile && profile.prompt) {
-      hasSelectedProfile = true;
+  try {
+    const selectedAlias = await getCurrentProfileSelected();
+    if (selectedAlias) {
+      const profiles = await getProfiles();
+      const profile = profiles.find((p) => p.alias === selectedAlias);
+      if (profile && profile.prompt) {
+        hasSelectedProfile = true;
+      }
     }
+  } catch (e) {
+    console.error("[AI Context Vault] Failed to inject profile context:", e);
   }
 
   if (!formattedContext && !hasSelectedProfile) {
@@ -1423,7 +1427,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 /**
  * Save the selected text to the context.
  */
-function handleSaveSelectedContext() {
+async function handleSaveSelectedContext() {
   console.log("[AI Context Vault] Handling text selection...");
 
   // First check if we have a textarea selection
@@ -1466,19 +1470,17 @@ function handleSaveSelectedContext() {
       selectedText.substring(0, 30) + "..."
     );
     const { domain, chatId } = parseUrlForIds(window.location.href);
-    import("../storage/contextStorage.js").then(async (storage) => {
-      await storage.addContext(domain, chatId, selectedText);
-      showConfirmationBubble(
-        "Added to Context: " + selectedText.substring(0, 30) + "...",
-        "success"
-      );
+    await addContext(domain, chatId, selectedText);
+    showConfirmationBubble(
+      "Added to Context: " + selectedText.substring(0, 30) + "...",
+      "success"
+    );
 
-      // Trigger a custom event to notify the overlay to refresh
-      const event = new CustomEvent("ai-context-updated", {
-        detail: { domain, chatId },
-      });
-      document.dispatchEvent(event);
+    // Trigger a custom event to notify the overlay to refresh
+    const event = new CustomEvent("ai-context-updated", {
+      detail: { domain, chatId },
     });
+    document.dispatchEvent(event);
   } else {
     console.log("[AI Context Vault] No text selected to save");
     showConfirmationBubble("No text selected to save", "warning");
