@@ -3,17 +3,12 @@
   "description": "Injects saved memory into AI chats 🧠. Bookmarks, context snippets, encrypted Gist sync. More tools coming soon 🚀",
   "version": "1.0.40",
   "manifest_version": 3,
-  "permissions": [
-    "storage",
-    "activeTab",
-    "background"
-  ],
+  "permissions": ["storage", "activeTab", "background"],
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
   },
   "host_permissions": [
-    "http://localhost/*",
     "https://chat.openai.com/*",
     "https://claude.ai/*",
     "https://chatgpt.com/*",
@@ -60,7 +55,6 @@
   "content_scripts": [
     {
       "matches": [
-        "http://localhost/*",
         "https://chat.openai.com/*",
         "https://claude.ai/*",
         "https://chatgpt.com/*",
@@ -92,12 +86,8 @@
         "https://chat.together.ai/*",
         "https://dust.tt/*"
       ],
-      "js": [
-        "inject.bundle.js"
-      ],
-      "css": [
-        "inject.css"
-      ]
+      "js": ["inject.bundle.js"],
+      "css": ["inject.css"]
     }
   ],
   "commands": {
@@ -127,9 +117,7 @@
         "icons/ai-context-vault-transparent.png",
         "icons/icon-grey-transparent.png"
       ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "matches": ["<all_urls>"]
     }
   ],
   "icons": {
